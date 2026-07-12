@@ -1,0 +1,58 @@
+[
+{
+"id": "holes",
+"title": "Holes",
+"author": "Louis Sachar",
+"chapters": 50,
+"words": 47088
+},
+{
+"id": "hp1",
+"title": "Harry Potter and the Sorcerer's Stone",
+"author": "J.K. Rowling",
+"chapters": 17,
+"words": 79343
+},
+{
+"id": "hp2",
+"title": "Harry Potter and the Chamber of Secrets",
+"author": "J.K. Rowling",
+"chapters": 18,
+"words": 87571
+},
+{
+"id": "hp3",
+"title": "Harry Potter and the Prisoner of Azkaban",
+"author": "J.K. Rowling",
+"chapters": 22,
+"words": 111395
+},
+{
+"id": "hp4",
+"title": "Harry Potter and the Goblet of Fire",
+"author": "J.K. Rowling",
+"chapters": 37,
+"words": 198102
+},
+{
+"id": "hp5",
+"title": "Harry Potter and the Order of the Phoenix",
+"author": "J.K. Rowling",
+"chapters": 38,
+"words": 266135
+},
+{
+"id": "hp6",
+"title": "Harry Potter and the Half-Blood Prince",
+"author": "J.K. Rowling",
+"chapters": 30,
+"words": 174670
+},
+{
+"id": "hp7",
+"title": "Harry Potter and the Deathly Hallows",
+"author": "J.K. Rowling",
+"chapters": 37,
+"words": 202495
+}
+]
