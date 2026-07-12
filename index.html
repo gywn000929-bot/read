@@ -253,7 +253,8 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .wrap{grid-template-columns:1fr}
   .iconbtn{display:flex}
   aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100vh;
-    transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow);padding-top:18px}
+    transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow);
+    padding-top:calc(var(--mh,64px) + 16px)}
   body.drawer aside{transform:translateX(0)}
   body.drawer #overlay{display:block}
   .nav .label{display:none}
@@ -275,7 +276,8 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .fcard{padding:38px 18px}
   .chap-nav button{max-width:none}
 }
-.bookswitch{margin-bottom:12px}
+.bookswitch{margin-bottom:14px}
+.bookswitch .bw-lbl{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.6px;margin:0 2px 6px}
 .bookswitch select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:11px;
   background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:600;font-family:var(--sans);
   outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;
@@ -470,6 +472,7 @@ function renderSidebar(){
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
   let html=`<div class="bookswitch">
+    <div class="bw-lbl">📚 책 선택 · Book</div>
     <select id="bookSel" aria-label="책 선택">${MANIFEST.map(m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}</option>`).join('')}</select>
   </div>
   <div class="bookcard">
@@ -840,10 +843,16 @@ function bindChrome(){
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
+function setMastheadVar(){
+  const m=document.querySelector('header.masthead');
+  if(m) document.documentElement.style.setProperty('--mh', m.offsetHeight+'px');
+}
+window.addEventListener('resize', setMastheadVar);
+window.addEventListener('orientationchange', ()=>setTimeout(setMastheadVar,200));
 
 /* ============ Init ============ */
 async function init(){
-  applyTheme(); bindChrome();
+  applyTheme(); bindChrome(); setMastheadVar();
   $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…</p></div>';
   try{ const r=await fetch('books/manifest.json'); MANIFEST=await r.json(); }
   catch(e){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열어주세요.</p></div>'; return; }
