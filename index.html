@@ -1181,6 +1181,28 @@ async function restoreBackup(data,quiet){
 }
 
 /* Firebase 콘솔 코드를 통째로 붙여넣어도 되게 — import 문·주석이 섞여 있어도 설정만 뽑는다 */
+/* Firebase 오류를 '무엇을 해야 하는지'로 옮긴다 */
+function fbErrText(e){
+  const c=(e&&(e.code||e.message)||'')+'';
+  if(c.includes('storage/unauthorized')||c.includes('403'))
+    return 'Storage 규칙이 막고 있어요 — Storage → Rules 에 규칙을 게시했는지 확인해 주세요';
+  if(c.includes('storage/unauthenticated'))
+    return '로그인이 풀렸어요 — 다시 로그인해 주세요';
+  if(c.includes('storage/object-not-found'))
+    return '아직 올려둔 백업이 없어요';
+  if(c.includes('storage/bucket-not-found')||c.includes('storage/project-not-found')||c.includes('404'))
+    return 'Storage 가 아직 만들어지지 않았어요 — Firebase 콘솔에서 Storage → 시작하기를 먼저 해주세요';
+  if(c.includes('storage/quota-exceeded'))
+    return '저장 용량 한도를 넘었어요';
+  if(c.includes('storage/retry-limit-exceeded')||c.includes('network'))
+    return '네트워크가 불안정해요 — 잠시 후 다시 시도해 주세요';
+  if(c.includes('auth/unauthorized-domain'))
+    return '승인된 도메인에 gywn000929-bot.github.io 를 추가해 주세요';
+  if(c.includes('auth/operation-not-allowed'))
+    return 'Authentication → 로그인 방법에서 Google 을 사용 설정해 주세요';
+  return (e&&(e.code||e.message))? String(e.code||e.message).slice(0,90) : '알 수 없는 오류';
+}
+
 function parseFbConfig(text){
   let t=String(text||'').trim();
   if(!t) throw new Error('설정을 붙여넣어 주세요');
@@ -1216,6 +1238,7 @@ function renderCloudBox(){
   } else {
     html+=`<div class="crow"><span class="dot on"></span>
       <span class="cst"><b>${esc(user.email||user.displayName||'로그인됨')}</b>${when?` · 마지막 저장 ${esc(when)}`:''}</span></div>
+      ${fbErr?`<div class="cst" style="color:var(--bad);margin-top:7px">⚠️ ${esc(fbErr)}</div>`:''}
       <div class="crow" style="margin-top:8px">
         <button id="fbUp">지금 올리기</button>
         <button id="fbDown">지금 내려받기</button>
@@ -1236,13 +1259,16 @@ function renderCloudBox(){
   on('fbIn',cloudSignIn);
   on('fbOut',async()=>{ await cloudSignOut(); renderCloudBox(); });
   on('fbClear',()=>{ fbSetConfig(null); toast('설정을 지웠어요'); renderCloudBox(); });
-  on('fbUp',async()=>{ try{ await cloudPush(); toast('올렸어요'); renderCloudBox(); }
-                       catch(e){ toast('올리지 못했어요'); } });
+  on('fbUp',async()=>{
+    try{ fbErr=''; await cloudPush(); toast('올렸어요'); }
+    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); }
+    renderCloudBox();
+  });
   on('fbDown',async()=>{
-    try{ const d=await cloudPull();
-      if(!d) return toast('클라우드에 백업이 없어요');
+    try{ fbErr=''; const d=await cloudPull();
+      if(!d) throw new Error('storage/object-not-found');
       await restoreBackup(d); }
-    catch(e){ toast('내려받지 못했어요'); }
+    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); }
   });
   if(cfg&&!fb) fbInit().then(()=>renderCloudBox()).catch(()=>{});
 }
@@ -1326,7 +1352,7 @@ async function onCloudUser(u){
     await cloudPush();
     toast('클라우드 백업 연결됨');
     setNav(); renderSidebar(); renderMain(); renderCloudBox();
-  }catch(e){ console.error(e); toast('클라우드 동기화에 실패했어요'); }
+  }catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); }
   finally{ fbBusy=false; }
 }
 addEventListener('pagehide',()=>{ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } });
