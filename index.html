@@ -1176,8 +1176,8 @@ async function restoreBackup(data,quiet){
     toast(`복원 완료 — 책 ${added}권 추가${dup?`, ${dup}권은 이미 있음`:''}`);
   }
   if(added) logEvent('📥','백업 불러오기 — 책 '+added+'권 추가');
-  if(!MANIFEST.find(m=>m.id===S.bookId)) await switchBook(MANIFEST[0].id);
-  else { setNav(); renderSidebar(); renderMain(); }
+  if(MANIFEST.find(m=>m.id===S.bookId)){ setNav(); renderSidebar(); renderMain(); }
+  else if(MANIFEST.length) await switchBook(MANIFEST[0].id);
 }
 
 /* Firebase 콘솔 코드를 통째로 붙여넣어도 되게 — import 문·주석이 섞여 있어도 설정만 뽑는다 */
@@ -1284,6 +1284,7 @@ const FB_KEY='bookstudy_fb';
 /* 11.x 이상이어야 .firebasestorage.app 형식 버킷을 제대로 다룬다 (10.12 는 그 이전 버전) */
 const FB_SDK='https://www.gstatic.com/firebasejs/11.9.0/';
 let fb=null, fbBusy=false, pushTimer=null, fbErr='';
+let appReady=false, lastSync=0, cloudManual=false;
 
 function fbConfig(){ try{ return JSON.parse(localStorage.getItem(FB_KEY)||'null'); }catch(e){ return null; } }
 function fbSetConfig(c){ if(c) localStorage.setItem(FB_KEY,JSON.stringify(c)); else localStorage.removeItem(FB_KEY); fb=null; }
@@ -1313,6 +1314,7 @@ async function fbInit(){
 const cloudPath=u=>`backups/${u.uid}/library.json`;
 
 async function cloudSignIn(){
+  cloudManual=true;
   const f=await fbInit();
   if(!f){ toast(fbErr||'먼저 Firebase 설정을 넣어주세요'); return; }
   const prov=new f.U.GoogleAuthProvider();
@@ -1327,6 +1329,7 @@ async function cloudSignOut(){ const f=await fbInit(); if(f) try{ await f.U.sign
 
 async function cloudPush(){
   const f=await fbInit(); if(!f||!f.user) return false;
+  clearTimeout(pushTimer);            // 모아둔 예약분은 지금 올리는 것으로 대신한다
   const books=(await idbAll())||[];
   const st={...S}; delete st._q; delete st._part; delete st.cloudAt;
   const body=JSON.stringify({app:'bookstudy',kind:'backup',v:1,at:new Date().toISOString(),state:st,books});
@@ -1347,20 +1350,47 @@ function cloudTouch(){
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>cloudPush().catch(e=>console.error(e)),4000);
 }
-async function onCloudUser(u){
-  renderCloudBox();
-  if(!u||fbBusy) return;
+/* 클라우드와 한 번 맞춘다 — 내려받아 합친 뒤, 합친 결과를 다시 올린다.
+   합치는 규칙은 restoreBackup 과 같아서 어느 쪽 기기의 진도도 없어지지 않는다. */
+async function cloudSync(quiet){
+  const f=await fbInit().catch(()=>null);
+  if(!f||!f.user||fbBusy) return false;
+  if(!appReady) return false;                       // 목록이 아직 없으면 복원한 책을 열 수 없다
   fbBusy=true;
   try{
-    const remote=await cloudPull().catch(()=>null);   // 첫 사용이면 파일이 없다
+    const remote=await cloudPull().catch(()=>null);  // 첫 사용이면 파일이 없다
     if(remote&&remote.kind==='backup') await restoreBackup(remote,true);
     await cloudPush();
-    toast('클라우드 백업 연결됨');
+    lastSync=Date.now(); fbErr='';
+    if(!quiet) toast('클라우드 백업 연결됨');
     setNav(); renderSidebar(); renderMain(); renderCloudBox();
-  }catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); }
+    return true;
+  }catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); return false; }
   finally{ fbBusy=false; }
 }
-addEventListener('pagehide',()=>{ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } });
+async function onCloudUser(u){
+  renderCloudBox();
+  if(!u) return;
+  const manual=cloudManual; cloudManual=false;       // 방금 로그인 버튼을 눌렀을 때만 알린다
+  if(!manual&&Date.now()-lastSync<5000) return;      // 열자마자 맞춘 직후면 두 번 하지 않는다
+  cloudSync(!manual).catch(e=>console.error(e));
+}
+/* 앱을 열 때마다 알아서 이어 맞춘다 — 설정과 로그인이 남아 있으면 조용히 붙는다 */
+async function cloudBoot(){
+  appReady=true;
+  if(!fbConfig()) return;
+  const f=await fbInit().catch(()=>null);
+  // 로그인 상태를 아직 확인 중이면 onAuthStateChanged 가 이어서 맞춘다
+  if(f&&f.user) cloudSync(true).catch(e=>console.error(e));
+}
+/* 덮을 때는 모아둔 변경을 바로 올리고, 다시 열 때는 다른 기기의 변경을 받아온다.
+   pagehide 는 모바일에서 오지 않는 경우가 있어 visibilitychange 도 함께 본다. */
+function cloudFlush(){ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } }
+addEventListener('pagehide',cloudFlush);
+addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ cloudFlush(); return; }
+  if(fb&&fb.user&&Date.now()-lastSync>60000) cloudSync(true).catch(e=>console.error(e));
+});
 
 /* ---- 가져오기 UI ---- */
 let _imp=null;   // 방금 해석한 책 (저장 전)
@@ -1502,7 +1532,8 @@ async function init(){
   if(!chap(S.chapter)) S.chapter=curBook.chapters[0].n;
   setNav(); renderSidebar(); renderMain();
 }
-init();
+/* 화면이 준비된 다음에 클라우드를 붙인다 — 목록이 있어야 복원한 책을 열 수 있다 */
+init().finally(()=>cloudBoot());
 
 /* 오프라인 지원 — 홈 화면에 추가해 앱처럼 쓸 때 필요 */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
