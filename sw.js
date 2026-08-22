@@ -1,8 +1,11 @@
 /* Book Study 서비스 워커 — 앱 껍데기를 캐시해 오프라인에서도 읽을 수 있게 한다.
    책 본문(books/*.json)과 내가 넣은 책(IndexedDB)은 여기서 다루지 않는다. */
-const V = 'bookstudy-v1';
+const V = 'bookstudy-v2';
+/* index.html 은 일부러 미리 캐시하지 않는다.
+   설치 시점 화면이 그대로 굳어버려서 새 기능이 배포돼도 안 보이는 일이 생긴다.
+   페이지 이동은 네트워크 우선이고 성공한 응답을 그때 캐시하므로 오프라인도 그대로 동작한다. */
 const SHELL = [
-  './', './index.html', './manifest.webmanifest',
+  './manifest.webmanifest',
   './vendor/pdfjs/pdf.min.js', './vendor/pdfjs/pdf.worker.min.js',
   './books/manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-180.png'
