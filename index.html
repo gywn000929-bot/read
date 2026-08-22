@@ -219,6 +219,42 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .qresult{text-align:center;padding:30px 10px}
 .qresult .big{font-size:52px;font-weight:800;font-family:var(--serif);color:var(--accent)}
 
+/* Local import */
+.bw-add{width:100%;margin-top:7px;border:1px dashed var(--line);background:transparent;color:var(--sub);
+  border-radius:10px;padding:8px;font-size:12.5px;font-weight:600;transition:.12s}
+.bw-add:hover{border-color:var(--accent);color:var(--accent)}
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  padding:18px;background:rgba(20,16,10,.45);backdrop-filter:blur(2px)}
+.modal.show{display:flex}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  width:min(520px,100%);max-height:88vh;overflow-y:auto;padding:22px;animation:pop .16s ease}
+.sheet h3{font-family:var(--serif);font-size:21px;font-weight:800;margin:0 0 5px}
+.sheet .lead{color:var(--sub);font-size:13px;line-height:1.6;margin-bottom:16px}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;
+  color:var(--sub);font-size:13.5px;transition:.15s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.drop .di{font-size:30px;display:block;margin-bottom:7px}
+.drop .ds{display:block;font-size:11.5px;color:var(--faint);margin-top:5px}
+.fld{margin-top:12px}
+.fld label{display:block;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:5px}
+.fld input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
+.fld input:focus{outline:none;border-color:var(--accent)}
+.mrow{display:flex;gap:8px;margin-top:18px}
+.mrow .bigbtn{flex:1;text-align:center}
+.prog{margin-top:16px;font-size:13px;color:var(--sub)}
+.prog .pbar{height:6px;border-radius:4px;background:var(--line2);overflow:hidden;margin-top:8px}
+.prog .pbar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.locallist{margin-top:16px;padding-top:14px;border-top:1px solid var(--line2)}
+.locallist .li{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:7px 0}
+.locallist .li .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.locallist .li .m{font-size:11.5px;color:var(--faint);flex:none}
+.locallist .li button{border:1px solid var(--line);background:var(--surface);border-radius:8px;
+  padding:4px 9px;font-size:12px;color:var(--bad)}
+.note{font-size:12px;color:var(--faint);line-height:1.65;margin-top:16px;padding-top:13px;
+  border-top:1px solid var(--line2)}
+
 /* Settings menu */
 .setwrap{position:relative}
 .setmenu{position:absolute;right:0;top:calc(100% + 10px);width:264px;max-width:calc(100vw - 24px);
@@ -340,6 +376,7 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 <div id="overlay"></div>
 <div id="pop"></div>
 <div class="toast" id="toast"></div>
+<div class="modal" id="importModal"></div>
 
 <script>
 "use strict";
@@ -358,6 +395,10 @@ function load(){
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
 async function loadBook(id){
   if(bookCache[id]) return bookCache[id];
+  if(id.startsWith(LP)){
+    const b=await idbGet(id); if(!b) throw new Error('local missing');
+    bookCache[id]=b; return b;
+  }
   const r=await fetch('books/'+id+'.json'); if(!r.ok) throw new Error('load fail');
   const b=await r.json(); bookCache[id]=b; return b;
 }
@@ -473,7 +514,8 @@ function renderSidebar(){
   const pf=S._part||0;
   let html=`<div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
-    <select id="bookSel" aria-label="책 선택">${MANIFEST.map(m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}</option>`).join('')}</select>
+    <select id="bookSel" aria-label="책 선택">${MANIFEST.map(m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${m.local?'📂 ':''}${esc(m.title)}</option>`).join('')}</select>
+    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
   </div>
   <div class="bookcard">
     <div class="bt">${esc(b.title)}</div>
@@ -504,6 +546,7 @@ function renderSidebar(){
   $$('#sectfilter button').forEach(x=>x.addEventListener('click',()=>{ S._part=+x.dataset.p; renderSidebar(); }));
   $$('.artitem').forEach(x=>x.addEventListener('click',()=>{ openChapter(+x.dataset.ch); closeDrawer(); }));
   const bs=$('#bookSel'); if(bs) bs.addEventListener('change',e=>switchBook(e.target.value));
+  const bi=$('#btnImport'); if(bi) bi.addEventListener('click',()=>renderImport());
 }
 async function switchBook(id){
   if(id===S.bookId && curBook) return;
@@ -850,12 +893,306 @@ function setMastheadVar(){
 window.addEventListener('resize', setMastheadVar);
 window.addEventListener('orientationchange', ()=>setTimeout(setMastheadVar,200));
 
+/* ============ Local library (내 기기의 책) ============
+   사용자가 고른 파일은 브라우저 IndexedDB 에만 저장됩니다.
+   서버로 올라가거나 저장소(repo)에 커밋되지 않습니다. */
+const LP='local:';
+const IDB_NAME='bookstudy_local', IDB_STORE='books';
+function idb(){
+  return new Promise((res,rej)=>{
+    const q=indexedDB.open(IDB_NAME,1);
+    q.onupgradeneeded=()=>q.result.createObjectStore(IDB_STORE);
+    q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error);
+  });
+}
+async function idbRun(mode,fn){
+  const db=await idb();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(IDB_STORE,mode), r=fn(tx.objectStore(IDB_STORE));
+    tx.oncomplete=()=>res(r?r.result:undefined); tx.onerror=()=>rej(tx.error);
+  });
+}
+const idbPut=(k,v)=>idbRun('readwrite',st=>st.put(v,k));
+const idbGet=(k)=>idbRun('readonly',st=>st.get(k));
+const idbDel=(k)=>idbRun('readwrite',st=>st.delete(k));
+const idbAll=()=>idbRun('readonly',st=>st.getAll());
+async function localManifest(){
+  try{
+    return (await idbAll()||[]).map(b=>({id:b.id,title:b.title,author:b.author,
+      chapters:b.chapters.length,words:b.words||0,local:true}));
+  }catch(e){ return []; }
+}
+
+/* ---- pdf.js (필요할 때만 불러옴) ---- */
+const PDFJS='vendor/pdfjs/';   // 저장소에 포함 (Apache-2.0) — 오프라인에서도 동작
+let _pdfjs=null;
+function ensurePdfjs(){
+  if(_pdfjs) return _pdfjs;
+  _pdfjs=new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=PDFJS+'pdf.min.js';
+    s.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js'; res(window.pdfjsLib); };
+    s.onerror=()=>{ _pdfjs=null; rej(new Error('pdfjs load fail')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjs;
+}
+
+/* ---- 텍스트 → 책 구조 변환 ---- */
+const RX_CHAP=/^chapter\s+([0-9]+|[a-z]+(?:[\s-][a-z]+)?)\b\.?\s*(.*)$/i;
+const RX_PART=/^(?:part|book)\s+([0-9]+|[ivxlcdm]+)\b\.?\s*(.*)$/i;
+const RX_HEAD=/^(prologue|epilogue|preface|foreword|afterword|introduction|author'?s note)\b/i;
+const RX_NUM=/^([0-9]{1,3})$/;
+const RX_BREAK=/^[*#•·—–\-\s]{2,}$/;
+const ROMAN={i:1,ii:2,iii:3,iv:4,v:5,vi:6,vii:7,viii:8,ix:9,x:10,xi:11,xii:12,xiii:13,xiv:14,xv:15};
+function rnum(s){ s=String(s).toLowerCase(); return /^\d+$/.test(s)? +s : (ROMAN[s]||0); }
+/* 영어 숫자말 → 숫자 ("TWENTY-ONE" → 21). 많은 소설이 장 제목을 이렇게 씁니다. */
+const NWORD={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
+  eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
+  eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,
+  eighty:80,ninety:90,hundred:100};
+function wnum(s){
+  const ps=String(s).toLowerCase().trim().split(/[\s\-]+/).filter(Boolean);
+  if(!ps.length||ps.length>3||!ps.every(w=>NWORD[w]!==undefined)) return 0;
+  return ps.reduce((a,w)=>a+NWORD[w],0);
+}
+function cleanName(f){
+  return f.replace(/\.[a-z0-9]+$/i,'')
+    .replace(/\([^)]*(z-lib|1lib|library|libgen|anna)[^)]*\)/ig,'')
+    .replace(/[_]+/g,' ').replace(/\s{2,}/g,' ').replace(/[\s\-–—]+$/,'').trim();
+}
+
+async function pdfLines(file,prog){
+  const lib=await ensurePdfjs();
+  const pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+  const lines=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    const H=page.getViewport({scale:1}).height||1;
+    const tc=await page.getTextContent();
+    const rows=[];
+    tc.items.forEach(it=>{
+      const t=it.str; if(!t) return;
+      const x=it.transform[4], y=it.transform[5], w=it.width||0;
+      const h=Math.abs(it.transform[3])||Math.abs(it.transform[0])||0;
+      let r=rows.find(rr=>Math.abs(rr.y-y)<3);
+      if(!r){ rows.push({y,x0:x,x1:x+w,h,s:t}); return; }
+      if(x>r.x1+Math.max(1,r.h*0.2) && !/\s$/.test(r.s)) r.s+=' ';
+      r.s+=t; r.x0=Math.min(r.x0,x); r.x1=Math.max(r.x1,x+w); r.h=Math.max(r.h,h);
+    });
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>{
+      const s=r.s.replace(/\s+/g,' ').trim();
+      if(s) lines.push({s,x0:r.x0,x1:r.x1,h:r.h,yp:r.y/H,p});
+    });
+    if(p%4===0||p===pdf.numPages) prog(p,pdf.numPages);
+  }
+  return {lines,pages:pdf.numPages,hasFont:true};
+}
+function txtLines(text){
+  const lines=[];
+  text.split(/\r?\n/).forEach(raw=>{
+    const s=raw.replace(/\s+/g,' ').trim();
+    lines.push({s, x0:/^\s/.test(raw)?20:0, x1:s.length, h:0, yp:0, p:1});
+  });
+  return {lines,pages:1,hasFont:false};
+}
+
+/* 쪽번호·반복 머리말 제거 — 같은 높이(y)에 같은 모양으로 반복되는 줄만 지운다.
+   위치를 함께 보므로 본문 한가운데 있는 장 번호는 살아남는다. */
+function stripFurniture(lines,pages){
+  if(pages<4) return lines;
+  const key=l=>Math.round(l.yp*40)+'|'+l.s.replace(/\d+/g,'#').toLowerCase();
+  const cnt={};
+  lines.forEach(l=>{ if(l.s.length<70) cnt[key(l)]=(cnt[key(l)]||0)+1; });
+  const th=Math.max(4,pages*0.25);
+  return lines.filter(l=>l.s.length>=70||cnt[key(l)]<=th);
+}
+/* 목차(Contents) 쪽은 통째로 버린다 — 제목 같은 줄이 몰려 있는 쪽 */
+function dropTOC(lines){
+  const HEADISH=/^(chapter\s+[0-9a-z]+|part\s+[0-9ivxlcdm]+|prologue|epilogue|contents)\b/i;
+  const per={};
+  lines.forEach(l=>{ if(l.s.length<40&&HEADISH.test(l.s)) per[l.p]=(per[l.p]||0)+1; });
+  const toc=new Set(Object.keys(per).filter(p=>per[p]>=6).map(Number));
+  return toc.size? lines.filter(l=>!toc.has(l.p)) : lines;
+}
+function titleCase(s){
+  return s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase())
+    .replace(/\b(i{1,3}|iv|vi{0,3}|ix|xi{0,3})\b/gi,m=>m.toUpperCase())   // Part Ii → Part II
+    .replace(/\bMc([a-z])/g,(m,c)=>'Mc'+c.toUpperCase());                 // Mcfadden → McFadden
+}
+/* 첫 몇 쪽에서 가장 큰 글씨 = 제목, 그 다음 = 지은이 (사용자가 고칠 수 있음) */
+function guessMeta(inp){
+  if(!inp.hasFont) return {title:'',author:''};
+  const front=inp.lines.filter(l=>l.p<=4&&l.s.length>2&&l.s.length<=60)
+    .slice().sort((a,b)=>b.h-a.h);
+  if(!front.length) return {title:'',author:''};
+  const t=front[0];
+  const a=front.find(x=>x.s!==t.s&&x.h>=t.h*0.6);
+  return {title:titleCase(t.s), author:a?titleCase(a.s):''};
+}
+
+function linesToBook(inp,meta){
+  let lines=stripFurniture(inp.lines,inp.pages);
+  lines=dropTOC(lines);
+  const med=a=>a.length? a.slice().sort((x,y)=>x-y)[Math.floor(a.length/2)] : 0;
+  // 본문 글자 크기 = 긴 줄들의 중앙값. 이보다 확실히 크면 제목 줄로 본다.
+  const bodyH=inp.hasFont? (med(lines.filter(l=>l.s.length>60).map(l=>l.h))||med(lines.map(l=>l.h))) : 0;
+  const big=l=> inp.hasFont ? (bodyH>0 && l.h>=bodyH*1.15 && l.s.length<=44) : (l.s.length<60);
+  const txt=lines.filter(l=>l.s);
+  const xs=txt.map(l=>l.x0).sort((a,b)=>a-b);
+  const rs=txt.map(l=>l.x1).sort((a,b)=>a-b);
+  const mL=xs.length? xs[Math.floor(xs.length*0.2)] : 0;
+  const mR=rs.length? rs[Math.floor(rs.length*0.8)] : 1e9;
+  const chapters=[]; const partName={}; let part=1, cur=null, prev=null;
+  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null; };
+  lines.forEach(l=>{
+    const s=l.s;
+    if(!s){ prev=null; return; }              // 빈 줄(txt) → 문단 구분
+    if(big(l)){
+      let m;
+      if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
+      if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
+      if((m=s.match(RX_CHAP))){ const n=rnum(m[1])||wnum(m[1]);
+        open('Chapter '+(n||m[1])+(m[2]?' · '+m[2]:'')); return; }
+      const wn=wnum(s); if(wn){ open('Chapter '+wn); return; }       // "ONE", "TWENTY-TWO"
+      if(RX_NUM.test(s)){ open('Chapter '+s); return; }              // "1", "2"
+      if(inp.hasFont){ open(titleCase(s)); return; }                 // 그 밖의 큰 글씨 = 제목
+    }
+    if(!cur) open('Opening');
+    const last=cur.paras[cur.paras.length-1];
+    const brk = !last || RX_BREAK.test(s) ||
+      (inp.hasFont ? (l.x0>mL+5 || (prev && prev.x1<mR-30)) : !prev);
+    if(brk) cur.paras.push(s);
+    else if(/[A-Za-z]-$/.test(last)) cur.paras[cur.paras.length-1]=last.slice(0,-1)+s;
+    else cur.paras[cur.paras.length-1]=last+' '+s;
+    prev=l;
+  });
+  // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
+  const kept=chapters.filter(c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40);
+  if(!kept.length) throw new Error('본문을 찾지 못했어요');
+  // 첫 구조적 제목(Prologue/Chapter/Part) 앞의 속표지·판권 페이지는 버린다
+  const firstReal=kept.findIndex(c=>/^(prologue|chapter\s|part\s)/i.test(c.title));
+  const body=firstReal>0? kept.slice(firstReal) : kept;
+  // 파트 번호를 1..n 으로 정리
+  const used=[...new Set(body.map(c=>c.part))].sort((a,b)=>a-b);
+  const parts={};
+  body.forEach((c,i)=>{
+    const np=used.indexOf(c.part)+1;
+    if(used.length>1) parts[np]=partName[c.part]||('Part '+np);
+    c.part=used.length>1?np:1; c.n=i+1;
+  });
+  const words=body.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  return {id:meta.id,title:meta.title,author:meta.author,lang:'en',local:true,words,parts,chapters:body};
+}
+/* ---- 가져오기 UI ---- */
+let _imp=null;   // 방금 해석한 책 (저장 전)
+function closeImport(){ $('#importModal').classList.remove('show'); _imp=null; }
+async function renderImport(state){
+  const m=$('#importModal');
+  const list=await localManifest();
+  let body;
+  if(state==='busy'){
+    body=`<h3>책 읽는 중…</h3>
+      <p class="lead">파일은 이 브라우저 안에서만 처리됩니다.</p>
+      <div class="prog"><span id="pgTxt">준비 중…</span><div class="pbar"><i id="pgBar"></i></div></div>`;
+  } else if(state==='meta'){
+    body=`<h3>책 정보 확인</h3>
+      <p class="lead">${_imp.chapters.length}개 장 · 약 ${_imp.words.toLocaleString()} 단어를 찾았어요.</p>
+      <div class="fld"><label>제목</label><input id="impT" value="${esc(_imp.title)}"></div>
+      <div class="fld"><label>지은이</label><input id="impA" value="${esc(_imp.author)}" placeholder="예: Freida McFadden"></div>
+      <div class="mrow">
+        <button class="bigbtn" id="impCancel">취소</button>
+        <button class="bigbtn primary" id="impSave">서재에 넣기</button>
+      </div>`;
+  } else {
+    body=`<h3>내 책 열기</h3>
+      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b> 파일을 고르면 장(chapter)으로 나눠
+        읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
+      <div class="drop" id="drop"><span class="di">📂</span>파일을 끌어다 놓거나 눌러서 고르기
+        <span class="ds">PDF · TXT · JSON</span></div>
+      <input type="file" id="impFile" accept=".pdf,.txt,.json,application/pdf,text/plain,application/json" class="hide">
+      ${list.length?`<div class="locallist"><div class="set-h">내 기기에 있는 책</div>
+        ${list.map(b=>`<div class="li"><span class="t">${esc(b.title)}</span>
+          <span class="m">${b.chapters}장</span>
+          <button data-del="${esc(b.id)}">삭제</button></div>`).join('')}</div>`:''}
+      <p class="note">🔒 파일은 이 브라우저(IndexedDB)에만 저장되고 어디로도 전송되지 않습니다.
+        브라우저 데이터를 지우면 함께 사라집니다.</p>
+      <div class="mrow"><button class="bigbtn" id="impCancel">닫기</button></div>`;
+  }
+  m.innerHTML=`<div class="sheet">${body}</div>`;
+  m.classList.add('show');
+  const cx=$('#impCancel'); if(cx) cx.addEventListener('click',closeImport);
+  const fi=$('#impFile'), dz=$('#drop');
+  if(dz){
+    dz.addEventListener('click',()=>fi.click());
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');
+      if(e.dataTransfer.files[0]) importFile(e.dataTransfer.files[0]);});
+    fi.addEventListener('change',e=>{ if(e.target.files[0]) importFile(e.target.files[0]); });
+    $$('[data-del]').forEach(b=>b.addEventListener('click',async()=>{
+      await idbDel(b.dataset.del);
+      MANIFEST=MANIFEST.filter(x=>x.id!==b.dataset.del);
+      toast('삭제했어요');
+      if(S.bookId===b.dataset.del){ closeImport(); await switchBook(MANIFEST[0].id); return; }
+      renderImport();
+    }));
+  }
+  if(state==='meta'){
+    $('#impSave').addEventListener('click',saveImported);
+    $('#impT').addEventListener('keydown',e=>{ if(e.key==='Enter') saveImported(); });
+  }
+}
+async function importFile(file){
+  await renderImport('busy');
+  const setP=(a,b)=>{ const t=$('#pgTxt'), bar=$('#pgBar');
+    if(t) t.textContent=b?`${a} / ${b} 쪽`:'해석 중…';
+    if(bar) bar.style.width=(b?Math.round(a/b*100):30)+'%'; };
+  try{
+    const id=LP+Date.now().toString(36);
+    const name=cleanName(file.name);
+    let bk;
+    if(/\.json$/i.test(file.name)){
+      const j=JSON.parse(await file.text());
+      if(!j.chapters||!j.chapters.length) throw new Error('형식이 맞지 않아요');
+      j.chapters.forEach((c,i)=>{ c.n=c.n||i+1; c.part=c.part||1; });
+      bk={...j,id,local:true,parts:j.parts||{},
+        words:j.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0)};
+    } else if(/\.pdf$/i.test(file.name)||file.type==='application/pdf'){
+      const inp=await pdfLines(file,setP); setP(1,1);
+      const g=guessMeta(inp);
+      bk=linesToBook(inp,{id,title:g.title||name,author:g.author||''});
+    } else {
+      bk=linesToBook(txtLines(await file.text()),{id,title:name,author:''});
+    }
+    _imp=bk; renderImport('meta');
+  }catch(e){
+    console.error(e);
+    toast(String(e.message||e).slice(0,60)||'파일을 읽지 못했어요');
+    renderImport();
+  }
+}
+async function saveImported(){
+  if(!_imp) return;
+  _imp.title=($('#impT').value||'').trim()||'제목 없는 책';
+  _imp.author=($('#impA').value||'').trim()||'—';
+  try{ await idbPut(_imp.id,_imp); }
+  catch(e){ toast('저장 공간이 부족해요'); return; }
+  bookCache[_imp.id]=_imp;
+  MANIFEST=MANIFEST.concat([{id:_imp.id,title:_imp.title,author:_imp.author,
+    chapters:_imp.chapters.length,words:_imp.words,local:true}]);
+  const id=_imp.id; const t=_imp.title;
+  closeImport(); await switchBook(id);
+  logEvent('📂','내 책 추가 — '+t); toast('서재에 넣었어요');
+}
+
 /* ============ Init ============ */
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…</p></div>';
   try{ const r=await fetch('books/manifest.json'); MANIFEST=await r.json(); }
-  catch(e){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열어주세요.</p></div>'; return; }
+  catch(e){ MANIFEST=[]; }
+  MANIFEST=MANIFEST.concat(await localManifest());
+  if(!MANIFEST.length){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT 파일을 열어주세요.</p></div>'; return; }
   if(!MANIFEST.find(m=>m.id===S.bookId)) S.bookId=MANIFEST[0].id;
   try{ curBook=await loadBook(S.bookId); }
   catch(e){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>책을 불러오지 못했어요.</p></div>'; return; }

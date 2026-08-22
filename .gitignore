@@ -1,0 +1,10 @@
+# 로컬 테스트 도구 (커밋하지 않음)
+node_modules/
+package-lock.json
+package.json
+
+# 개인 소장 파일에서 변환한 책은 저장소에 올리지 않습니다.
+# "내 책 열기"로 가져온 책은 브라우저(IndexedDB)에만 저장됩니다.
+books/local-*.json
+*.pdf
+*.epub
