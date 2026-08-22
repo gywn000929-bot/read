@@ -432,7 +432,7 @@ async function loadBook(id){
   const b=await r.json(); bookCache[id]=b; return b;
 }
 const book = () => curBook;
-const chap = (n) => curBook.chapters.find(c=>c.n===n);
+const chap = (n) => curBook? curBook.chapters.find(c=>c.n===n) : null;
 const totalChaps = () => curBook? curBook.chapters.length : 0;
 const readKey = (bid,n) => bid+':'+n;
 const isRead = (n) => !!S.read[readKey(S.bookId,n)];
