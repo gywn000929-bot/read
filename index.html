@@ -1281,7 +1281,8 @@ function renderCloudBox(){
    내 Firebase 프로젝트의 Storage 에 백업 파일 하나를 올려두고,
    로그인한 기기끼리 알아서 맞춰지게 한다. 설정값은 이 브라우저에만 저장된다. */
 const FB_KEY='bookstudy_fb';
-const FB_SDK='https://www.gstatic.com/firebasejs/10.12.2/';
+/* 11.x 이상이어야 .firebasestorage.app 형식 버킷을 제대로 다룬다 (10.12 는 그 이전 버전) */
+const FB_SDK='https://www.gstatic.com/firebasejs/11.9.0/';
 let fb=null, fbBusy=false, pushTimer=null, fbErr='';
 
 function fbConfig(){ try{ return JSON.parse(localStorage.getItem(FB_KEY)||'null'); }catch(e){ return null; } }
