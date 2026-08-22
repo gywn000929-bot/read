@@ -1183,217 +1183,184 @@ async function restoreBackup(data,quiet){
   else { setNav(); renderSidebar(); renderMain(); }
 }
 
-/* Firebase 콘솔 코드를 통째로 붙여넣어도 되게 — import 문·주석이 섞여 있어도 설정만 뽑는다 */
-/* Firebase 오류를 '무엇을 해야 하는지'로 옮긴다 */
-function fbErrText(e){
-  const c=(e&&(e.code||e.message)||'')+'';
-  if(c.includes('storage/unauthorized')||c.includes('403'))
-    return 'Storage 규칙이 막고 있어요 — Storage → Rules 에 규칙을 게시했는지 확인해 주세요';
-  if(c.includes('storage/unauthenticated'))
-    return '로그인이 풀렸어요 — 다시 로그인해 주세요';
-  if(c.includes('storage/object-not-found'))
-    return '아직 올려둔 백업이 없어요';
-  if(c.includes('storage/bucket-not-found')||c.includes('storage/project-not-found')||c.includes('404'))
-    return 'Storage 가 아직 만들어지지 않았어요 — Firebase 콘솔에서 Storage → 시작하기를 먼저 해주세요';
-  if(c.includes('storage/quota-exceeded'))
-    return '저장 용량 한도를 넘었어요';
-  if(c.includes('storage/unknown'))
-    return 'Storage 에 닿지 못했어요 — 콘솔에서 Storage 가 실제로 만들어졌는지, '
-      +'그 주소가 설정의 storageBucket 과 같은지 확인해 주세요 (현재 설정: '
-      +((fbConfig()||{}).storageBucket||'없음')+')';
-  if(c.includes('storage/retry-limit-exceeded')||c.includes('network'))
-    return '네트워크가 불안정해요 — 잠시 후 다시 시도해 주세요';
-  if(c.includes('auth/unauthorized-domain'))
-    return '승인된 도메인에 gywn000929-bot.github.io 를 추가해 주세요';
-  if(c.includes('auth/operation-not-allowed'))
-    return 'Authentication → 로그인 방법에서 Google 을 사용 설정해 주세요';
-  return (e&&(e.code||e.message))? String(e.code||e.message).slice(0,90) : '알 수 없는 오류';
-}
+/* ---- 자동 동기화 (Firebase Realtime Database) ----
+   로그인도, 기기마다 붙여넣는 설정도 없다 — 앱을 열기만 하면 모든 기기가 같은 곳을 본다.
+   주소는 앱에 박혀 있고 REST 로만 쓰므로 SDK 를 받아올 필요도 없다.
+   가벼운 것(진도·단어장)은 state 아래, 무거운 것(책 본문)은 books 아래로 나눠 둔다.
+   20초마다 도는 폴링이 책 본문까지 끌어오지 않게 하려는 것. */
+const RTDB_URL='https://wall-street-57bf4-default-rtdb.firebaseio.com';
+const RTDB_PATH='bookstudy';                 // WSJ 앱과 같은 DB, 경로만 나눠 쓴다
+const UP_KEY='bookstudy_uploaded';           // 이미 올린 책 — 매번 다시 올리지 않으려고
+let rtBusy=false, pushTimer=null, pollTimer=null, rtErr='', appReady=false, lastSync=0;
 
-function parseFbConfig(text){
-  let t=String(text||'').trim();
-  if(!t) throw new Error('설정을 붙여넣어 주세요');
-  const m=t.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\})/);
-  if(m) t=m[1];
-  else{ const i=t.indexOf('{'), j=t.lastIndexOf('}'); if(i<0||j<=i) throw new Error('설정 형식을 읽지 못했어요'); t=t.slice(i,j+1); }
-  t=t.replace(/\/\/[^\n]*/g,'')                               // 줄 주석
-     .replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":')   // 따옴표 없는 키
-     .replace(/'/g,'"')
-     .replace(/,(\s*})/g,'$1');                                // 마지막 쉼표
-  return JSON.parse(t);
-}
+/* RTDB 키에 못 쓰는 글자(. # $ / [ ])를 되돌릴 수 있게 바꾼다.
+   '%' 도 함께 바꿔야 되돌릴 때 원래 '%' 와 섞이지 않는다. */
+const rtEnc=k=>String(k).replace(/[%.#$/[\]]/g,c=>'%'+c.charCodeAt(0).toString(16));
+const rtDec=k=>String(k).replace(/%([0-9a-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
 
-function renderCloudBox(){
-  const el=$('#cloudBox'); if(!el) return;
-  const cfg=fbConfig();
-  const user=fb&&fb.user;
-  const when=S.cloudAt? new Date(S.cloudAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',
-    hour:'2-digit',minute:'2-digit'}) : null;
-  let html=`<div class="set-h">☁️ 클라우드 백업</div>`;
-  if(!cfg){
-    html+=`<div class="cst">Firebase 설정을 넣으면 기기끼리 자동으로 맞춰집니다.</div>
-      <textarea id="fbCfg" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "..." }'></textarea>
-      <div class="crow" style="margin-top:8px"><button class="go" id="fbSave">설정 저장</button></div>
-      <p class="hint">Firebase 콘솔의 <b>복사 버튼</b>으로 코드를 통째로 복사해 그대로 붙여넣으세요 —
-        <code>import</code> 문이나 주석이 섞여 있어도 설정만 알아서 골라냅니다.
-        이 값은 이 브라우저에만 저장됩니다.</p>`;
-  } else if(!user){
-    html+=`<div class="crow"><span class="dot"></span><span class="cst">${fbErr
-      ? '⚠️ '+esc(fbErr) : '설정됨 · 로그인하면 동기화가 시작됩니다'}</span>
-      <button class="go" id="fbIn">Google 로그인</button>
-      <button id="fbClear">설정 지우기</button></div>`;
-  } else {
-    html+=`<div class="crow"><span class="dot on"></span>
-      <span class="cst"><b>${esc(user.email||user.displayName||'로그인됨')}</b>${when?` · 마지막 저장 ${esc(when)}`:''}</span></div>
-      ${fbErr?`<div class="cst" style="color:var(--bad);margin-top:7px">⚠️ ${esc(fbErr)}</div>`:''}
-      <div class="crow" style="margin-top:8px">
-        <button id="fbUp">지금 올리기</button>
-        <button id="fbDown">지금 내려받기</button>
-        <button id="fbOut">로그아웃</button>
-      </div>`;
+function rtErrText(s){
+  if(s===401||s===403) return '데이터베이스 규칙이 막고 있어요 — Rules 에서 '+RTDB_PATH+' 경로를 열어주세요';
+  if(s===404) return '데이터베이스 주소를 찾지 못했어요';
+  return '동기화하지 못했어요 (네트워크를 확인해 주세요)';
+}
+async function rtReq(method,sub,body,query){
+  const q=[query||'', method==='GET'?'t='+Date.now():''].filter(Boolean).join('&');
+  const url=RTDB_URL+'/'+RTDB_PATH+(sub?'/'+sub:'')+'.json'+(q?'?'+q:'');
+  const opt={method,cache:'no-store'};
+  if(body!==undefined){ opt.headers={'Content-Type':'application/json'}; opt.body=JSON.stringify(body); }
+  const r=await fetch(url,opt);
+  if(!r.ok){ const e=new Error(rtErrText(r.status)); e.status=r.status; throw e; }
+  return r.status===200? r.json() : null;
+}
+function uploadedSet(){ try{ return new Set(JSON.parse(localStorage.getItem(UP_KEY)||'[]')); }catch(e){ return new Set(); } }
+function markUploaded(s){ try{ localStorage.setItem(UP_KEY,JSON.stringify([...s])); }catch(e){} }
+
+/* 내려받아 합친다 — 지우지 않고, 더 많이 읽은 쪽·더 최근에 저장한 단어를 남긴다.
+   applyLast 는 앱을 막 열었을 때만 참 — 읽는 도중 폴링이 화면을 옮겨버리면 안 된다. */
+async function rtPull(applyLast){
+  const [d,ids]=await Promise.all([
+    rtReq('GET','state'),
+    rtReq('GET','books',undefined,'shallow=true').catch(()=>null)
+  ]);
+  const before=JSON.stringify([S.chapters,S.read,S.words]);
+  let added=0;
+
+  if(d){
+    const ch=Object.assign({},S.chapters||{});
+    Object.entries(d.chapters||{}).forEach(([k,v])=>{ const n=rtDec(k); ch[n]=Math.max(ch[n]||0,+v||0); });
+    S.chapters=ch;
+
+    const rd=Object.assign({},S.read||{});
+    Object.keys(d.read||{}).forEach(k=>{ rd[rtDec(k)]=1; });
+    S.read=rd;
+
+    const w=Object.assign({},S.words||{});
+    Object.entries(d.words||{}).forEach(([k,v])=>{ const n=rtDec(k);
+      if(v&&(!w[n]||(v.t||0)>(w[n].t||0))) w[n]=v; });
+    S.words=w;
   }
-  el.innerHTML=html;
-  const on=(id,fn)=>{ const b=$('#'+id); if(b) b.addEventListener('click',fn); };
-  on('fbSave',()=>{
-    try{
-      const cfg=parseFbConfig($('#fbCfg').value);
-      if(!cfg.apiKey) throw new Error('apiKey 가 없어요');
-      if(!cfg.projectId) throw new Error('projectId 가 없어요');
-      if(!cfg.storageBucket) throw new Error('storageBucket 이 없어요');
-      fbSetConfig(cfg); toast('설정을 저장했어요'); renderCloudBox();
-    }catch(e){ toast(e.message||'설정 형식을 읽지 못했어요'); }
-  });
-  on('fbIn',cloudSignIn);
-  on('fbOut',async()=>{ await cloudSignOut(); renderCloudBox(); });
-  on('fbClear',()=>{ fbSetConfig(null); toast('설정을 지웠어요'); renderCloudBox(); });
-  on('fbUp',async()=>{
-    try{ fbErr=''; await cloudPush(); toast('올렸어요'); }
-    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); }
-    renderCloudBox();
-  });
-  on('fbDown',async()=>{
-    try{ fbErr=''; const d=await cloudPull();
-      if(!d) throw new Error('storage/object-not-found');
-      await restoreBackup(d); }
-    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); }
-  });
-  if(cfg&&!fb) fbInit().then(()=>renderCloudBox()).catch(()=>{});
-}
 
-/* ---- 클라우드 백업 (Firebase) ----
-   내 Firebase 프로젝트의 Storage 에 백업 파일 하나를 올려두고,
-   로그인한 기기끼리 알아서 맞춰지게 한다. 설정값은 이 브라우저에만 저장된다. */
-const FB_KEY='bookstudy_fb';
-/* 11.x 이상이어야 .firebasestorage.app 형식 버킷을 제대로 다룬다 (10.12 는 그 이전 버전) */
-const FB_SDK='https://www.gstatic.com/firebasejs/11.9.0/';
-let fb=null, fbBusy=false, pushTimer=null, fbErr='';
-let appReady=false, lastSync=0, cloudManual=false;
-
-function fbConfig(){ try{ return JSON.parse(localStorage.getItem(FB_KEY)||'null'); }catch(e){ return null; } }
-function fbSetConfig(c){ if(c) localStorage.setItem(FB_KEY,JSON.stringify(c)); else localStorage.removeItem(FB_KEY); fb=null; }
-
-async function fbInit(){
-  if(fb) return fb;
-  const cfg=fbConfig();
-  if(!cfg||!cfg.apiKey||!cfg.projectId) return null;
-  let A,U,G;
-  try{
-    [A,U,G]=await Promise.all([
-      import(FB_SDK+'firebase-app.js'),
-      import(FB_SDK+'firebase-auth.js'),
-      import(FB_SDK+'firebase-storage.js')
-    ]);
-  }catch(e){
-    // 회사망·차단 환경에서 gstatic 에 못 닿는 경우
-    fbErr='Firebase 파일을 불러오지 못했어요 (네트워크 차단 여부를 확인해 주세요)';
-    console.error(e); renderCloudBox(); return null;
+  // 다른 기기가 올린 책 중 여기 없는 것만 받아온다 (목록은 키 이름만 훑는다)
+  for(const k of Object.keys(ids||{})){
+    const id=rtDec(k);
+    if(await idbGet(id).catch(()=>null)) continue;
+    const b=await rtReq('GET','books/'+k).catch(()=>null);
+    if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
+    try{ await idbPut(b.id,b); added++; }
+    catch(e){ toast('저장 공간이 부족해요'); break; }
   }
-  fbErr='';
-  const app=A.initializeApp(cfg);
-  fb={U,G,auth:U.getAuth(app),store:G.getStorage(app),user:null};
-  U.onAuthStateChanged(fb.auth,u=>{ fb.user=u; onCloudUser(u); });
-  return fb;
-}
-const cloudPath=u=>`backups/${u.uid}/library.json`;
 
-async function cloudSignIn(){
-  cloudManual=true;
-  const f=await fbInit();
-  if(!f){ toast(fbErr||'먼저 Firebase 설정을 넣어주세요'); return; }
-  const prov=new f.U.GoogleAuthProvider();
-  try{ await f.U.signInWithPopup(f.auth,prov); }
-  catch(e){
-    // 아이폰 등 팝업이 막히는 환경
-    try{ await f.U.signInWithRedirect(f.auth,prov); }
-    catch(e2){ console.error(e2); toast('로그인하지 못했어요'); }
+  // 마지막으로 읽던 자리는 앱을 열 때만 따라간다
+  let moved=false;
+  if(applyLast&&d&&d.last&&d.last.bookId&&(d.last.t||0)>(S.lastT||0)){
+    S.lastT=d.last.t;
+    if(d.last.bookId!==S.bookId||d.last.chapter!==S.chapter){
+      S.bookId=d.last.bookId; S.chapter=d.last.chapter||1; moved=true;
+    }
   }
+  save();
+  return { added, moved, changed: added>0||moved||before!==JSON.stringify([S.chapters,S.read,S.words]) };
 }
-async function cloudSignOut(){ const f=await fbInit(); if(f) try{ await f.U.signOut(f.auth); }catch(e){} }
 
-async function cloudPush(){
-  const f=await fbInit(); if(!f||!f.user) return false;
-  clearTimeout(pushTimer);            // 모아둔 예약분은 지금 올리는 것으로 대신한다
-  const books=(await idbAll())||[];
-  const st={...S}; delete st._q; delete st._part; delete st.cloudAt;
-  const body=JSON.stringify({app:'bookstudy',kind:'backup',v:1,at:new Date().toISOString(),state:st,books});
-  const ref=f.G.ref(f.store,cloudPath(f.user));
-  await f.G.uploadBytes(ref,new Blob([body],{type:'application/json'}),{contentType:'application/json'});
-  S.cloudAt=Date.now(); save();
+/* 올릴 때는 키 단위 PATCH — 다른 기기가 그 사이 넣은 것을 덮지 않는다 */
+async function rtPush(){
+  clearTimeout(pushTimer);
+  if(rtBusy){ cloudTouch(); return false; }        // 맞추는 중이면 조금 뒤에
+  const words={}, read={}, chapters={};
+  Object.entries(S.words||{}).forEach(([k,v])=>words[rtEnc(k)]=v);
+  Object.keys(S.read||{}).forEach(k=>read[rtEnc(k)]=true);
+  Object.entries(S.chapters||{}).forEach(([k,v])=>chapters[rtEnc(k)]=v);
+
+  /* 자식 노드마다 따로 보낸다 — PATCH 는 본문 최상위 키를 통째로 갈아끼우므로
+     한 번에 {words:…} 로 보내면 그 사이 다른 기기가 넣은 단어가 지워진다 */
+  if(Object.keys(words).length) await rtReq('PATCH','state/words',words);
+  if(Object.keys(read).length) await rtReq('PATCH','state/read',read);
+  if(Object.keys(chapters).length) await rtReq('PATCH','state/chapters',chapters);
+  const last={ bookId:S.bookId, chapter:S.chapter, t:Date.now() };
+  await rtReq('PATCH','state',{last});
+  S.lastT=last.t;
+
+  // 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다
+  const up=uploadedSet();
+  for(const b of (await idbAll())||[]){
+    if(up.has(b.id)) continue;
+    await rtReq('PUT','books/'+rtEnc(b.id),b);
+    up.add(b.id); markUploaded(up);
+    logEvent('☁️','책 올림 — '+(b.title||b.id));
+  }
+  S.cloudAt=Date.now();
+  save(); clearTimeout(pushTimer);                 // save() 가 다시 잡은 예약을 취소
   return true;
 }
-async function cloudPull(){
-  const f=await fbInit(); if(!f||!f.user) return null;
-  const url=await f.G.getDownloadURL(f.G.ref(f.store,cloudPath(f.user)));  // 없으면 예외
-  const r=await fetch(url); if(!r.ok) return null;
-  return await r.json();
+
+/* 한 번 맞춘다 — 받아서 합치고, 합친 결과를 올린다 */
+async function cloudSync(quiet,applyLast){
+  if(rtBusy||!appReady) return false;
+  if(navigator.onLine===false) return false;
+  rtBusy=true;
+  try{
+    const r=await rtPull(applyLast);
+    rtBusy=false; await rtPush(); rtBusy=true;     // rtPush 의 진행 중 검사를 지나가게
+    lastSync=Date.now(); rtErr='';
+    if(r.changed){
+      MANIFEST=MANIFEST.filter(m=>!m.local).concat(await localManifest());
+      if(!MANIFEST.find(m=>m.id===S.bookId)&&MANIFEST.length) S.bookId=MANIFEST[0].id;
+      if(r.moved||r.added){ curBook=await loadBook(S.bookId).catch(()=>curBook); }
+      if(!chap(S.chapter)&&curBook) S.chapter=curBook.chapters[0].n;
+      setNav(); renderSidebar(); renderMain();
+    }
+    if(r.added) logEvent('☁️','다른 기기에서 책 '+r.added+'권 받아옴');
+    if(!quiet) toast(r.added? `맞췄어요 — 책 ${r.added}권 받아옴` : '맞췄어요');
+    renderCloudBox();
+    return true;
+  }catch(e){
+    console.error(e); rtErr=e.message||'동기화하지 못했어요';
+    if(!quiet) toast(rtErr);
+    renderCloudBox(); return false;
+  }finally{ rtBusy=false; }
 }
+
 /* 바뀔 때마다 곧바로 올리지 않고 잠깐 모았다가 한 번에 */
 function cloudTouch(){
-  if(!fb||!fb.user) return;
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>cloudPush().catch(e=>console.error(e)),4000);
+  pushTimer=setTimeout(()=>{ if(appReady) rtPush().catch(e=>console.error(e)); },4000);
 }
-/* 클라우드와 한 번 맞춘다 — 내려받아 합친 뒤, 합친 결과를 다시 올린다.
-   합치는 규칙은 restoreBackup 과 같아서 어느 쪽 기기의 진도도 없어지지 않는다. */
-async function cloudSync(quiet){
-  const f=await fbInit().catch(()=>null);
-  if(!f||!f.user||fbBusy) return false;
-  if(!appReady) return false;                       // 목록이 아직 없으면 복원한 책을 열 수 없다
-  fbBusy=true;
-  try{
-    const remote=await cloudPull().catch(()=>null);  // 첫 사용이면 파일이 없다
-    if(remote&&remote.kind==='backup') await restoreBackup(remote,true);
-    await cloudPush();
-    lastSync=Date.now(); fbErr='';
-    if(!quiet) toast('클라우드 백업 연결됨');
-    setNav(); renderSidebar(); renderMain(); renderCloudBox();
-    return true;
-  }catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); return false; }
-  finally{ fbBusy=false; }
+function startPoll(){
+  clearInterval(pollTimer);
+  pollTimer=setInterval(()=>{
+    if(document.hidden||navigator.onLine===false||rtBusy) return;
+    cloudSync(true,false).catch(e=>console.error(e));
+  },20000);
 }
-async function onCloudUser(u){
-  renderCloudBox();
-  if(!u) return;
-  const manual=cloudManual; cloudManual=false;       // 방금 로그인 버튼을 눌렀을 때만 알린다
-  if(!manual&&Date.now()-lastSync<5000) return;      // 열자마자 맞춘 직후면 두 번 하지 않는다
-  cloudSync(!manual).catch(e=>console.error(e));
-}
-/* 앱을 열 때마다 알아서 이어 맞춘다 — 설정과 로그인이 남아 있으면 조용히 붙는다 */
+/* 앱을 열면 바로 맞추고, 그 뒤로는 알아서 돈다 */
 async function cloudBoot(){
   appReady=true;
-  if(!fbConfig()) return;
-  const f=await fbInit().catch(()=>null);
-  // 로그인 상태를 아직 확인 중이면 onAuthStateChanged 가 이어서 맞춘다
-  if(f&&f.user) cloudSync(true).catch(e=>console.error(e));
+  await cloudSync(true,true).catch(()=>{});
+  startPoll();
 }
 /* 덮을 때는 모아둔 변경을 바로 올리고, 다시 열 때는 다른 기기의 변경을 받아온다.
    pagehide 는 모바일에서 오지 않는 경우가 있어 visibilitychange 도 함께 본다. */
-function cloudFlush(){ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } }
+function cloudFlush(){ clearTimeout(pushTimer); if(appReady) rtPush().catch(()=>{}); }
 addEventListener('pagehide',cloudFlush);
 addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden'){ cloudFlush(); return; }
-  if(fb&&fb.user&&Date.now()-lastSync>60000) cloudSync(true).catch(e=>console.error(e));
+  if(Date.now()-lastSync>20000) cloudSync(true,false).catch(e=>console.error(e));
 });
+addEventListener('online',()=>cloudSync(true,false).catch(()=>{}));
+
+function renderCloudBox(){
+  const el=$('#cloudBox'); if(!el) return;
+  const when=S.cloudAt? new Date(S.cloudAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',
+    hour:'2-digit',minute:'2-digit'}) : null;
+  el.innerHTML=`<div class="set-h">☁️ 자동 동기화</div>
+    <div class="crow"><span class="dot${rtErr?'':' on'}"></span>
+      <span class="cst">${rtErr? '⚠️ '+esc(rtErr)
+        : `켜짐 — 이 앱을 연 모든 기기가 자동으로 맞춰집니다${when?` · 마지막 ${esc(when)}`:''}`}</span>
+      <button class="go" id="rtNow">지금 맞추기</button></div>
+    <p class="hint">로그인이 필요 없습니다. 읽은 챕터·단어장·내가 넣은 책이 기기끼리 같아집니다.
+      대신 <b>이 앱을 여는 사람은 누구나 같은 데이터를 봅니다</b> — 남에게 보이면 안 되는 파일은 넣지 마세요.</p>`;
+  const b=$('#rtNow'); if(b) b.addEventListener('click',()=>cloudSync(false,false));
+}
 
 /* ---- 가져오기 UI ---- */
 let _imp=null;   // 방금 해석한 책 (저장 전)
