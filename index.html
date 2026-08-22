@@ -1085,6 +1085,24 @@ function linesToBook(inp,meta){
   const words=body.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
   return {id:meta.id,title:meta.title,author:meta.author,lang:'en',local:true,words,parts,chapters:body};
 }
+/* 파일 내용(SHA-256)으로 id 를 만든다.
+   같은 책을 다시 넣어도 같은 id 가 나오므로 읽던 진도·단어가 그대로 이어진다.
+   (crypto.subtle 은 https/localhost 에서만 동작 — 아니면 시간값으로 대체) */
+async function fileId(file){
+  try{
+    const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+    return LP+[...new Uint8Array(h)].slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return LP+Date.now().toString(36); }
+}
+/* 저장공간이 부족할 때 브라우저가 내 책을 임의로 지우지 않도록 요청 */
+async function requestPersist(){
+  try{
+    if(!navigator.storage||!navigator.storage.persist) return false;
+    if(await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  }catch(e){ return false; }
+}
+
 /* ---- 가져오기 UI ---- */
 let _imp=null;   // 방금 해석한 책 (저장 전)
 function closeImport(){ $('#importModal').classList.remove('show'); _imp=null; }
@@ -1116,8 +1134,11 @@ async function renderImport(state){
         ${list.map(b=>`<div class="li"><span class="t">${esc(b.title)}</span>
           <span class="m">${b.chapters}장</span>
           <button data-del="${esc(b.id)}">삭제</button></div>`).join('')}</div>`:''}
-      <p class="note">🔒 파일은 이 브라우저(IndexedDB)에만 저장되고 어디로도 전송되지 않습니다.
-        브라우저 데이터를 지우면 함께 사라집니다.</p>
+      <p class="note">🔒 파일은 이 브라우저에만 저장되고 어디로도 전송되지 않습니다.
+        한 번 넣으면 계속 남고, <b>읽던 챕터와 단어장도 함께 저장</b>됩니다.
+        같은 파일을 다시 넣으면 진도가 그대로 이어집니다.<br>
+        브라우저 데이터를 지우면 사라지며, iPhone Safari 는 사이트를 오래 열지 않으면
+        저장된 내용을 지울 수 있습니다.</p>
       <div class="mrow"><button class="bigbtn" id="impCancel">닫기</button></div>`;
   }
   m.innerHTML=`<div class="sheet">${body}</div>`;
@@ -1150,7 +1171,16 @@ async function importFile(file){
     if(t) t.textContent=b?`${a} / ${b} 쪽`:'해석 중…';
     if(bar) bar.style.width=(b?Math.round(a/b*100):30)+'%'; };
   try{
-    const id=LP+Date.now().toString(36);
+    const id=await fileId(file);
+    // 전에 넣은 책이면 다시 해석하지 않고 읽던 곳으로 바로 간다
+    const seen=await idbGet(id).catch(()=>null);
+    if(seen){
+      bookCache[id]=seen;
+      if(!MANIFEST.find(m=>m.id===id)) MANIFEST=MANIFEST.concat([{id,title:seen.title,
+        author:seen.author,chapters:seen.chapters.length,words:seen.words,local:true}]);
+      closeImport(); await switchBook(id);
+      toast('이미 있는 책이에요 — 읽던 곳으로 이동합니다'); return;
+    }
     const name=cleanName(file.name);
     let bk;
     if(/\.json$/i.test(file.name)){
@@ -1179,6 +1209,7 @@ async function saveImported(){
   _imp.author=($('#impA').value||'').trim()||'—';
   try{ await idbPut(_imp.id,_imp); }
   catch(e){ toast('저장 공간이 부족해요'); return; }
+  requestPersist();   // 브라우저가 임의로 지우지 않도록 (응답을 기다리지 않음)
   bookCache[_imp.id]=_imp;
   MANIFEST=MANIFEST.concat([{id:_imp.id,title:_imp.title,author:_imp.author,
     chapters:_imp.chapters.length,words:_imp.words,local:true}]);
