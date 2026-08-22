@@ -1180,6 +1180,20 @@ async function restoreBackup(data,quiet){
   else { setNav(); renderSidebar(); renderMain(); }
 }
 
+/* Firebase 콘솔 코드를 통째로 붙여넣어도 되게 — import 문·주석이 섞여 있어도 설정만 뽑는다 */
+function parseFbConfig(text){
+  let t=String(text||'').trim();
+  if(!t) throw new Error('설정을 붙여넣어 주세요');
+  const m=t.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\})/);
+  if(m) t=m[1];
+  else{ const i=t.indexOf('{'), j=t.lastIndexOf('}'); if(i<0||j<=i) throw new Error('설정 형식을 읽지 못했어요'); t=t.slice(i,j+1); }
+  t=t.replace(/\/\/[^\n]*/g,'')                               // 줄 주석
+     .replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":')   // 따옴표 없는 키
+     .replace(/'/g,'"')
+     .replace(/,(\s*})/g,'$1');                                // 마지막 쉼표
+  return JSON.parse(t);
+}
+
 function renderCloudBox(){
   const el=$('#cloudBox'); if(!el) return;
   const cfg=fbConfig();
@@ -1191,7 +1205,8 @@ function renderCloudBox(){
     html+=`<div class="cst">Firebase 설정을 넣으면 기기끼리 자동으로 맞춰집니다.</div>
       <textarea id="fbCfg" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "..." }'></textarea>
       <div class="crow" style="margin-top:8px"><button class="go" id="fbSave">설정 저장</button></div>
-      <p class="hint">Firebase 콘솔 → 프로젝트 설정 → 내 앱 → SDK 설정에서 <b>firebaseConfig</b> 객체를 복사해 붙여넣으세요.
+      <p class="hint">Firebase 콘솔의 <b>복사 버튼</b>으로 코드를 통째로 복사해 그대로 붙여넣으세요 —
+        <code>import</code> 문이나 주석이 섞여 있어도 설정만 알아서 골라냅니다.
         이 값은 이 브라우저에만 저장됩니다.</p>`;
   } else if(!user){
     html+=`<div class="crow"><span class="dot"></span><span class="cst">${fbErr
@@ -1211,12 +1226,12 @@ function renderCloudBox(){
   const on=(id,fn)=>{ const b=$('#'+id); if(b) b.addEventListener('click',fn); };
   on('fbSave',()=>{
     try{
-      const raw=$('#fbCfg').value.trim()
-        .replace(/^\s*(const|let|var)\s+\w+\s*=\s*/,'').replace(/;\s*$/,'');
-      const cfg=JSON.parse(raw.replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g,'$1"$2":').replace(/'/g,'"'));
-      if(!cfg.apiKey||!cfg.projectId) throw new Error('apiKey / projectId 가 없어요');
+      const cfg=parseFbConfig($('#fbCfg').value);
+      if(!cfg.apiKey) throw new Error('apiKey 가 없어요');
+      if(!cfg.projectId) throw new Error('projectId 가 없어요');
+      if(!cfg.storageBucket) throw new Error('storageBucket 이 없어요');
       fbSetConfig(cfg); toast('설정을 저장했어요'); renderCloudBox();
-    }catch(e){ toast('설정 형식을 읽지 못했어요'); }
+    }catch(e){ toast(e.message||'설정 형식을 읽지 못했어요'); }
   });
   on('fbIn',cloudSignIn);
   on('fbOut',async()=>{ await cloudSignOut(); renderCloudBox(); });
