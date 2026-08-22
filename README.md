@@ -59,9 +59,13 @@ books/
 
 내 기기에서 연 책은 파일로 저장되지 않고 브라우저 IndexedDB(`bookstudy_local`)에 들어갑니다.
 
-> 데이터를 `fetch` 로 불러오므로 **웹 서버(예: GitHub Pages)** 에서 열어야 합니다.
-> (로컬에서 `index.html` 을 파일로 직접 열면 목록이 로드되지 않습니다.
->  로컬 확인 시: `python3 -m http.server` 후 `http://localhost:8000` 접속)
+> `books/` 의 수록 도서는 `fetch` 로 불러오므로 **웹 서버(예: GitHub Pages)** 에서 열어야 보입니다.
+> 로컬 확인 시: `python3 -m http.server` 후 `http://localhost:8000` 접속.
+>
+> 다만 `index.html` 을 **파일로 직접 열어도(`file://`) 앱은 정상 동작합니다.**
+> 수록 도서 목록만 비어 있을 뿐, 첫 화면에서 바로 **📂 내 책 열기** 로
+> 내 PDF·TXT 를 넣어 읽기·단어장·플래시카드·퀴즈를 전부 쓸 수 있습니다.
+> (넣은 책은 IndexedDB 에 남아 다음에 열 때 그대로 복원됩니다.)
 
 ## 사용한 API (인터넷 연결 시 동작)
 
