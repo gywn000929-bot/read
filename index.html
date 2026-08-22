@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Book Study · 원서로 영어 공부</title>
 <meta name="description" content="영어 원서를 읽으며 단어·해석·플래시카드·퀴즈로 공부하는 인터랙티브 리더">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Book Study">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 :root{
   --bg:#faf9f6; --surface:#ffffff; --ink:#16130f; --sub:#6a655d; --faint:#94908a;
@@ -1234,6 +1243,11 @@ async function init(){
   setNav(); renderSidebar(); renderMain();
 }
 init();
+
+/* 오프라인 지원 — 홈 화면에 추가해 앱처럼 쓸 때 필요 */
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
