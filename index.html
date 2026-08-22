@@ -538,6 +538,7 @@ const COMMON=new Set("the a an and or but so if then than that this these those 
 
 /* ============ Render: Sidebar ============ */
 function renderSidebar(){
+  if(!curBook){ renderFirstRun(); return; }   // 서재가 비면 첫 화면이 사이드바까지 그린다
   const b=book();
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
@@ -1183,6 +1184,32 @@ async function restoreBackup(data,quiet){
 }
 
 /* Firebase 콘솔 코드를 통째로 붙여넣어도 되게 — import 문·주석이 섞여 있어도 설정만 뽑는다 */
+/* Firebase 오류를 '무엇을 해야 하는지'로 옮긴다 */
+function fbErrText(e){
+  const c=(e&&(e.code||e.message)||'')+'';
+  if(c.includes('storage/unauthorized')||c.includes('403'))
+    return 'Storage 규칙이 막고 있어요 — Storage → Rules 에 규칙을 게시했는지 확인해 주세요';
+  if(c.includes('storage/unauthenticated'))
+    return '로그인이 풀렸어요 — 다시 로그인해 주세요';
+  if(c.includes('storage/object-not-found'))
+    return '아직 올려둔 백업이 없어요';
+  if(c.includes('storage/bucket-not-found')||c.includes('storage/project-not-found')||c.includes('404'))
+    return 'Storage 가 아직 만들어지지 않았어요 — Firebase 콘솔에서 Storage → 시작하기를 먼저 해주세요';
+  if(c.includes('storage/quota-exceeded'))
+    return '저장 용량 한도를 넘었어요';
+  if(c.includes('storage/unknown'))
+    return 'Storage 에 닿지 못했어요 — 콘솔에서 Storage 가 실제로 만들어졌는지, '
+      +'그 주소가 설정의 storageBucket 과 같은지 확인해 주세요 (현재 설정: '
+      +((fbConfig()||{}).storageBucket||'없음')+')';
+  if(c.includes('storage/retry-limit-exceeded')||c.includes('network'))
+    return '네트워크가 불안정해요 — 잠시 후 다시 시도해 주세요';
+  if(c.includes('auth/unauthorized-domain'))
+    return '승인된 도메인에 gywn000929-bot.github.io 를 추가해 주세요';
+  if(c.includes('auth/operation-not-allowed'))
+    return 'Authentication → 로그인 방법에서 Google 을 사용 설정해 주세요';
+  return (e&&(e.code||e.message))? String(e.code||e.message).slice(0,90) : '알 수 없는 오류';
+}
+
 function parseFbConfig(text){
   let t=String(text||'').trim();
   if(!t) throw new Error('설정을 붙여넣어 주세요');
@@ -1218,6 +1245,7 @@ function renderCloudBox(){
   } else {
     html+=`<div class="crow"><span class="dot on"></span>
       <span class="cst"><b>${esc(user.email||user.displayName||'로그인됨')}</b>${when?` · 마지막 저장 ${esc(when)}`:''}</span></div>
+      ${fbErr?`<div class="cst" style="color:var(--bad);margin-top:7px">⚠️ ${esc(fbErr)}</div>`:''}
       <div class="crow" style="margin-top:8px">
         <button id="fbUp">지금 올리기</button>
         <button id="fbDown">지금 내려받기</button>
@@ -1238,13 +1266,16 @@ function renderCloudBox(){
   on('fbIn',cloudSignIn);
   on('fbOut',async()=>{ await cloudSignOut(); renderCloudBox(); });
   on('fbClear',()=>{ fbSetConfig(null); toast('설정을 지웠어요'); renderCloudBox(); });
-  on('fbUp',async()=>{ try{ await cloudPush(); toast('올렸어요'); renderCloudBox(); }
-                       catch(e){ toast('올리지 못했어요'); } });
+  on('fbUp',async()=>{
+    try{ fbErr=''; await cloudPush(); toast('올렸어요'); }
+    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); }
+    renderCloudBox();
+  });
   on('fbDown',async()=>{
-    try{ const d=await cloudPull();
-      if(!d) return toast('클라우드에 백업이 없어요');
+    try{ fbErr=''; const d=await cloudPull();
+      if(!d) throw new Error('storage/object-not-found');
       await restoreBackup(d); }
-    catch(e){ toast('내려받지 못했어요'); }
+    catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); }
   });
   if(cfg&&!fb) fbInit().then(()=>renderCloudBox()).catch(()=>{});
 }
@@ -1253,8 +1284,10 @@ function renderCloudBox(){
    내 Firebase 프로젝트의 Storage 에 백업 파일 하나를 올려두고,
    로그인한 기기끼리 알아서 맞춰지게 한다. 설정값은 이 브라우저에만 저장된다. */
 const FB_KEY='bookstudy_fb';
-const FB_SDK='https://www.gstatic.com/firebasejs/10.12.2/';
+/* 11.x 이상이어야 .firebasestorage.app 형식 버킷을 제대로 다룬다 (10.12 는 그 이전 버전) */
+const FB_SDK='https://www.gstatic.com/firebasejs/11.9.0/';
 let fb=null, fbBusy=false, pushTimer=null, fbErr='';
+let appReady=false, lastSync=0, cloudManual=false;
 
 function fbConfig(){ try{ return JSON.parse(localStorage.getItem(FB_KEY)||'null'); }catch(e){ return null; } }
 function fbSetConfig(c){ if(c) localStorage.setItem(FB_KEY,JSON.stringify(c)); else localStorage.removeItem(FB_KEY); fb=null; }
@@ -1284,6 +1317,7 @@ async function fbInit(){
 const cloudPath=u=>`backups/${u.uid}/library.json`;
 
 async function cloudSignIn(){
+  cloudManual=true;
   const f=await fbInit();
   if(!f){ toast(fbErr||'먼저 Firebase 설정을 넣어주세요'); return; }
   const prov=new f.U.GoogleAuthProvider();
@@ -1298,6 +1332,7 @@ async function cloudSignOut(){ const f=await fbInit(); if(f) try{ await f.U.sign
 
 async function cloudPush(){
   const f=await fbInit(); if(!f||!f.user) return false;
+  clearTimeout(pushTimer);            // 모아둔 예약분은 지금 올리는 것으로 대신한다
   const books=(await idbAll())||[];
   const st={...S}; delete st._q; delete st._part; delete st.cloudAt;
   const body=JSON.stringify({app:'bookstudy',kind:'backup',v:1,at:new Date().toISOString(),state:st,books});
@@ -1318,20 +1353,47 @@ function cloudTouch(){
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>cloudPush().catch(e=>console.error(e)),4000);
 }
-async function onCloudUser(u){
-  renderCloudBox();
-  if(!u||fbBusy) return;
+/* 클라우드와 한 번 맞춘다 — 내려받아 합친 뒤, 합친 결과를 다시 올린다.
+   합치는 규칙은 restoreBackup 과 같아서 어느 쪽 기기의 진도도 없어지지 않는다. */
+async function cloudSync(quiet){
+  const f=await fbInit().catch(()=>null);
+  if(!f||!f.user||fbBusy) return false;
+  if(!appReady) return false;                       // 목록이 아직 없으면 복원한 책을 열 수 없다
   fbBusy=true;
   try{
-    const remote=await cloudPull().catch(()=>null);   // 첫 사용이면 파일이 없다
+    const remote=await cloudPull().catch(()=>null);  // 첫 사용이면 파일이 없다
     if(remote&&remote.kind==='backup') await restoreBackup(remote,true);
     await cloudPush();
-    toast('클라우드 백업 연결됨');
+    lastSync=Date.now(); fbErr='';
+    if(!quiet) toast('클라우드 백업 연결됨');
     setNav(); renderSidebar(); renderMain(); renderCloudBox();
-  }catch(e){ console.error(e); toast('클라우드 동기화에 실패했어요'); }
+    return true;
+  }catch(e){ console.error(e); fbErr=fbErrText(e); toast(fbErr); renderCloudBox(); return false; }
   finally{ fbBusy=false; }
 }
-addEventListener('pagehide',()=>{ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } });
+async function onCloudUser(u){
+  renderCloudBox();
+  if(!u) return;
+  const manual=cloudManual; cloudManual=false;       // 방금 로그인 버튼을 눌렀을 때만 알린다
+  if(!manual&&Date.now()-lastSync<5000) return;      // 열자마자 맞춘 직후면 두 번 하지 않는다
+  cloudSync(!manual).catch(e=>console.error(e));
+}
+/* 앱을 열 때마다 알아서 이어 맞춘다 — 설정과 로그인이 남아 있으면 조용히 붙는다 */
+async function cloudBoot(){
+  appReady=true;
+  if(!fbConfig()) return;
+  const f=await fbInit().catch(()=>null);
+  // 로그인 상태를 아직 확인 중이면 onAuthStateChanged 가 이어서 맞춘다
+  if(f&&f.user) cloudSync(true).catch(e=>console.error(e));
+}
+/* 덮을 때는 모아둔 변경을 바로 올리고, 다시 열 때는 다른 기기의 변경을 받아온다.
+   pagehide 는 모바일에서 오지 않는 경우가 있어 visibilitychange 도 함께 본다. */
+function cloudFlush(){ if(fb&&fb.user){ clearTimeout(pushTimer); cloudPush().catch(()=>{}); } }
+addEventListener('pagehide',cloudFlush);
+addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ cloudFlush(); return; }
+  if(fb&&fb.user&&Date.now()-lastSync>60000) cloudSync(true).catch(e=>console.error(e));
+});
 
 /* ---- 가져오기 UI ---- */
 let _imp=null;   // 방금 해석한 책 (저장 전)
@@ -1496,7 +1558,8 @@ async function init(){
   if(!chap(S.chapter)) S.chapter=curBook.chapters[0].n;
   setNav(); renderSidebar(); renderMain();
 }
-init();
+/* 화면이 준비된 다음에 클라우드를 붙인다 — 목록이 있어야 복원한 책을 열 수 있다 */
+init().finally(()=>cloudBoot());
 
 /* 오프라인 지원 — 홈 화면에 추가해 앱처럼 쓸 때 필요 */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
