@@ -1841,13 +1841,17 @@ async function rtPush(){
   await rtReq('PATCH','state',{last});
   S.lastT=last.t;
 
-  // 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다
+  /* 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다.
+     열쇠만 먼저 보고, 올릴 책만 한 권씩 꺼낸다.
+     idbAll() 로 다 꺼내면 안 올릴 책까지 메인 스레드에서 펼쳐 화면이 멎는다. */
   const up=uploadedSet();
-  for(const b of (await idbAll())||[]){
-    if(up.has(b.id)) continue;
-    await rtReq('PUT','books/'+rtEnc(b.id),b);
-    up.add(b.id); markUploaded(up);
-    logEvent('☁️','책 올림 — '+(b.title||b.id));
+  for(const id of (await idbKeys())||[]){
+    if(up.has(id)) continue;
+    const b=await idbGet(id).catch(()=>null);
+    if(!b) continue;
+    await rtReq('PUT','books/'+rtEnc(id),b);
+    up.add(id); markUploaded(up);
+    logEvent('☁️','책 올림 — '+(b.title||id));
   }
   S.cloudAt=Date.now();
   save(); clearTimeout(pushTimer);                 // save() 가 다시 잡은 예약을 취소
