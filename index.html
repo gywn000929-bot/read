@@ -679,8 +679,10 @@ function speakNext(){
 
 /* ============ Tokenizer ============ */
 /* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
-const RX_ABBR=/(?:^|\s)(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\.g|i\.e)\.$/i;
-const RX_INIT=/(?:^|\s)[A-Z]\.$/;
+/* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
+const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e)\\.$','i');
+const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
 function splitSentences(p){
   // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
   // 안 그러면 닫는 따옴표만 남는 조각이 생긴다.
