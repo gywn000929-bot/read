@@ -1,58 +1,386 @@
 [
-{
-"id": "holes",
-"title": "Holes",
-"author": "Louis Sachar",
-"chapters": 50,
-"words": 47088
-},
-{
-"id": "hp1",
-"title": "Harry Potter and the Sorcerer's Stone",
-"author": "J.K. Rowling",
-"chapters": 17,
-"words": 79343
-},
-{
-"id": "hp2",
-"title": "Harry Potter and the Chamber of Secrets",
-"author": "J.K. Rowling",
-"chapters": 18,
-"words": 87571
-},
-{
-"id": "hp3",
-"title": "Harry Potter and the Prisoner of Azkaban",
-"author": "J.K. Rowling",
-"chapters": 22,
-"words": 111395
-},
-{
-"id": "hp4",
-"title": "Harry Potter and the Goblet of Fire",
-"author": "J.K. Rowling",
-"chapters": 37,
-"words": 198102
-},
-{
-"id": "hp5",
-"title": "Harry Potter and the Order of the Phoenix",
-"author": "J.K. Rowling",
-"chapters": 38,
-"words": 266135
-},
-{
-"id": "hp6",
-"title": "Harry Potter and the Half-Blood Prince",
-"author": "J.K. Rowling",
-"chapters": 30,
-"words": 174670
-},
-{
-"id": "hp7",
-"title": "Harry Potter and the Deathly Hallows",
-"author": "J.K. Rowling",
-"chapters": 37,
-"words": 202495
-}
+ {
+  "id": "holes",
+  "title": "Holes",
+  "author": "Louis Sachar",
+  "chapters": 50,
+  "words": 47088
+ },
+ {
+  "id": "hp1",
+  "title": "Harry Potter and the Sorcerer's Stone",
+  "author": "J.K. Rowling",
+  "chapters": 17,
+  "words": 79343
+ },
+ {
+  "id": "hp2",
+  "title": "Harry Potter and the Chamber of Secrets",
+  "author": "J.K. Rowling",
+  "chapters": 18,
+  "words": 87571
+ },
+ {
+  "id": "hp3",
+  "title": "Harry Potter and the Prisoner of Azkaban",
+  "author": "J.K. Rowling",
+  "chapters": 22,
+  "words": 111395
+ },
+ {
+  "id": "hp4",
+  "title": "Harry Potter and the Goblet of Fire",
+  "author": "J.K. Rowling",
+  "chapters": 37,
+  "words": 198102
+ },
+ {
+  "id": "hp5",
+  "title": "Harry Potter and the Order of the Phoenix",
+  "author": "J.K. Rowling",
+  "chapters": 38,
+  "words": 266135
+ },
+ {
+  "id": "hp6",
+  "title": "Harry Potter and the Half-Blood Prince",
+  "author": "J.K. Rowling",
+  "chapters": 30,
+  "words": 174670
+ },
+ {
+  "id": "hp7",
+  "title": "Harry Potter and the Deathly Hallows",
+  "author": "J.K. Rowling",
+  "chapters": 37,
+  "words": 202495
+ },
+ {
+  "id": "gb46",
+  "title": "A Christmas Carol",
+  "author": "Charles Dickens",
+  "chapters": 6,
+  "words": 28459,
+  "gutenberg": true
+ },
+ {
+  "id": "gb146",
+  "title": "A Little Princess",
+  "author": "Frances Hodgson Burnett",
+  "chapters": 19,
+  "words": 66241,
+  "gutenberg": true
+ },
+ {
+  "id": "gb244",
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "chapters": 14,
+  "words": 43258,
+  "gutenberg": true
+ },
+ {
+  "id": "gb98",
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "chapters": 45,
+  "words": 135550,
+  "gutenberg": true
+ },
+ {
+  "id": "gb76",
+  "title": "Adventures of Huckleberry Finn",
+  "author": "Mark Twain",
+  "chapters": 45,
+  "words": 110547,
+  "gutenberg": true
+ },
+ {
+  "id": "gb11",
+  "title": "Alice's Adventures in Wonderland",
+  "author": "Lewis Carroll",
+  "chapters": 12,
+  "words": 26417,
+  "gutenberg": true
+ },
+ {
+  "id": "gb45",
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "chapters": 38,
+  "words": 101964,
+  "gutenberg": true
+ },
+ {
+  "id": "gb103",
+  "title": "Around the World in Eighty Days",
+  "author": "Jules Verne",
+  "chapters": 37,
+  "words": 62686,
+  "gutenberg": true
+ },
+ {
+  "id": "gb45839",
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "chapters": 27,
+  "words": 160078,
+  "gutenberg": true
+ },
+ {
+  "id": "gb158",
+  "title": "Emma",
+  "author": "Jane Austen",
+  "chapters": 56,
+  "words": 157314,
+  "gutenberg": true
+ },
+ {
+  "id": "gb84",
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "chapters": 24,
+  "words": 69386,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1400",
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "chapters": 62,
+  "words": 184229,
+  "gutenberg": true
+ },
+ {
+  "id": "gb17157",
+  "title": "Gulliver's Travels",
+  "author": "Jonathan Swift",
+  "chapters": 21,
+  "words": 51312,
+  "gutenberg": true
+ },
+ {
+  "id": "gb219",
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "chapters": 3,
+  "words": 37904,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1260",
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "chapters": 38,
+  "words": 184376,
+  "gutenberg": true
+ },
+ {
+  "id": "gb37106",
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "chapters": 48,
+  "words": 190945,
+  "gutenberg": true
+ },
+ {
+  "id": "gb5200",
+  "title": "Metamorphosis",
+  "author": "Franz Kafka",
+  "chapters": 3,
+  "words": 21932,
+  "gutenberg": true
+ },
+ {
+  "id": "gb2701",
+  "title": "Moby Dick",
+  "author": "Herman Melville",
+  "chapters": 131,
+  "words": 207864,
+  "gutenberg": true
+ },
+ {
+  "id": "gb730",
+  "title": "Oliver Twist",
+  "author": "Charles Dickens",
+  "chapters": 53,
+  "words": 157069,
+  "gutenberg": true
+ },
+ {
+  "id": "gb16",
+  "title": "Peter Pan",
+  "author": "J. M. Barrie",
+  "chapters": 17,
+  "words": 47078,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1342",
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "chapters": 65,
+  "words": 122263,
+  "gutenberg": true
+ },
+ {
+  "id": "gb521",
+  "title": "Robinson Crusoe",
+  "author": "Daniel Defoe",
+  "chapters": 20,
+  "words": 120687,
+  "gutenberg": true
+ },
+ {
+  "id": "gb161",
+  "title": "Sense and Sensibility",
+  "author": "Jane Austen",
+  "chapters": 51,
+  "words": 118647,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1661",
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "chapters": 4,
+  "words": 104414,
+  "gutenberg": true
+ },
+ {
+  "id": "gb74",
+  "title": "The Adventures of Tom Sawyer",
+  "author": "Mark Twain",
+  "chapters": 35,
+  "words": 69747,
+  "gutenberg": true
+ },
+ {
+  "id": "gb215",
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "chapters": 7,
+  "words": 31716,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1184",
+  "title": "The Count of Monte Cristo",
+  "author": "Alexandre Dumas",
+  "chapters": 120,
+  "words": 459786,
+  "gutenberg": true
+ },
+ {
+  "id": "gb64317",
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "chapters": 10,
+  "words": 48139,
+  "gutenberg": true
+ },
+ {
+  "id": "gb2852",
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "chapters": 16,
+  "words": 59075,
+  "gutenberg": true
+ },
+ {
+  "id": "gb5230",
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "chapters": 28,
+  "words": 48283,
+  "gutenberg": true
+ },
+ {
+  "id": "gb174",
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "chapters": 21,
+  "words": 78888,
+  "gutenberg": true
+ },
+ {
+  "id": "gb1837",
+  "title": "The Prince and the Pauper",
+  "author": "Mark Twain",
+  "chapters": 33,
+  "words": 68662,
+  "gutenberg": true
+ },
+ {
+  "id": "gb25344",
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "chapters": 25,
+  "words": 68332,
+  "gutenberg": true
+ },
+ {
+  "id": "gb113",
+  "title": "The Secret Garden",
+  "author": "Frances Hodgson Burnett",
+  "chapters": 27,
+  "words": 80413,
+  "gutenberg": true
+ },
+ {
+  "id": "gb36",
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "chapters": 27,
+  "words": 59848,
+  "gutenberg": true
+ },
+ {
+  "id": "gb55",
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "chapters": 24,
+  "words": 39224,
+  "gutenberg": true
+ },
+ {
+  "id": "gb12",
+  "title": "Through the Looking-Glass",
+  "author": "Lewis Carroll",
+  "chapters": 12,
+  "words": 29219,
+  "gutenberg": true
+ },
+ {
+  "id": "gb120",
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "chapters": 34,
+  "words": 67830,
+  "gutenberg": true
+ },
+ {
+  "id": "gb164",
+  "title": "Twenty Thousand Leagues under the Sea",
+  "author": "Jules Verne",
+  "chapters": 47,
+  "words": 104314,
+  "gutenberg": true
+ },
+ {
+  "id": "gb910",
+  "title": "White Fang",
+  "author": "Jack London",
+  "chapters": 25,
+  "words": 71972,
+  "gutenberg": true
+ },
+ {
+  "id": "gb768",
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "chapters": 34,
+  "words": 115872,
+  "gutenberg": true
+ }
 ]
