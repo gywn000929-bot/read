@@ -1294,12 +1294,33 @@ const idbPut=(k,v)=>idbRun('readwrite',st=>st.put(v,k));
 const idbGet=(k)=>idbRun('readonly',st=>st.get(k));
 const idbDel=(k)=>idbRun('readwrite',st=>st.delete(k));
 const idbAll=()=>idbRun('readonly',st=>st.getAll());
-async function localManifest(){
+/* 아이폰 사파리에서는 IndexedDB 가 아무 응답도 주지 않는 일이 있다.
+   그걸 그냥 기다리면 앱이 영영 '불러오는 중…' 에서 멈춘다 — 기다림에 시간 제한을 둔다. */
+function withTimeout(pr,ms,fallback){
+  return Promise.race([
+    Promise.resolve(pr).catch(()=>fallback),
+    new Promise(res=>setTimeout(()=>res(fallback),ms))
+  ]);
+}
+/* 책 목록은 localStorage 에 따로 적어 둔다.
+   idbAll() 은 그림 책까지 통째로 읽어오므로, 목차 한 줄 만들자고 부를 것이 아니다. */
+const MET_KEY='bookstudy_meta';
+const bookMeta=b=>({id:b.id,title:b.title,author:b.author,
+  chapters:(b.chapters||[]).length,words:b.words||0,local:true,broken:bookLooksBroken(b)});
+function metaAll(){ try{ const v=JSON.parse(localStorage.getItem(MET_KEY)||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }
+function metaPut(b){ try{ const l=(metaAll()||[]).filter(x=>x.id!==b.id); l.push(bookMeta(b));
+  localStorage.setItem(MET_KEY,JSON.stringify(l)); }catch(e){} }
+function metaDel(id){ try{ const l=metaAll(); if(!l) return;
+  localStorage.setItem(MET_KEY,JSON.stringify(l.filter(x=>x.id!==id))); }catch(e){} }
+/* 적어 둔 목록이 있으면 그걸 쓰고, 없으면 한 번만 훑어서 만들어 둔다 */
+async function localManifest(force){
+  const cached=metaAll();
+  if(cached&&!force) return cached;
   try{
-    return (await idbAll()||[]).map(b=>({id:b.id,title:b.title,author:b.author,
-      chapters:(b.chapters||[]).length,words:b.words||0,local:true,
-      broken:bookLooksBroken(b)}));
-  }catch(e){ return []; }
+    const list=((await idbAll())||[]).map(bookMeta);
+    try{ localStorage.setItem(MET_KEY,JSON.stringify(list)); }catch(e){}
+    return list;
+  }catch(e){ return cached||[]; }
 }
 
 /* ---- pdf.js (필요할 때만 불러옴) ---- */
@@ -1632,7 +1653,7 @@ async function restoreBackup(data,quiet){
     const b=fixBook(raw);
     if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
     if(await idbGet(b.id).catch(()=>null)){ dup++; continue; }
-    try{ await idbPut(b.id,b); added++; }
+    try{ await idbPut(b.id,b); metaPut(b); added++; }
     catch(e){ toast('저장 공간이 부족해요'); break; }
   }
   const st=data.state||{};
@@ -1737,7 +1758,7 @@ async function rtPull(applyLast){
 
   // 다른 기기가 지운 책은 여기서도 치운다
   for(const id of Object.keys(S.del.b)){
-    if(await idbGet(id).catch(()=>null)){ await idbDel(id).catch(()=>{}); delete bookCache[id]; }
+    if(await idbGet(id).catch(()=>null)){ await idbDel(id).catch(()=>{}); metaDel(id); delete bookCache[id]; }
   }
   // 다른 기기가 올린 책 중 여기 없는 것만 받아온다 (목록은 키 이름만 훑는다)
   for(const k of Object.keys(ids||{})){
@@ -1746,7 +1767,7 @@ async function rtPull(applyLast){
     if(await idbGet(id).catch(()=>null)) continue;
     const b=fixBook(await rtReq('GET','books/'+k).catch(()=>null));
     if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
-    try{ await idbPut(b.id,b); added++; }
+    try{ await idbPut(b.id,b); metaPut(b); added++; }
     catch(e){ toast('저장 공간이 부족해요'); break; }
   }
 
@@ -1827,7 +1848,11 @@ async function cloudSync(quiet,applyLast){
     lastSync=Date.now(); rtErr='';
     if(r.changed){
       MANIFEST=MANIFEST.filter(m=>!m.local).concat(await localManifest());
-      if(!MANIFEST.find(m=>m.id===S.bookId)&&MANIFEST.length) S.bookId=MANIFEST[0].id;
+      if(!MANIFEST.find(m=>m.id===S.bookId)&&MANIFEST.length){
+        // 목록이 아직 덜 찼을 수도 있다 — 기기에 정말 없을 때만 다른 책으로 옮긴다
+        const have=String(S.bookId).startsWith(LP)? await idbGet(S.bookId).catch(()=>null) : true;
+        if(!have) S.bookId=MANIFEST[0].id;
+      }
       if(r.moved||r.added){ curBook=await loadBook(S.bookId).catch(()=>curBook); }
       if(!chap(S.chapter)&&curBook) S.chapter=curBook.chapters[0].n;
       setNav(); renderSidebar(); renderMain();
@@ -1945,7 +1970,7 @@ async function renderImport(state){
     renderCloudBox();
     $$('[data-del]').forEach(b=>b.addEventListener('click',async()=>{
       const id=b.dataset.del;
-      await idbDel(id);
+      await idbDel(id); metaDel(id);
       S.del.b[id]=Date.now();                    // 무덤을 남긴다 — 안 그러면 다시 받아온다
       S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 북마크도 같이 정리
       const up=uploadedSet(); up.delete(id); markUploaded(up);
@@ -2018,6 +2043,7 @@ async function saveImported(){
   _imp.author=($('#impA').value||'').trim()||'—';
   try{ await idbPut(_imp.id,_imp); }
   catch(e){ toast('저장 공간이 부족해요'); return; }
+  metaPut(_imp);
   delete S.del.b[_imp.id];    // 지웠던 책을 다시 넣었으면 무덤에서 꺼낸다
   requestPersist();   // 브라우저가 임의로 지우지 않도록 (응답을 기다리지 않음)
   bookCache[_imp.id]=_imp;
@@ -2029,19 +2055,60 @@ async function saveImported(){
 }
 
 /* ============ Init ============ */
+/* 무슨 일이 있어도 '불러오는 중…' 에 갇히지 않게 한다.
+   어디서 막혔는지 보여주고, 손으로 빠져나올 수 있는 길을 준다. */
+let booted=false;
+function bootStuck(why){
+  if(booted) return;
+  $('#main').innerHTML=`<div class="empty"><div class="big">⚠️</div>
+    <p>여는 데 오래 걸리고 있어요.<br><small style="color:var(--faint)">${esc(why||'')}</small></p>
+    <div class="toolrow" style="justify-content:center;margin-top:14px;flex-wrap:wrap">
+      <button class="bigbtn" id="bootRetry">다시 시도</button>
+      <button class="bigbtn" id="bootBuiltin">기본 책으로 열기</button>
+      <button class="bigbtn" id="bootReset">내 책 목록 새로 읽기</button>
+    </div></div>`;
+  const on=(id,fn)=>{ const b=$('#'+id); if(b) b.addEventListener('click',fn); };
+  on('bootRetry',()=>location.reload());
+  on('bootBuiltin',()=>{ S.bookId='holes'; S.chapter=1; save(); location.reload(); });
+  on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
+    S.bookId='holes'; S.chapter=1; save(); location.reload(); });
+}
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…</p></div>';
-  try{ const r=await fetch('books/manifest.json'); MANIFEST=await r.json(); }
-  catch(e){ MANIFEST=[]; }
-  MANIFEST=MANIFEST.concat(await localManifest());
-  if(!MANIFEST.length){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT 파일을 열어주세요.</p></div>'; return; }
+  const watchdog=setTimeout(()=>bootStuck('책 목록이나 저장소가 응답하지 않습니다'),12000);
+  try{
+    const r=await withTimeout(fetch('books/manifest.json'),8000,null);
+    MANIFEST=r? (await r.json()) : [];
+  }catch(e){ MANIFEST=[]; }
+  // 내 책 목록은 저장소가 느리면 기다리지 않는다 — 뒤에서 채워 넣는다
+  MANIFEST=MANIFEST.concat(await withTimeout(localManifest(),5000,[]));
+  if(!MANIFEST.length){ clearTimeout(watchdog); booted=true;
+    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT 파일을 열어주세요.</p></div>'; return; }
+  /* 목록이 아직 안 왔어도 읽던 책이 내 책이면 그 한 권만 바로 가져온다 —
+     목록을 못 기다렸다고 엉뚱한 책으로 열리면 안 된다 */
+  if(!MANIFEST.find(m=>m.id===S.bookId)&&String(S.bookId).startsWith(LP)){
+    const one=await withTimeout(idbGet(S.bookId).catch(()=>null),6000,null);
+    if(one) MANIFEST=MANIFEST.concat([bookMeta(fixBook(one))]);
+  }
   if(!MANIFEST.find(m=>m.id===S.bookId)) S.bookId=MANIFEST[0].id;
-  try{ curBook=await loadBook(S.bookId); }
-  catch(e){ $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>책을 불러오지 못했어요.</p></div>'; return; }
+  curBook=await withTimeout(loadBook(S.bookId),10000,null);
+  if(!curBook&&S.bookId!==MANIFEST[0].id){        // 그 책이 말썽이면 다른 책으로라도 연다
+    S.bookId=MANIFEST[0].id; S.chapter=1;
+    curBook=await withTimeout(loadBook(S.bookId),10000,null);
+  }
+  clearTimeout(watchdog);
+  if(!curBook){ bootStuck('책을 여는 데 실패했습니다'); return; }
+  booted=true;
   if(!chap(S.chapter)) S.chapter=S.chapters[S.bookId]||curBook.chapters[0].n;
   if(!chap(S.chapter)) S.chapter=curBook.chapters[0].n;
   setNav(); renderSidebar(); renderMain();
+  // 못 기다린 내 책 목록을 뒤늦게 채운다
+  localManifest(true).then(list=>{
+    if(!list.length) return;
+    MANIFEST=MANIFEST.filter(m=>!m.local).concat(list);
+    renderSidebar();
+  }).catch(()=>{});
 }
 /* 화면이 준비된 다음에 클라우드를 붙인다 — 목록이 있어야 복원한 책을 열 수 있다 */
 init().finally(()=>cloudBoot());
