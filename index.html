@@ -502,6 +502,26 @@ function bookLooksBroken(b){
   if(t.length<200) return false;
   return ((t.match(/ /g)||[]).length)/t.length < .05;
 }
+/* 예전 버전이 밀린 채로 넣어둔 책을 그 자리에서 되돌린다.
+   다시 넣으라고 하는 것보다 낫다 — 이미 기기에 있는 책이 바로 읽히게 된다.
+   '=' 는 줄을 이을 때 들어간 자리, 0x98~0x9c 는 따옴표·아포스트로피다. */
+const PDF_PUNCT={'=':' ','\u0098':'\u2018','\u0099':'\u201c','\u009a':'\u201d','\u009c':'\u2019'};
+function repairBook(b){
+  const sample=(b.chapters||[]).slice(0,3).map(c=>(c.paras||[]).join(' ')).join(' ').slice(0,3000);
+  const d=pdfShift(sample);
+  if(!d) return false;
+  const fix=s=>unshift(String(s),d)
+    .replace(/[=\u0098\u0099\u009a\u009c]/g,ch=>PDF_PUNCT[ch])
+    .replace(/[\u0080-\u009f]/g,'')          // 남은 제어문자는 버린다
+    .replace(/[ \t]+/g,' ').trim();
+  b.chapters.forEach(c=>{
+    if(Array.isArray(c.paras)) c.paras=c.paras.map(fix).filter(Boolean);
+    if(c.title) c.title=fix(c.title);
+  });
+  b.words=b.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  b._repaired=true;
+  return true;
+}
 function fixBook(b){
   if(!b||typeof b!=='object') return b;
   if(!b.parts||typeof b.parts!=='object') b.parts={};
@@ -514,13 +534,20 @@ function fixBook(b){
     if(Array.isArray(c.pages)) c.pages.forEach(pp=>{ if(pp&&!Array.isArray(pp.w)) pp.w=pp.w? Object.values(pp.w) : []; });
   });
   if(typeof b.words!=='number') b.words=b.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  if(b.kind!=='image'&&bookLooksBroken(b)) repairBook(b);
   return b;
 }
 async function loadBook(id){
   if(bookCache[id]) return bookCache[id];
   if(id.startsWith(LP)){
     const b=await idbGet(id); if(!b) throw new Error('local missing');
-    bookCache[id]=fixBook(b); return bookCache[id];
+    bookCache[id]=fixBook(b);
+    if(bookCache[id]._repaired){                 // 되돌린 결과를 기기와 다른 기기에도 남긴다
+      delete bookCache[id]._repaired;
+      idbPut(id,bookCache[id]).then(()=>{ metaPut(bookCache[id]);
+        const up=uploadedSet(); up.delete(id); markUploaded(up); }).catch(()=>{});
+    }
+    return bookCache[id];
   }
   const r=await fetch('books/'+id+'.json'); if(!r.ok) throw new Error('load fail');
   const b=await r.json(); bookCache[id]=b; return b;
