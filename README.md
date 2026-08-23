@@ -16,6 +16,59 @@
 | Harry Potter and the Half-Blood Prince | J.K. Rowling | 30 |
 | Harry Potter and the Deathly Hallows | J.K. Rowling | 37 |
 
+### 📖 고전 41권 (Project Gutenberg)
+
+퍼블릭 도메인 고전을 같은 형식으로 넣어 두었습니다. 사이드바 드롭다운의
+**📖 고전** 갈래에서 고르면 됩니다. 원문은 [Project Gutenberg](https://www.gutenberg.org/)
+의 평문(txt)을 이 앱의 파서로 장 단위로 나눈 것입니다.
+
+| 책 | 저자 | 챕터 |
+|----|------|------|
+| A Christmas Carol | Charles Dickens | 6 |
+| A Little Princess | Frances Hodgson Burnett | 19 |
+| A Study in Scarlet | Arthur Conan Doyle | 14 |
+| A Tale of Two Cities | Charles Dickens | 45 |
+| Adventures of Huckleberry Finn | Mark Twain | 45 |
+| Alice's Adventures in Wonderland | Lewis Carroll | 12 |
+| Anne of Green Gables | L. M. Montgomery | 38 |
+| Around the World in Eighty Days | Jules Verne | 37 |
+| Dracula | Bram Stoker | 27 |
+| Emma | Jane Austen | 56 |
+| Frankenstein | Mary Wollstonecraft Shelley | 24 |
+| Great Expectations | Charles Dickens | 62 |
+| Gulliver's Travels | Jonathan Swift | 21 |
+| Heart of Darkness | Joseph Conrad | 3 |
+| Jane Eyre | Charlotte Brontë | 38 |
+| Little Women | Louisa May Alcott | 48 |
+| Metamorphosis | Franz Kafka | 3 |
+| Moby Dick | Herman Melville | 131 |
+| Oliver Twist | Charles Dickens | 53 |
+| Peter Pan | J. M. Barrie | 17 |
+| Pride and Prejudice | Jane Austen | 65 |
+| Robinson Crusoe | Daniel Defoe | 20 |
+| Sense and Sensibility | Jane Austen | 51 |
+| The Adventures of Sherlock Holmes | Arthur Conan Doyle | 4 |
+| The Adventures of Tom Sawyer | Mark Twain | 35 |
+| The Call of the Wild | Jack London | 7 |
+| The Count of Monte Cristo | Alexandre Dumas | 120 |
+| The Great Gatsby | F. Scott Fitzgerald | 10 |
+| The Hound of the Baskervilles | Arthur Conan Doyle | 16 |
+| The Invisible Man | H. G. Wells | 28 |
+| The Picture of Dorian Gray | Oscar Wilde | 21 |
+| The Prince and the Pauper | Mark Twain | 33 |
+| The Scarlet Letter | Nathaniel Hawthorne | 25 |
+| The Secret Garden | Frances Hodgson Burnett | 27 |
+| The War of the Worlds | H. G. Wells | 27 |
+| The Wonderful Wizard of Oz | L. Frank Baum | 24 |
+| Through the Looking-Glass | Lewis Carroll | 12 |
+| Treasure Island | Robert Louis Stevenson | 34 |
+| Twenty Thousand Leagues under the Sea | Jules Verne | 47 |
+| White Fang | Jack London | 25 |
+| Wuthering Heights | Emily Brontë | 34 |
+
+> 상업 출판사(펭귄 북스 등)의 책은 저작권이 있어 넣을 수 없습니다.
+> 개인 소장 파일은 아래 **📂 내 책 열기** 로 직접 넣어 읽으세요.
+
 사이드바 상단의 드롭다운으로 책을 전환합니다. 각 책은 선택할 때 필요한 만큼만 불러옵니다(빠른 로딩).
 
 ## 📂 내 책 열기 (개인 소장 파일)

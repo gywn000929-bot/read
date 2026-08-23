@@ -587,42 +587,68 @@ let _c=0; function stamp(){ // monotonic fake timestamp label based on Date subs
 
 /* ============ Network helpers (dictionary + translate) ============ */
 const trCache = {}, dictCache = {};
-/* 번역기는 문장 조각으로 나눠 돌려준다 — [번역, 원문, …] 의 배열 */
-async function gtxSegments(q){
-  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q='+encodeURIComponent(q);
-  const r=await fetch(url); const j=await r.json();
-  return (j[0]||[]).map(g=>({ko:g[0]||'', src:g[1]||''}));
+/* 구글의 translate_a/single 은 2026-08 부터 429(Sorry...)로 막혔다.
+   translate_a/t 는 q 를 여러 개 받아 보낸 순서 그대로 돌려주므로,
+   문단을 문장 단위로 쪼개 한 번에 보내고 정확히 맞춰 담을 수 있다.
+   (예전에는 통째로 보낸 뒤 돌아온 조각을 글자로 맞춰봤다 — 어긋나기 쉬웠다) */
+const TR_URL='https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=ko';
+const TR_MS=12000;
+async function trFetch(url,opt){
+  const ac=('AbortController' in window)?new AbortController():null;
+  const t=ac?setTimeout(()=>ac.abort(),TR_MS):0;
+  try{
+    const r=await fetch(url,Object.assign({},opt,ac?{signal:ac.signal}:{}));
+    if(!r.ok) throw new Error('HTTP '+r.status);      // 429 를 조용히 삼키지 않는다
+    return r;
+  } finally { if(t) clearTimeout(t); }
 }
-const trKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'');
+/* 문장 여럿을 한 번에 — 돌려받은 배열이 보낸 목록과 1:1 로 맞는다.
+   긴 문단은 주소 길이 제한에 걸리므로 POST 로 보낸다. */
+async function trBatch(list){
+  const body=list.map(s=>'q='+encodeURIComponent(s)).join('&');
+  const r=await trFetch(TR_URL,{method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const j=await r.json();
+  const arr=Array.isArray(j)?j:[j];
+  return list.map((_,i)=>{
+    const v=arr[i];
+    if(typeof v==='string') return v;
+    if(Array.isArray(v)) return String(v[0]||'');     // [번역,원문] 꼴로 올 때가 있다
+    return '';
+  });
+}
+/* 구글이 막히면 여기로 — 느리고 품질이 조금 낮지만 없는 것보다 낫다 */
+async function trBackup(text){
+  const r=await trFetch('https://api.mymemory.translated.net/get?langpair=en%7Cko&q='+encodeURIComponent(text));
+  const j=await r.json();
+  const t=(((j||{}).responseData)||{}).translatedText||'';
+  return (t && !/^MYMEMORY WARNING/i.test(t)) ? t : null;
+}
 /* 문장을 홀로 떼어 보내면 앞뒤 문맥이 없어 번역이 겉돈다.
-   문단째 보내고, 돌려받은 조각 중 그 문장에 해당하는 것만 쓴다.
-   맞아떨어지지 않으면 예전처럼 문장만 보낸다 — 엉뚱한 조각을 보여주는 것보다 낫다.
-   덤으로 같은 문단의 나머지 문장도 미리 담아두어 다음 탭은 기다림이 없다. */
+   같은 문단의 문장을 함께 보내고, 나머지도 미리 담아두어 다음 탭은 기다림이 없다. */
 async function translateKo(text,context){
   const key = text.trim().toLowerCase();
   if(trCache[key]!==undefined) return trCache[key];
-  if(context && context.length>text.length+20 && context.length<1200){
-    try{
-      const segs=await gtxSegments(context);
-      segs.forEach(g=>{ const k=g.src.trim().toLowerCase(); if(k&&g.ko) trCache[k]=g.ko.trim(); });
-      const want=trKey(text);
-      let ko=null;
-      for(let i=0;i<segs.length&&ko===null;i++){       // 조각이 더 잘게 쪼개졌으면 이어붙여 맞춰본다
-        let acc='', buf='';
-        for(let j=i;j<segs.length;j++){
-          acc+=trKey(segs[j].src); buf+=segs[j].ko;
-          if(acc.length>want.length) break;
-          if(acc===want){ ko=buf; break; }
-        }
-      }
-      if(ko!==null&&ko.trim()){ trCache[key]=ko.trim(); return trCache[key]; }
-    }catch(e){}
+  let batch=[text];
+  if(context && context.length>text.length+20){
+    const ss=splitSentences(context).map(s=>s.trim()).filter(Boolean);
+    // 고른 문장이 그 문단 안에 정말 있을 때만 문단째 보낸다
+    if(ss.length>1 && ss.length<=40 && ss.some(s=>s.toLowerCase()===key)) batch=ss;
   }
   try{
-    const segs=await gtxSegments(text);
-    const out=segs.map(g=>g.ko).join('');
-    trCache[key]=out; return out;
-  }catch(e){ return null; }
+    const ko=await trBatch(batch);
+    batch.forEach((s,i)=>{ const k=s.trim().toLowerCase(), v=(ko[i]||'').trim();
+      if(k&&v) trCache[k]=v; });
+    if(trCache[key]!==undefined) return trCache[key];
+  }catch(e){}
+  if(batch.length>1){                                  // 문단이 실패하면 문장 하나만 다시
+    try{
+      const ko=await trBatch([text]); const v=(ko[0]||'').trim();
+      if(v){ trCache[key]=v; return v; }
+    }catch(e){}
+  }
+  try{ const v=await trBackup(text); if(v){ trCache[key]=v.trim(); return trCache[key]; } }catch(e){}
+  return null;
 }
 async function lookupDict(word){
   const key=word.toLowerCase();
@@ -678,11 +704,25 @@ function speakNext(){
 }
 
 /* ============ Tokenizer ============ */
+/* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
+/* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
+const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e)\\.$','i');
+const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
 function splitSentences(p){
-  // keep punctuation; split on sentence enders followed by space+capital/quote
-  // 곡선 따옴표(” ’)도 문장에 붙여둔다 — 안 그러면 닫는 따옴표만 남는 조각이 생긴다
+  // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
+  // 안 그러면 닫는 따옴표만 남는 조각이 생긴다.
   const parts=p.match(/[^.!?]+[.!?]*["'\u201d\u2019]*\s*|[^.!?]+$/g);
-  return parts?parts.map(s=>s.trim()).filter(Boolean):[p];
+  if(!parts) return [p];
+  const out=[];
+  for(const raw of parts){
+    const s=raw.trim(); if(!s) continue;
+    const prev=out[out.length-1];
+    // 앞 조각이 약어로 끝났으면 문장이 아직 안 끝난 것이다
+    if(prev&&(RX_ABBR.test(prev)||RX_INIT.test(prev))) out[out.length-1]=prev+' '+s;
+    else out.push(s);
+  }
+  return out.length?out:[p];
 }
 function tokenizeSentence(sent){
   // wrap alphabetic words in span.w
@@ -701,6 +741,14 @@ function tokenizeSentence(sent){
 const COMMON=new Set("the a an and or but so if then than that this these those of to in on at by for with from into out up down over under again very just too also not no yes he she it they we you i him her them his her its their our your my me was were is are am be been being have has had do does did will would can could shall should may might must not as at it's i'm he's she's they're we're you're don't didn't couldn't wouldn't there here when where who what which how why all some any many much more most one two three said say says like get got go went come came see saw look looked know knew think thought back down out over about after before around because could would should very really".split(/\s+/));
 
 /* ============ Render: Sidebar ============ */
+/* 책이 쉰 권 가까이 되니 한 줄로 늘어놓으면 찾기 어렵다 — 갈래로 묶는다 */
+function bookOptions(){
+  const one=m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}${m.author?' — '+esc(m.author):''}</option>`;
+  const grp=(label,list)=> list.length? `<optgroup label="${label}">${list.map(one).join('')}</optgroup>` : '';
+  return grp('📂 내 책', MANIFEST.filter(m=>m.local))
+       + grp('📚 수록된 책', MANIFEST.filter(m=>!m.local&&!m.gutenberg))
+       + grp('📖 고전 (Project Gutenberg)', MANIFEST.filter(m=>m.gutenberg));
+}
 function renderSidebar(){
   if(!curBook){ renderFirstRun(); return; }   // 서재가 비면 첫 화면이 사이드바까지 그린다
   const b=book();
@@ -708,7 +756,7 @@ function renderSidebar(){
   const pf=S._part||0;
   let html=`<div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
-    <select id="bookSel" aria-label="책 선택">${MANIFEST.map(m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${m.local?'📂 ':''}${esc(m.title)}</option>`).join('')}</select>
+    <select id="bookSel" aria-label="책 선택">${bookOptions()}</select>
     <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
   </div>
   <div class="bookcard">
@@ -1094,7 +1142,7 @@ async function toggleSentTrans(sent){
   const para=[...sent.parentNode.querySelectorAll('.sent')]
     .map(x=>x.dataset.raw||x.textContent).join(' ');
   const ko=await translateKo(sent.dataset.raw||sent.textContent, para);
-  div.textContent = ko || '⚠️ 번역을 불러오지 못했어요 (인터넷 연결 확인)';
+  div.textContent = ko || '⚠️ 번역 서버가 응답하지 않아요 — 잠시 뒤 다시 눌러보세요';
   pgRelayout();                          // 번역이 들어오면 길이가 또 달라진다
 }
 
@@ -1443,9 +1491,26 @@ const RX_CHAP=/^chapter\s+([0-9]+|[a-z]+(?:[\s-][a-z]+)?)\b\.?\s*(.*)$/i;
 const RX_PART=/^(?:part|book)\s+([0-9]+|[ivxlcdm]+)\b\.?\s*(.*)$/i;
 const RX_HEAD=/^(prologue|epilogue|preface|foreword|afterword|introduction|author'?s note)\b/i;
 const RX_NUM=/^([0-9]{1,3})$/;
+/* Stave One(크리스마스 캐럴) · Adventure I.(셜록) · Letter 1(프랑켄슈타인) 같은 것들 */
+const RX_SECT=/^(stave|adventure|letter|canto|chapter)\s+([0-9]+|[ivxlcdm]+|[a-z]+(?:[\s-][a-z]+)?)\b\.?\s*(.*)$/i;
+/* 홀로 선 대문자 로마 숫자 = 장 번호 (암흑의 핵심, 위대한 개츠비, 변신 …).
+   소문자는 받지 않는다 — 본문에 낱말로 섞여 들어올 수 있어서. */
+const RX_ROMAN=/^([IVXLCDM]{1,7})\.?$/;
 const RX_BREAK=/^[*#•·—–\-\s]{2,}$/;
-const ROMAN={i:1,ii:2,iii:3,iv:4,v:5,vi:6,vii:7,viii:8,ix:9,x:10,xi:11,xii:12,xiii:13,xiv:14,xv:15};
-function rnum(s){ s=String(s).toLowerCase(); return /^\d+$/.test(s)? +s : (ROMAN[s]||0); }
+const RVAL={i:1,v:5,x:10,l:50,c:100,d:500,m:1000};
+/* 제대로 된 로마 숫자 셈 — 예전엔 15까지 적어둔 표라 XVI 부터는 0 이 나왔고,
+   그 바람에 16장부터 제목이 "Chapter XVI" 처럼 숫자로 안 바뀌었다 */
+function rnum(s){
+  s=String(s).toLowerCase().replace(/\.$/,'');
+  if(/^\d+$/.test(s)) return +s;
+  if(!/^[ivxlcdm]+$/.test(s)||s.length>15) return 0;
+  let n=0;
+  for(let i=0;i<s.length;i++){
+    const v=RVAL[s[i]], nx=RVAL[s[i+1]]||0;
+    n += (nx>v) ? -v : v;
+  }
+  return n;
+}
 /* 영어 숫자말 → 숫자 ("TWENTY-ONE" → 21). 많은 소설이 장 제목을 이렇게 씁니다. */
 const NWORD={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
   eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
@@ -1508,14 +1573,47 @@ function stripFurniture(lines,pages){
   return lines.filter(l=>l.s.length>=70||cnt[key(l)]<=th);
 }
 /* 목차(Contents) 쪽은 통째로 버린다 — 제목 같은 줄이 몰려 있는 쪽 */
-function dropTOC(lines){
-  const HEADISH=/^(chapter\s+[0-9a-z]+|part\s+[0-9ivxlcdm]+|prologue|epilogue|contents)\b/i;
-  const per={};
-  lines.forEach(l=>{ if(l.s.length<40&&HEADISH.test(l.s)) per[l.p]=(per[l.p]||0)+1; });
-  const toc=new Set(Object.keys(per).filter(p=>per[p]>=6).map(Number));
-  return toc.size? lines.filter(l=>!toc.has(l.p)) : lines;
+/* 목차 쪽 버리기 — 한 쪽에 제목꼴 줄이 잔뜩 모여 있으면 그 쪽이 목차다.
+   쪽이 없는 TXT 는 파일 전체가 p=1 이라 이 셈이 성립하지 않는다.
+   (그대로 두면 장이 6개만 넘어도 책 전체를 목차로 보고 통째로 버렸다) */
+const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$/i;
+function dropTOC(lines,pages){
+  if(pages>=4){                       // PDF — 제목꼴 줄이 잔뜩 있는 '쪽'이 목차다
+    const per={};
+    lines.forEach(l=>{ if(l.s.length<40&&HEADISH.test(l.s)) per[l.p]=(per[l.p]||0)+1; });
+    const toc=new Set(Object.keys(per).filter(p=>per[p]>=6).map(Number));
+    return toc.size? lines.filter(l=>!toc.has(l.p)) : lines;
+  }
+  /* TXT — 쪽이 없으니 '촘촘히 몰린 구간'으로 찾는다.
+     목차에서는 제목줄이 서로 몇 줄 안에 붙어 있고, 본문에서는 수백 줄씩 떨어져 있다.
+     목차 줄인지 본문 제목인지는 '뒤에 무엇이 오는가'로 가른다 —
+     목차 줄 뒤에는 또 제목이 오고, 본문 제목 뒤에는 산문이 온다.
+     (글자가 같은 줄을 지우는 방식도 해봤지만, Emma·두 도시 이야기처럼
+      권마다 1장이 다시 나오는 책에서 진짜 1장 본문이 통째로 날아갔다) */
+  const tocish=i=>{
+    let seen=0;
+    for(let k=i+1;k<lines.length&&seen<3;k++){
+      const t=lines[k].s; if(!t) continue;
+      seen++; if(HEADISH.test(t)) return true;
+    }
+    return false;
+  };
+  const idx=[];
+  lines.forEach((l,i)=>{ if(l.s&&l.s.length<120&&HEADISH.test(l.s)&&tocish(i)) idx.push(i); });
+  if(idx.length<6) return lines;
+  const gap=i=>{ let n=0; for(let k=idx[i]+1;k<idx[i+1];k++) if(lines[k].s) n++; return n; };
+  const cut=new Set();
+  const flush=run=>{ if(run.length>=6) for(let k=run[0];k<=run[run.length-1];k++) cut.add(k); };
+  let run=[idx[0]];
+  for(let i=0;i<idx.length-1;i++){
+    if(gap(i)<=3) run.push(idx[i+1]);
+    else { flush(run); run=[idx[i+1]]; }
+  }
+  flush(run);
+  return cut.size? lines.filter((_,i)=>!cut.has(i)) : lines;
 }
 function titleCase(s){
+  s=String(s).replace(/^[\s\[\](){}.,;:*_-]+|[\s\[\](){}*_-]+$/g,'') || String(s);
   return s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase())
     .replace(/\b(i{1,3}|iv|vi{0,3}|ix|xi{0,3})\b/gi,m=>m.toUpperCase())   // Part Ii → Part II
     .replace(/\bMc([a-z])/g,(m,c)=>'Mc'+c.toUpperCase());                 // Mcfadden → McFadden
@@ -1656,9 +1754,10 @@ function guessMeta(inp){
   return {title:titleCase(t.s), author:a?titleCase(a.s):''};
 }
 
+const clean=t=>String(t||'').replace(/^[\s\[\](){}.,;:*_-]+|[\s\[\](){}.,;:*_-]+$/g,'');
 function linesToBook(inp,meta){
   let lines=stripFurniture(inp.lines,inp.pages);
-  lines=dropTOC(lines);
+  lines=dropTOC(lines,inp.pages);
   const med=a=>a.length? a.slice().sort((x,y)=>x-y)[Math.floor(a.length/2)] : 0;
   // 본문 글자 크기 = 긴 줄들의 중앙값. 이보다 확실히 크면 제목 줄로 본다.
   const bodyH=inp.hasFont? (med(lines.filter(l=>l.s.length>60).map(l=>l.h))||med(lines.map(l=>l.h))) : 0;
@@ -1678,9 +1777,14 @@ function linesToBook(inp,meta){
       if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
       if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
       if((m=s.match(RX_CHAP))){ const n=rnum(m[1])||wnum(m[1]);
-        open('Chapter '+(n||m[1])+(m[2]?' · '+m[2]:'')); return; }
+        const sub=clean(m[2]);
+        open('Chapter '+(n||m[1])+(sub?' · '+sub:'')); return; }
       const wn=wnum(s); if(wn){ open('Chapter '+wn); return; }       // "ONE", "TWENTY-TWO"
       if(RX_NUM.test(s)){ open('Chapter '+s); return; }              // "1", "2"
+      if((m=s.match(RX_ROMAN))){ const n=rnum(m[1]); if(n){ open('Chapter '+n); return; } }
+      if((m=s.match(RX_SECT))){                                      // Stave One / Adventure I.
+        const n=rnum(m[2])||wnum(m[2]); const sub=clean(m[3]);
+        open(titleCase(m[1])+' '+(n||m[2])+(sub?' · '+sub:'')); return; }
       if(inp.hasFont){ open(titleCase(s)); return; }                 // 그 밖의 큰 글씨 = 제목
     }
     if(!cur) open('Opening');
@@ -2055,7 +2159,9 @@ async function renderImport(state){
           <button data-del="${esc(b.id)}">삭제</button></div>`).join('')}</div>`+
         (list.some(b=>b.broken)?`<p class="note">⚠️ <b>글자가 깨짐</b> 으로 표시된 책은 예전 버전이 잘못 읽어들인 것입니다.
           지우고 같은 파일을 다시 넣으면 제대로 들어갑니다.</p>`:'') : ''}
-      <p class="note">🔒 파일은 이 브라우저에만 저장되고 어디로도 전송되지 않습니다.
+      <p class="note">⚠️ <b>넣은 책은 기본적으로 클라우드에 올라갑니다.</b>
+        그 데이터베이스는 로그인이 없어서 주소를 아는 사람은 누구나 볼 수 있습니다 —
+        남에게 보이면 안 되는 파일은 위 목록에서 <b>📵 이 기기에만</b> 을 눌러 두세요.
         한 번 넣으면 계속 남고, <b>읽던 챕터와 단어장도 함께 저장</b>됩니다.
         같은 파일을 다시 넣으면 진도가 그대로 이어집니다.<br>
         브라우저 데이터를 지우면 사라지고, iPhone Safari 는 사이트를 오래 열지 않으면
@@ -2244,7 +2350,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0823-1353';
+const BUILD='0823-2305';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
