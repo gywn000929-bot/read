@@ -587,42 +587,68 @@ let _c=0; function stamp(){ // monotonic fake timestamp label based on Date subs
 
 /* ============ Network helpers (dictionary + translate) ============ */
 const trCache = {}, dictCache = {};
-/* 번역기는 문장 조각으로 나눠 돌려준다 — [번역, 원문, …] 의 배열 */
-async function gtxSegments(q){
-  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q='+encodeURIComponent(q);
-  const r=await fetch(url); const j=await r.json();
-  return (j[0]||[]).map(g=>({ko:g[0]||'', src:g[1]||''}));
+/* 구글의 translate_a/single 은 2026-08 부터 429(Sorry...)로 막혔다.
+   translate_a/t 는 q 를 여러 개 받아 보낸 순서 그대로 돌려주므로,
+   문단을 문장 단위로 쪼개 한 번에 보내고 정확히 맞춰 담을 수 있다.
+   (예전에는 통째로 보낸 뒤 돌아온 조각을 글자로 맞춰봤다 — 어긋나기 쉬웠다) */
+const TR_URL='https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=ko';
+const TR_MS=12000;
+async function trFetch(url,opt){
+  const ac=('AbortController' in window)?new AbortController():null;
+  const t=ac?setTimeout(()=>ac.abort(),TR_MS):0;
+  try{
+    const r=await fetch(url,Object.assign({},opt,ac?{signal:ac.signal}:{}));
+    if(!r.ok) throw new Error('HTTP '+r.status);      // 429 를 조용히 삼키지 않는다
+    return r;
+  } finally { if(t) clearTimeout(t); }
 }
-const trKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'');
+/* 문장 여럿을 한 번에 — 돌려받은 배열이 보낸 목록과 1:1 로 맞는다.
+   긴 문단은 주소 길이 제한에 걸리므로 POST 로 보낸다. */
+async function trBatch(list){
+  const body=list.map(s=>'q='+encodeURIComponent(s)).join('&');
+  const r=await trFetch(TR_URL,{method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const j=await r.json();
+  const arr=Array.isArray(j)?j:[j];
+  return list.map((_,i)=>{
+    const v=arr[i];
+    if(typeof v==='string') return v;
+    if(Array.isArray(v)) return String(v[0]||'');     // [번역,원문] 꼴로 올 때가 있다
+    return '';
+  });
+}
+/* 구글이 막히면 여기로 — 느리고 품질이 조금 낮지만 없는 것보다 낫다 */
+async function trBackup(text){
+  const r=await trFetch('https://api.mymemory.translated.net/get?langpair=en%7Cko&q='+encodeURIComponent(text));
+  const j=await r.json();
+  const t=(((j||{}).responseData)||{}).translatedText||'';
+  return (t && !/^MYMEMORY WARNING/i.test(t)) ? t : null;
+}
 /* 문장을 홀로 떼어 보내면 앞뒤 문맥이 없어 번역이 겉돈다.
-   문단째 보내고, 돌려받은 조각 중 그 문장에 해당하는 것만 쓴다.
-   맞아떨어지지 않으면 예전처럼 문장만 보낸다 — 엉뚱한 조각을 보여주는 것보다 낫다.
-   덤으로 같은 문단의 나머지 문장도 미리 담아두어 다음 탭은 기다림이 없다. */
+   같은 문단의 문장을 함께 보내고, 나머지도 미리 담아두어 다음 탭은 기다림이 없다. */
 async function translateKo(text,context){
   const key = text.trim().toLowerCase();
   if(trCache[key]!==undefined) return trCache[key];
-  if(context && context.length>text.length+20 && context.length<1200){
-    try{
-      const segs=await gtxSegments(context);
-      segs.forEach(g=>{ const k=g.src.trim().toLowerCase(); if(k&&g.ko) trCache[k]=g.ko.trim(); });
-      const want=trKey(text);
-      let ko=null;
-      for(let i=0;i<segs.length&&ko===null;i++){       // 조각이 더 잘게 쪼개졌으면 이어붙여 맞춰본다
-        let acc='', buf='';
-        for(let j=i;j<segs.length;j++){
-          acc+=trKey(segs[j].src); buf+=segs[j].ko;
-          if(acc.length>want.length) break;
-          if(acc===want){ ko=buf; break; }
-        }
-      }
-      if(ko!==null&&ko.trim()){ trCache[key]=ko.trim(); return trCache[key]; }
-    }catch(e){}
+  let batch=[text];
+  if(context && context.length>text.length+20){
+    const ss=splitSentences(context).map(s=>s.trim()).filter(Boolean);
+    // 고른 문장이 그 문단 안에 정말 있을 때만 문단째 보낸다
+    if(ss.length>1 && ss.length<=40 && ss.some(s=>s.toLowerCase()===key)) batch=ss;
   }
   try{
-    const segs=await gtxSegments(text);
-    const out=segs.map(g=>g.ko).join('');
-    trCache[key]=out; return out;
-  }catch(e){ return null; }
+    const ko=await trBatch(batch);
+    batch.forEach((s,i)=>{ const k=s.trim().toLowerCase(), v=(ko[i]||'').trim();
+      if(k&&v) trCache[k]=v; });
+    if(trCache[key]!==undefined) return trCache[key];
+  }catch(e){}
+  if(batch.length>1){                                  // 문단이 실패하면 문장 하나만 다시
+    try{
+      const ko=await trBatch([text]); const v=(ko[0]||'').trim();
+      if(v){ trCache[key]=v; return v; }
+    }catch(e){}
+  }
+  try{ const v=await trBackup(text); if(v){ trCache[key]=v.trim(); return trCache[key]; } }catch(e){}
+  return null;
 }
 async function lookupDict(word){
   const key=word.toLowerCase();
@@ -1106,7 +1132,7 @@ async function toggleSentTrans(sent){
   const para=[...sent.parentNode.querySelectorAll('.sent')]
     .map(x=>x.dataset.raw||x.textContent).join(' ');
   const ko=await translateKo(sent.dataset.raw||sent.textContent, para);
-  div.textContent = ko || '⚠️ 번역을 불러오지 못했어요 (인터넷 연결 확인)';
+  div.textContent = ko || '⚠️ 번역 서버가 응답하지 않아요 — 잠시 뒤 다시 눌러보세요';
   pgRelayout();                          // 번역이 들어오면 길이가 또 달라진다
 }
 
@@ -2232,7 +2258,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0823-1353';
+const BUILD='0823-2305';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
