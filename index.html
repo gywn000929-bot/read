@@ -163,6 +163,20 @@ html.paged main{padding-top:12px;padding-bottom:12px}
 .pagebar .pgn{font-size:13px;color:var(--sub);min-width:72px;text-align:center;font-variant-numeric:tabular-nums}
 /* 한 줄만 덩그러니 남는 것을 막는다 — 다단에서도 줄 단위로 지켜진다 */
 .body.paged{orphans:2;widows:2}
+/* 쪽 자체가 그림인 책 — 그림 한 장이 한 쪽이고, 그 위에 누를 수 있는 단어 칸을 얹는다 */
+.body.imgbook{display:flex;align-items:flex-start;overflow:hidden}
+.body.imgbook .imgpage{position:relative;flex:0 0 100%;height:100%;
+  display:flex;align-items:flex-start;justify-content:center}
+.body.imgbook .imgpage img{max-width:100%;max-height:100%;width:auto;height:auto;
+  object-fit:contain;-webkit-user-select:none;user-select:none;border-radius:4px}
+/* 단어 칸은 이미지 위에 투명하게 얹힌다 — 눌러야 보인다 */
+.body.imgbook .imgpage .w{position:absolute;border-radius:3px;background:transparent}
+.body.imgbook.showvocab .imgpage .w.vocab{background:rgba(216,184,74,.18)}
+.body.imgbook .imgpage .w.saved{background:var(--mark);opacity:.45}
+.body.imgbook .imgpage .w:active{background:var(--mark);opacity:.6}
+/* 그림 책은 스크롤 모드에서도 쪽을 세로로 쌓아 보여준다 */
+.body.imgbook:not(.paged){display:block}
+.body.imgbook:not(.paged) .imgpage{width:100%;height:auto;margin:0 0 18px}
 /* 쪽 경계에 걸린 문장을 통째로 다음 쪽으로 미는 표식 (JS 가 필요한 곳에만 넣는다) */
 .body.paged .pgbrk{display:block;height:0;margin:0;
   -webkit-column-break-before:always;break-before:column}
@@ -678,12 +692,22 @@ function renderMain(){
   const b=book(), c=chap(S.chapter);
   const partName=b.parts[c.part]||('Part '+c.part);
   const words=c.paras.join(' ').split(/\s+/).length;
+  const isImg=b.kind==='image'&&Array.isArray(c.pages)&&c.pages.length;
   let body='';
-  c.paras.forEach((p,pi)=>{
-    const sents=splitSentences(p);
-    const inner=sents.map(s=>`<span class="sent" data-raw="${esc(s)}">${tokenizeSentence(s)}</span>`).join(' ');
-    body+=`<p class="${pi===0?'drop':''}">${inner}</p>`;
-  });
+  if(isImg){
+    body=c.pages.map((pp,i)=>`<div class="imgpage"><img src="${pp.img}" alt="${i+1}쪽" draggable="false">`+
+      (pp.w||[]).map(q=>`<span class="w${S.words[q.b]?' saved':''}${COMMON.has(q.b)?'':' vocab'}"`+
+        ` data-w="${esc(q.b)}" data-raw="${esc(q.t)}"`+
+        ` style="left:${(q.x*100).toFixed(2)}%;top:${(q.y*100).toFixed(2)}%;`+
+        `width:${(q.w*100).toFixed(2)}%;height:${(q.h*100).toFixed(2)}%"></span>`).join('')+
+      `</div>`).join('');
+  }else{
+    c.paras.forEach((p,pi)=>{
+      const sents=splitSentences(p);
+      const inner=sents.map(s=>`<span class="sent" data-raw="${esc(s)}">${tokenizeSentence(s)}</span>`).join(' ');
+      body+=`<p class="${pi===0?'drop':''}">${inner}</p>`;
+    });
+  }
   const idx=b.chapters.findIndex(x=>x.n===S.chapter);
   const prev=b.chapters[idx-1], next=b.chapters[idx+1];
   const pgKeyNow=S.bookId+':'+S.chapter;
@@ -698,7 +722,7 @@ function renderMain(){
         <span>${words} words</span></div>
     </div>`;
   $('#main').innerHTML=`<div class="reader${pgOn()?' paged':''}">
-    ${pgOn()?'':head}
+    ${(pgOn()&&!isImg)?'':head}
     <div class="toolbar">
       <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전</button>
       <button id="btnNext" ${next?'':'disabled'}>다음 ›</button>
@@ -712,7 +736,7 @@ function renderMain(){
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
     <div class="pageview" id="pageView">
-      <div class="body ${pgOn()?'paged':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${pgOn()?head:''}${body}</div>
+      <div class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
     </div>
     ${pgOn()?`<div class="pagebar" id="pageBar">
       <button id="pgPrevBtn" aria-label="이전 페이지">‹</button>
@@ -840,10 +864,19 @@ function pgLayout(keepEl){
   const w=Math.round(vp.clientWidth);
   const cols=w>=900?2:1;                               // 넓은 화면은 책처럼 두 쪽씩
 
-  body.style.width=w+'px';
-  body.style.columnGap=PG_GAP+'px';
-  body.style.columnWidth=Math.floor((w-PG_GAP*(cols-1))/cols)+'px';
-  let h=snap(Math.max(240,vh-vp.getBoundingClientRect().top-barH-padB));
+  const img=body.classList.contains('imgbook');
+  if(img){
+    /* 쪽 하나가 그림 하나 — 다단이 필요 없다. 폭을 딱 한 쪽으로 잡고 같은 방식으로 민다. */
+    body.style.width=w+'px'; body.style.columnWidth=''; body.style.columnGap='';
+    body.style.gap=PG_GAP+'px';
+  }else{
+    body.style.width=w+'px';
+    body.style.gap='';
+    body.style.columnGap=PG_GAP+'px';
+    body.style.columnWidth=Math.floor((w-PG_GAP*(cols-1))/cols)+'px';
+  }
+  let h=img? Math.max(240,Math.round(vh-vp.getBoundingClientRect().top-barH-padB))
+           : snap(Math.max(240,vh-vp.getBoundingClientRect().top-barH-padB));
   setH(h);
   /* 식으로 잡히지 않는 브라우저 크롬(아이폰 툴바 등)은 실측으로 보정한다.
      문서 높이가 아니라 페이지 바의 실제 아래쪽을 본다 — 문서 상자는 아이폰에서
@@ -857,9 +890,10 @@ function pgLayout(keepEl){
     h=next; setH(h);
   }
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
-  pgAvoidSplit();                                      // 쪽에 걸친 문장을 다음 쪽으로
+  if(!img) pgAvoidSplit();                             // 쪽에 걸친 문장을 다음 쪽으로
 
-  pgTotal=Math.max(1,Math.round((body.scrollWidth+PG_GAP)/(w+PG_GAP)));
+  pgTotal=img? Math.max(1,body.querySelectorAll('.imgpage').length)
+             : Math.max(1,Math.round((body.scrollWidth+PG_GAP)/(w+PG_GAP)));
   if(pgWantLast){ pgPage=pgTotal-1; pgWantLast=false; }
   else if(keepEl) pgPage=pgPageOf(keepEl);
   pgPage=Math.min(Math.max(0,pgPage),pgTotal-1);
@@ -870,7 +904,7 @@ function pgLayout(keepEl){
    그래서 재보고, 걸린 문장 앞에 단을 끊는 표식을 넣는다. */
 function pgAvoidSplit(){
   const body=$('#readBody'), vp=$('#pageView');
-  if(!body||!vp) return 0;
+  if(!body||!vp||body.classList.contains('imgbook')) return 0;
   const step=pgStep(vp);
   const sents=[...body.querySelectorAll('.sent')];
   let moved=0;
@@ -1340,6 +1374,131 @@ function titleCase(s){
     .replace(/\bMc([a-z])/g,(m,c)=>'Mc'+c.toUpperCase());                 // Mcfadden → McFadden
 }
 /* 첫 몇 쪽에서 가장 큰 글씨 = 제목, 그 다음 = 지은이 (사용자가 고칠 수 있음) */
+/* ---- 쪽 자체가 그림인 PDF ----
+   Wimpy Kid 처럼 손글씨와 그림이 한 장에 같이 그려진 책은 쪽 전체가 이미지이고,
+   그 위에 보이지 않는 글자층이 덮여 있다. 글자만 뽑으면 그림이 통째로 사라지므로,
+   쪽 그림을 그대로 두고 글자층 자리에 누를 수 있는 칸을 얹는다. */
+const IMG_W=720, IMG_Q=.72, IMG_MAXPP=14;   // 쪽 너비(px) · 화질 · 한 장(chapter)에 담을 쪽 수
+
+/* 폰트에 유니코드 표가 없으면 글자가 통째로 밀려 나온다 (Wimpy Kid 는 +29).
+   흔한 영어 단어가 가장 많이 잡히는 이동값을 찾는다. */
+function pdfShift(sample){
+  const score=s=>{
+    const ws=s.toLowerCase().match(/[a-z]{2,}/g)||[];
+    if(ws.length<8) return 0;
+    return ws.filter(w=>COMMON.has(w)).length/ws.length;
+  };
+  let best=0, bestScore=score(sample);
+  if(bestScore>=.25) return 0;                       // 이미 멀쩡하다
+  for(let d=1;d<128;d++){
+    const s=[...sample].map(c=>String.fromCharCode(c.charCodeAt(0)+d)).join('');
+    const v=score(s);
+    if(v>bestScore){ bestScore=v; best=d; }
+  }
+  return bestScore>=.25? best : 0;
+}
+const unshift=(s,d)=>d? [...s].map(c=>String.fromCharCode(c.charCodeAt(0)+d)).join('') : s;
+
+/* 쪽마다 큰 그림 한 장이 실려 있으면 '쪽이 곧 그림'인 책으로 본다.
+   그리는 위치(변환행렬)는 pdf.js 내부 좌표라 해석이 까다로워서,
+   paintImageXObject 가 들고 있는 그림의 실제 픽셀 크기로 판단한다. */
+async function pdfIsImageBook(pdf,lib){
+  const N=pdf.numPages;
+  const pick=[];                                     // 앞부분만 보면 표지·판권에 속는다 — 고루 뽑는다
+  for(let i=0;i<8;i++) pick.push(1+Math.floor(N*(i+.5)/8));
+  let big=0;
+  for(const n of new Set(pick)){
+    const pg=await pdf.getPage(n);
+    const ops=await pg.getOperatorList();
+    for(let k=0;k<ops.fnArray.length;k++){
+      if(ops.fnArray[k]!==lib.OPS.paintImageXObject) continue;
+      const a=ops.argsArray[k];                      // [이름, 가로px, 세로px]
+      if(a&&a[1]>=400&&a[2]>=400){ big++; break; }
+    }
+  }
+  return big>=Math.min(8,N)*.7;
+}
+
+/* 한 줄을 단어 칸으로 쪼갠다 — 글자 수에 비례해 폭을 나눈다 (손글씨라 폭이 대체로 고르다) */
+function lineWords(str,x,y,w,h){
+  const out=[]; const re=/([A-Za-z][A-Za-z'-]*)|([^A-Za-z]+)/g; let m, at=0;
+  const per=str.length? w/str.length : 0;
+  while((m=re.exec(str))){
+    const seg=m[0];
+    if(m[1]){
+      const base=seg.toLowerCase().replace(/[^a-z]/g,'');
+      if(base) out.push({x:x+at*per, y, w:seg.length*per, h, t:seg, b:base});
+    }
+    at+=seg.length;
+  }
+  return out;
+}
+
+async function parseImagePdf(pdf,lib,meta,prog){
+  const N=pdf.numPages;
+  // 이동값은 앞쪽 몇 장으로 한 번만 정한다
+  let sample='';
+  for(let i=1;i<=Math.min(N,12)&&sample.length<1500;i++){
+    sample+=(await (await pdf.getPage(i)).getTextContent()).items.map(x=>x.str).join(' ');
+  }
+  const shift=pdfShift(sample);
+
+  const pages=[];
+  const cv=document.createElement('canvas'), cx=cv.getContext('2d');
+  for(let i=1;i<=N;i++){
+    if(prog) prog(i,N);
+    const pg=await pdf.getPage(i);
+    const v0=pg.getViewport({scale:1});
+    const sc=IMG_W/v0.width;
+    const vp=pg.getViewport({scale:sc});
+    cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+    cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext:cx,viewport:vp}).promise;
+
+    const tc=await pg.getTextContent();
+    const ws=[], lines=[];
+    for(const it of tc.items){
+      const s=unshift(it.str,shift).replace(/=/g,' ').trim();
+      if(!s) continue;
+      const t=lib.Util.transform(vp.transform,it.transform);
+      const h=Math.hypot(t[2],t[3])||12, x=t[4], y=t[5]-h, w=(it.width||0)*sc;
+      lines.push(s);
+      // 0~1 로 저장해 어떤 크기로 보여도 자리가 맞는다
+      for(const q of lineWords(s,x,y,w,h))
+        ws.push({x:+(q.x/cv.width).toFixed(4), y:+(q.y/cv.height).toFixed(4),
+                 w:+(q.w/cv.width).toFixed(4), h:+(q.h/cv.height).toFixed(4), t:q.t, b:q.b});
+    }
+    pages.push({img:cv.toDataURL('image/webp',IMG_Q), w:ws, text:lines.join(' '), first:(lines[0]||'').trim()});
+    if(i%4===0) await new Promise(r=>setTimeout(r));   // 화면이 멈추지 않게 숨을 돌린다
+  }
+
+  /* 요일·Chapter 같은 머리글이 나오면 새 장으로 끊고, 너무 길어지면 잘라준다 */
+  const HEAD=/^(mon|tues|wednes|thurs|fri|satur|sun)day\b|^(chapter|part|prologue|epilogue)\b/i;
+  const chapters=[]; let cur=null;
+  pages.forEach(pp=>{
+    // 머리글은 쪽의 '첫 줄' 로만 판단한다 — 쪽 전체를 보면 본문 속 요일에도 걸린다
+    const first=pp.first||'';
+    const head=HEAD.test(first)&&first.split(/\s+/).length<=4;
+    if(!cur||(head&&cur.pages.length)||cur.pages.length>=IMG_MAXPP){
+      cur={n:chapters.length+1, part:1, title:head? first.slice(0,40) : '', pages:[], paras:[]};
+      chapters.push(cur);
+    }
+    cur.pages.push({img:pp.img,w:pp.w});
+    if(pp.text) cur.paras.push(pp.text);
+  });
+  // 제목이 안 잡힌 장은 쪽 번호로라도 이름을 붙여 목차에서 찾을 수 있게 한다
+  let at=1;
+  chapters.forEach(c=>{
+    const end=at+c.pages.length-1;
+    if(!c.title) c.title=(at===end? `${at}쪽` : `${at}–${end}쪽`);
+    at=end+1;
+    if(!c.paras.length) c.paras=[''];
+  });
+  const words=pages.reduce((a,p)=>a+((p.text||'').split(/\s+/).filter(Boolean).length),0);
+  return {id:meta.id,title:meta.title,author:meta.author,lang:'en',local:true,kind:'image',
+          words,parts:{},chapters};
+}
+
 function guessMeta(inp){
   if(!inp.hasFont) return {title:'',author:''};
   const front=inp.lines.filter(l=>l.p<=4&&l.s.length>2&&l.s.length<=60)
@@ -1802,9 +1961,17 @@ async function importFile(file){
       bk={...json,id,local:true,parts:json.parts||{},
         words:json.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0)};
     } else if(/\.pdf$/i.test(file.name)||file.type==='application/pdf'){
-      const inp=await pdfLines(file,setP); setP(1,1);
-      const g=guessMeta(inp);
-      bk=linesToBook(inp,{id,title:g.title||name,author:g.author||''});
+      const lib=await ensurePdfjs();
+      const pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+      if(await pdfIsImageBook(pdf,lib)){
+        // 쪽 전체가 그림인 책 — 그림을 그대로 두고 글자층만 얹는다
+        bk=await parseImagePdf(pdf,lib,{id,title:name,author:''},setP);
+        if(!bk.chapters.length) throw new Error('쪽을 읽지 못했어요');
+      }else{
+        const inp=await pdfLines(file,setP); setP(1,1);
+        const g=guessMeta(inp);
+        bk=linesToBook(inp,{id,title:g.title||name,author:g.author||''});
+      }
     } else {
       bk=linesToBook(txtLines(await file.text()),{id,title:name,author:''});
     }
