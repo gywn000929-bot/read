@@ -158,6 +158,18 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .pagebar .pgtrack{flex:1;max-width:240px;height:4px;background:var(--line2);border-radius:3px;overflow:hidden}
 .pagebar .pgtrack i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .3s}
 .pagebar .pgn{font-size:13px;color:var(--sub);min-width:72px;text-align:center;font-variant-numeric:tabular-nums}
+/* 한 줄만 덩그러니 남는 것을 막는다 — 다단에서도 줄 단위로 지켜진다 */
+.body.paged{orphans:2;widows:2}
+/* 북마크 목록 */
+.marklist{margin:14px 0 4px;border-top:1px solid var(--line2);padding-top:12px}
+.marklist .mk{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer}
+.marklist .mk:hover{background:var(--line2)}
+.marklist .mkc{font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;flex:none}
+.marklist .mkt{flex:1;min-width:0;font-size:12.5px;color:var(--sub);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.marklist .mkx{border:none;background:none;color:var(--faint);cursor:pointer;font-size:12px;
+  padding:2px 4px;border-radius:6px;flex:none}
+.marklist .mkx:hover{color:var(--bad);background:var(--line)}
 .w{cursor:pointer;border-radius:2px;transition:background .1s}
 .w:hover{background:var(--mark)}
 .body.showvocab .w.vocab{box-shadow:inset 0 -2px 0 var(--mark-line)}
@@ -436,14 +448,22 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 /* ============ Data & State ============ */
 const LS_KEY = 'bookstudy_v1';
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
-  bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[] };
+  bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
+  pagePos:{},          // 챕터별로 읽던 쪽 — 'bookId:chapter' → 쪽 번호
+  marks:[],            // 북마크 [{id,bookId,chapter,page,text,t}]
+  del:{w:{},b:{},m:{}} // 지운 것의 무덤(단어/책/북마크) — 없으면 동기화가 되살려 놓는다
+};
 let S = load();
 let MANIFEST=[], curBook=null; const bookCache={};
 function load(){
   try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); const o=Object.assign({}, defaults, s||{});
        if(!o.chapters||typeof o.chapters!=='object') o.chapters={};
+       if(!o.pagePos||typeof o.pagePos!=='object') o.pagePos={};
+       if(!Array.isArray(o.marks)) o.marks=[];
+       if(!o.del||typeof o.del!=='object') o.del={};
+       ['w','b','m'].forEach(k=>{ if(!o.del[k]||typeof o.del[k]!=='object') o.del[k]={}; });
        return o; }
-  catch(e){ return Object.assign({}, defaults, {chapters:{}}); }
+  catch(e){ return Object.assign({}, defaults, {chapters:{},pagePos:{},marks:[],del:{w:{},b:{},m:{}}}); }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S));
   if(typeof cloudTouch==='function') cloudTouch(); }
@@ -578,6 +598,12 @@ function renderSidebar(){
     <div class="progbar"><i style="width:${Math.round(readCount()/totalChaps()*100)}%"></i></div>
     <div class="progtxt"><span>읽은 챕터 ${readCount()} / ${totalChaps()}</span><span>${Math.round(readCount()/totalChaps()*100)}%</span></div>
   </div>`;
+  const bms=(S.marks||[]).filter(m=>m.bookId===S.bookId);
+  if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 북마크 ${bms.length}</div>`+
+    bms.map(m=>`<div class="mk" data-mk="${esc(m.id)}">
+      <span class="mkc">${m.chapter}장${m.page?` · ${m.page+1}쪽`:''}</span>
+      <span class="mkt">${esc(m.text||'저장한 자리')}</span>
+      <button class="mkx" data-mkx="${esc(m.id)}" aria-label="북마크 삭제">✕</button></div>`).join('')+`</div>`;
   html+=`<input class="searchbox" id="search" placeholder="🔎 챕터 내용 검색…" value="${esc(S._q||'')}">`;
   const parts=Object.keys(b.parts);
   html+=`<div class="sectfilter" id="sectfilter">
@@ -600,6 +626,15 @@ function renderSidebar(){
   $('#search').addEventListener('input',e=>{ S._q=e.target.value; const pos=e.target.selectionStart; renderSidebar(); const s=$('#search'); s.focus(); s.setSelectionRange(pos,pos); });
   $$('#sectfilter button').forEach(x=>x.addEventListener('click',()=>{ S._part=+x.dataset.p; renderSidebar(); }));
   $$('.artitem').forEach(x=>x.addEventListener('click',()=>{ openChapter(+x.dataset.ch); closeDrawer(); }));
+  $$('[data-mk]').forEach(x=>x.addEventListener('click',e=>{
+    if(e.target.closest('[data-mkx]')) return;                 // ✕ 는 삭제, 나머지는 이동
+    goMark(x.dataset.mk); closeDrawer(); }));
+  $$('[data-mkx]').forEach(x=>x.addEventListener('click',e=>{
+    e.stopPropagation();
+    const id=x.dataset.mkx;
+    S.marks=S.marks.filter(m=>m.id!==id); S.del.m[id]=Date.now();
+    save(); rtDrop('marks',id); toast('북마크를 뺐어요');
+    renderSidebar(); const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt()); }));
   const bs=$('#bookSel'); if(bs) bs.addEventListener('change',e=>switchBook(e.target.value));
   const bi=$('#btnImport'); if(bi) bi.addEventListener('click',()=>renderImport());
 }
@@ -637,7 +672,7 @@ function renderMain(){
   const idx=b.chapters.findIndex(x=>x.n===S.chapter);
   const prev=b.chapters[idx-1], next=b.chapters[idx+1];
   const pgKeyNow=S.bookId+':'+S.chapter;
-  if(pgKey!==pgKeyNow){ pgKey=pgKeyNow; if(!pgWantLast) pgPage=0; }
+  if(pgKey!==pgKeyNow){ pgKey=pgKeyNow; if(!pgWantLast) pgPage=S.pagePos[pgKeyNow]||0; }
   $('#main').innerHTML=`<div class="reader${pgOn()?' paged':''}">
     <div class="kicker">${esc(b.title)}</div>
     <h1>${c.title? esc(c.title) : ('Chapter '+c.n)}</h1>
@@ -655,6 +690,7 @@ function renderMain(){
       <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span>문장 해석</span></button>
       <button id="btnVocab2" class="${S._showvocab?'on':''}"><span>✨</span><span class="hide-sm">단어 강조</span></button>
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
+      <button id="btnMark"><span>🔖</span><span class="hide-sm">북마크</span></button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
     <div class="pageview" id="pageView">
@@ -682,6 +718,7 @@ function renderMain(){
   $('#btnTrans').addEventListener('click',()=>{ S._trans=!S._trans; renderMain(); });
   $('#btnVocab2').addEventListener('click',()=>{ S._showvocab=!S._showvocab; renderMain(); });
   $('#btnPage').addEventListener('click',()=>{ S.paged=!pgOn(); save(); renderMain(); });
+  $('#btnMark').addEventListener('click',toggleMark);
   if(pgOn()){
     $('#pgPrevBtn').addEventListener('click',pgPrev);
     $('#pgNextBtn').addEventListener('click',pgNext);
@@ -718,6 +755,44 @@ function bindReaderInteractions(){
   },{passive:true});
 }
 
+/* ============ 북마크 ============
+   지금 보고 있는 쪽을 저장해 두고 나중에 그 자리로 돌아간다.
+   스크롤 모드에서는 쪽이 없으므로 챕터 단위로 잡힌다. */
+function markAt(){
+  return (S.marks||[]).find(m=>m.bookId===S.bookId&&m.chapter===S.chapter&&m.page===(pgOn()?pgPage:0));
+}
+function toggleMark(){
+  const hit=markAt();
+  if(hit){
+    S.marks=S.marks.filter(m=>m.id!==hit.id);
+    S.del.m[hit.id]=Date.now();                       // 무덤을 남겨야 다시 안 생긴다
+    save(); rtDrop('marks',hit.id);
+    toast('북마크를 뺐어요');
+  }else{
+    const body=$('#readBody');
+    /* 지금 쪽 첫 문장을 미리보기로 — 목록에서 어디였는지 알아볼 수 있게 */
+    let text='';
+    if(body){
+      const bx=body.getBoundingClientRect().left, sl=body.scrollLeft, from=pgOn()?pgPage*pgStep($('#pageView')):0;
+      const first=[...body.querySelectorAll('.sent')].find(x=>x.getBoundingClientRect().left-bx+sl>=from-2);
+      text=((first&&(first.dataset.raw||first.textContent))||'').trim().slice(0,70);
+    }
+    const id='m'+Date.now().toString(36)+Math.floor(performance.now()%1000);
+    S.marks.unshift({id,bookId:S.bookId,chapter:S.chapter,page:pgOn()?pgPage:0,text,t:Date.now()});
+    S.marks=S.marks.slice(0,300);
+    delete S.del.m[id];
+    save(); toast('북마크에 넣었어요');
+    logEvent('🔖','북마크 — Chapter '+S.chapter+(pgOn()?' '+(pgPage+1)+'쪽':''));
+  }
+  const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
+  renderSidebar();
+}
+function goMark(id){
+  const m=(S.marks||[]).find(x=>x.id===id); if(!m) return;
+  const go=()=>{ pgWantLast=false; S.pagePos[m.bookId+':'+m.chapter]=m.page||0; openChapter(m.chapter); };
+  if(m.bookId!==S.bookId) switchBook(m.bookId).then(go); else go();
+}
+
 /* ============ 페이지 넘김 ============
    본문을 다단으로 잘라 한 단(좁은 화면) 또는 두 단(넓은 화면)씩 보여주고,
    translateX 로 밀어서 넘긴다. 글자 크기·창 크기가 바뀌면 다시 잰다. */
@@ -736,7 +811,10 @@ function pgLayout(keepEl){
   const bar=$('#pageBar'), mn=$('#main');
   const barH=bar? bar.offsetHeight+(parseFloat(getComputedStyle(bar).marginTop)||0) : 0;
   const padB=mn? (parseFloat(getComputedStyle(mn).paddingBottom)||0) : 0;
-  const h=Math.max(240,Math.round(window.innerHeight-vp.getBoundingClientRect().top-barH-padB));
+  let h=Math.max(240,Math.round(window.innerHeight-vp.getBoundingClientRect().top-barH-padB));
+  /* 줄 높이의 배수로 깎는다 — 안 그러면 쪽 맨 아래 줄이 반쯤 잘려 글이 끊긴 것처럼 보인다 */
+  const lh=parseFloat(getComputedStyle(body).lineHeight)||0;
+  if(lh>0) h=Math.max(lh*4,Math.floor(h/lh)*lh);
   const w=Math.round(vp.clientWidth);
   const cols=w>=900?2:1;                               // 넓은 화면은 책처럼 두 쪽씩
 
@@ -757,7 +835,9 @@ function pgApply(smooth){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body||!pgOn()) return;
   body.scrollTo({left:pgPage*pgStep(vp),behavior:smooth?'smooth':'auto'});
+  if(pgKey) S.pagePos[pgKey]=pgPage;                 // 읽던 쪽을 기억한다
   const n=$('#pgNum'); if(n) n.textContent=`${pgPage+1} / ${pgTotal}`;
+  const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
 }
 /* 요소가 몇 번째 쪽에 있는지 — 넘긴 만큼(scrollLeft)을 더해 본문 기준 좌표로 잰다 */
@@ -771,6 +851,7 @@ function pgGo(i){
   if(!$('#readBody')) return;
   pgPage=Math.min(Math.max(0,i),pgTotal-1);
   pgApply(true);
+  save();                                            // 읽던 쪽을 남기고 다른 기기에도 보낸다
 }
 function pgNext(){
   if(!pgOn()) return;
@@ -860,6 +941,7 @@ function saveWord(base,raw){
   const pop=$('#pop'); const d=pop._data||{};
   if(S.words[base]){ S.view='vocab'; save(); setNav(); renderMain(); hidePop(); return; }
   const b=book();
+  delete S.del.w[base];      // 다시 저장했으면 무덤에서 꺼낸다
   S.words[base]={ w:raw, base, ko:d.ko||'', dict:d.dict||null, t:Date.now?Date.now():(++_c),
     src:`${b.title} · Chapter ${S.chapter}` , when:stamp()};
   save();
@@ -909,7 +991,10 @@ function renderVocab(){
     </div>`;
   }).join('');
   $$('[data-spk]').forEach(x=>x.addEventListener('click',()=>speakWord(x.dataset.spk)));
-  $$('[data-del]').forEach(x=>x.addEventListener('click',()=>{ delete S.words[x.dataset.del]; save(); renderVocab(); setNav(); }));
+  $$('[data-del]').forEach(x=>x.addEventListener('click',()=>{
+    const k=x.dataset.del;
+    delete S.words[k]; S.del.w[k]=Date.now();   // 무덤을 남겨야 다음 동기화에 되살아나지 않는다
+    save(); rtDrop('words',k); renderVocab(); setNav(); }));
   $('#btnFlash').addEventListener('click',startFlash);
   $('#btnQuiz').addEventListener('click',startQuiz);
   $('#btnExport').addEventListener('click',exportCSV);
@@ -1368,6 +1453,14 @@ async function rtPull(applyLast){
   let added=0;
 
   if(d){
+    /* 무덤부터 합친다 — 지운 것을 되살리지 않으려면 병합보다 먼저 알아야 한다 */
+    const rd_=d.deleted||{};
+    ['w','b','m'].forEach(kind=>{
+      const src={w:rd_.words,b:rd_.books,m:rd_.marks}[kind]||{};
+      Object.entries(src).forEach(([k,t])=>{ const n=rtDec(k);
+        S.del[kind][n]=Math.max(S.del[kind][n]||0,+t||0); });
+    });
+
     const ch=Object.assign({},S.chapters||{});
     Object.entries(d.chapters||{}).forEach(([k,v])=>{ const n=rtDec(k); ch[n]=Math.max(ch[n]||0,+v||0); });
     S.chapters=ch;
@@ -1378,13 +1471,32 @@ async function rtPull(applyLast){
 
     const w=Object.assign({},S.words||{});
     Object.entries(d.words||{}).forEach(([k,v])=>{ const n=rtDec(k);
-      if(v&&(!w[n]||(v.t||0)>(w[n].t||0))) w[n]=v; });
+      if(!v||(v.t||0)<=(S.del.w[n]||0)) return;        // 지운 뒤에 올라온 게 아니면 무시
+      if(!w[n]||(v.t||0)>(w[n].t||0)) w[n]=v; });
+    Object.keys(S.del.w).forEach(n=>{                  // 다른 기기가 지운 것은 여기서도 지운다
+      if(w[n]&&(w[n].t||0)<=S.del.w[n]) delete w[n]; });
     S.words=w;
+
+    const mk=new Map((S.marks||[]).map(m=>[m.id,m]));
+    Object.values(d.marks||{}).forEach(m=>{
+      if(!m||!m.id||(S.del.m[m.id]||0)>=(m.t||0)) return;
+      const cur=mk.get(m.id); if(!cur||(m.t||0)>(cur.t||0)) mk.set(m.id,m); });
+    Object.keys(S.del.m).forEach(id=>mk.delete(id));
+    S.marks=[...mk.values()].sort((a,b)=>b.t-a.t).slice(0,300);
+
+    const pp=Object.assign({},S.pagePos||{});
+    Object.entries(d.pagePos||{}).forEach(([k,v])=>{ const n=rtDec(k); pp[n]=Math.max(pp[n]||0,+v||0); });
+    S.pagePos=pp;
   }
 
+  // 다른 기기가 지운 책은 여기서도 치운다
+  for(const id of Object.keys(S.del.b)){
+    if(await idbGet(id).catch(()=>null)){ await idbDel(id).catch(()=>{}); delete bookCache[id]; }
+  }
   // 다른 기기가 올린 책 중 여기 없는 것만 받아온다 (목록은 키 이름만 훑는다)
   for(const k of Object.keys(ids||{})){
     const id=rtDec(k);
+    if(S.del.b[id]) continue;                          // 지운 책은 다시 받지 않는다
     if(await idbGet(id).catch(()=>null)) continue;
     const b=await rtReq('GET','books/'+k).catch(()=>null);
     if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
@@ -1392,33 +1504,56 @@ async function rtPull(applyLast){
     catch(e){ toast('저장 공간이 부족해요'); break; }
   }
 
-  // 마지막으로 읽던 자리는 앱을 열 때만 따라간다
+  // 마지막으로 읽던 자리는 앱을 열 때만 따라간다 — 읽는 도중 폴링이 화면을 옮기면 안 된다
   let moved=false;
   if(applyLast&&d&&d.last&&d.last.bookId&&(d.last.t||0)>(S.lastT||0)){
     S.lastT=d.last.t;
     if(d.last.bookId!==S.bookId||d.last.chapter!==S.chapter){
       S.bookId=d.last.bookId; S.chapter=d.last.chapter||1; moved=true;
     }
+    if(d.last.page>0) S.pagePos[S.bookId+':'+S.chapter]=d.last.page;   // 읽던 쪽까지 이어받는다
   }
   save();
-  return { added, moved, changed: added>0||moved||before!==JSON.stringify([S.chapters,S.read,S.words]) };
+  return { added, moved,
+    changed: added>0||moved||before!==JSON.stringify([S.chapters,S.read,S.words,S.marks]) };
+}
+/* 지운 것을 원격에서도 바로 없앤다 — 오프라인이면 무덤이 다음 동기화에 다시 보낸다 */
+function rtDrop(kind,key){
+  const node={words:'state/words',marks:'state/marks',books:'books'}[kind];
+  if(!node) return;
+  rtReq('PATCH',node,{[rtEnc(key)]:null}).catch(e=>console.error(e));
 }
 
 /* 올릴 때는 키 단위 PATCH — 다른 기기가 그 사이 넣은 것을 덮지 않는다 */
 async function rtPush(){
   clearTimeout(pushTimer);
   if(rtBusy){ cloudTouch(); return false; }        // 맞추는 중이면 조금 뒤에
-  const words={}, read={}, chapters={};
+  const words={}, read={}, chapters={}, marks={}, pagePos={};
   Object.entries(S.words||{}).forEach(([k,v])=>words[rtEnc(k)]=v);
   Object.keys(S.read||{}).forEach(k=>read[rtEnc(k)]=true);
   Object.entries(S.chapters||{}).forEach(([k,v])=>chapters[rtEnc(k)]=v);
+  (S.marks||[]).forEach(m=>marks[rtEnc(m.id)]=m);
+  Object.entries(S.pagePos||{}).forEach(([k,v])=>pagePos[rtEnc(k)]=v);
+  /* 지운 것은 null 로 보내 원격에서도 없앤다 — 무덤은 다른 기기가 읽어갈 수 있게 남긴다 */
+  const dw={},db={},dm={};
+  Object.entries(S.del.w).forEach(([k,t])=>{ dw[rtEnc(k)]=t; words[rtEnc(k)]=null; });
+  Object.entries(S.del.m).forEach(([k,t])=>{ dm[rtEnc(k)]=t; marks[rtEnc(k)]=null; });
+  Object.entries(S.del.b).forEach(([k,t])=>db[rtEnc(k)]=t);
 
   /* 자식 노드마다 따로 보낸다 — PATCH 는 본문 최상위 키를 통째로 갈아끼우므로
      한 번에 {words:…} 로 보내면 그 사이 다른 기기가 넣은 단어가 지워진다 */
   if(Object.keys(words).length) await rtReq('PATCH','state/words',words);
   if(Object.keys(read).length) await rtReq('PATCH','state/read',read);
   if(Object.keys(chapters).length) await rtReq('PATCH','state/chapters',chapters);
-  const last={ bookId:S.bookId, chapter:S.chapter, t:Date.now() };
+  if(Object.keys(marks).length) await rtReq('PATCH','state/marks',marks);
+  if(Object.keys(pagePos).length) await rtReq('PATCH','state/pagePos',pagePos);
+  if(Object.keys(dw).length) await rtReq('PATCH','state/deleted/words',dw);
+  if(Object.keys(dm).length) await rtReq('PATCH','state/deleted/marks',dm);
+  if(Object.keys(db).length){
+    await rtReq('PATCH','state/deleted/books',db);
+    await rtReq('PATCH','books',Object.fromEntries(Object.keys(db).map(k=>[k,null])));
+  }
+  const last={ bookId:S.bookId, chapter:S.chapter, page:pgPage, t:Date.now() };
   await rtReq('PATCH','state',{last});
   S.lastT=last.t;
 
@@ -1561,10 +1696,15 @@ async function renderImport(state){
     const ex=$('#btnExport'); if(ex) ex.addEventListener('click',exportBackup);
     renderCloudBox();
     $$('[data-del]').forEach(b=>b.addEventListener('click',async()=>{
-      await idbDel(b.dataset.del);
-      MANIFEST=MANIFEST.filter(x=>x.id!==b.dataset.del);
+      const id=b.dataset.del;
+      await idbDel(id);
+      S.del.b[id]=Date.now();                    // 무덤을 남긴다 — 안 그러면 다시 받아온다
+      S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 북마크도 같이 정리
+      const up=uploadedSet(); up.delete(id); markUploaded(up);
+      save(); rtDrop('books',id);
+      MANIFEST=MANIFEST.filter(x=>x.id!==id);
       toast('삭제했어요');
-      if(S.bookId===b.dataset.del){ closeImport(); await switchBook(MANIFEST[0].id); return; }
+      if(S.bookId===id){ closeImport(); await switchBook(MANIFEST[0].id); return; }
       renderImport();
     }));
   }
@@ -1620,6 +1760,7 @@ async function saveImported(){
   _imp.author=($('#impA').value||'').trim()||'—';
   try{ await idbPut(_imp.id,_imp); }
   catch(e){ toast('저장 공간이 부족해요'); return; }
+  delete S.del.b[_imp.id];    // 지웠던 책을 다시 넣었으면 무덤에서 꺼낸다
   requestPersist();   // 브라우저가 임의로 지우지 않도록 (응답을 기다리지 않음)
   bookCache[_imp.id]=_imp;
   MANIFEST=MANIFEST.concat([{id:_imp.id,title:_imp.title,author:_imp.author,
