@@ -163,6 +163,9 @@ html.paged main{padding-top:12px;padding-bottom:12px}
 .pagebar .pgn{font-size:13px;color:var(--sub);min-width:72px;text-align:center;font-variant-numeric:tabular-nums}
 /* 한 줄만 덩그러니 남는 것을 막는다 — 다단에서도 줄 단위로 지켜진다 */
 .body.paged{orphans:2;widows:2}
+/* 쪽 경계에 걸린 문장을 통째로 다음 쪽으로 미는 표식 (JS 가 필요한 곳에만 넣는다) */
+.body.paged .pgbrk{display:block;height:0;margin:0;
+  -webkit-column-break-before:always;break-before:column}
 /* 페이지로 읽는 동안에는 창을 아예 스크롤하지 않는다.
    아이폰 사파리의 100vh 는 '툴바를 숨겼을 때' 높이라, 툴바가 보이는 상태에서는
    .wrap 의 min-height 가 문서를 그만큼 늘려 쪽 아래에 빈 공간이 생긴다. */
@@ -819,6 +822,7 @@ const pgStep=vp=>vp.clientWidth+PG_GAP;
 function pgLayout(keepEl){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body) return;
+  body.querySelectorAll('.pgbrk').forEach(x=>x.remove());   // 지난번 표식을 지우고 새로 잰다
   if(!pgOn()){ vp.style.height=''; body.style.cssText=''; return; }
 
   /* 쪽 아래로 남는 것: 페이지 바(윗여백 포함)와 main 의 아래 안쪽 여백.
@@ -853,12 +857,37 @@ function pgLayout(keepEl){
     h=next; setH(h);
   }
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
+  pgAvoidSplit();                                      // 쪽에 걸친 문장을 다음 쪽으로
 
   pgTotal=Math.max(1,Math.round((body.scrollWidth+PG_GAP)/(w+PG_GAP)));
   if(pgWantLast){ pgPage=pgTotal-1; pgWantLast=false; }
   else if(keepEl) pgPage=pgPageOf(keepEl);
   pgPage=Math.min(Math.max(0,pgPage),pgTotal-1);
   pgApply(false);
+}
+/* 쪽 경계에 걸쳐 잘린 문장을 통째로 다음 쪽으로 민다.
+   CSS 만으로는 안 된다 — 문장은 인라인이라 break-inside 가 걸리지 않는다.
+   그래서 재보고, 걸린 문장 앞에 단을 끊는 표식을 넣는다. */
+function pgAvoidSplit(){
+  const body=$('#readBody'), vp=$('#pageView');
+  if(!body||!vp) return 0;
+  const step=pgStep(vp);
+  const sents=[...body.querySelectorAll('.sent')];
+  let moved=0;
+  for(let i=0;i<sents.length&&moved<150;i++){
+    const s=sents[i], prev=s.previousElementSibling;
+    if(prev&&prev.classList.contains('pgbrk')) continue;   // 이미 민 문장 — 한 쪽보다 길면 어쩔 수 없다
+    if(!prev&&s.parentNode.classList.contains('drop')) continue;  // 드롭캡을 건드리지 않는다
+    const rs=s.getClientRects();
+    if(rs.length<2) continue;                              // 한 줄짜리는 갈라질 수 없다
+    const bx=body.getBoundingClientRect().left, sl=body.scrollLeft;
+    const pageOf=x=>Math.floor((x-bx+sl)/step);
+    if(pageOf(rs[rs.length-1].right-1)<=pageOf(rs[0].left+1)) continue;
+    const brk=document.createElement('span'); brk.className='pgbrk';
+    s.parentNode.insertBefore(brk,s);
+    moved++;
+  }
+  return moved;
 }
 function pgApply(smooth){
   const vp=$('#pageView'), body=$('#readBody');
