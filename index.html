@@ -1294,6 +1294,7 @@ const idbPut=(k,v)=>idbRun('readwrite',st=>st.put(v,k));
 const idbGet=(k)=>idbRun('readonly',st=>st.get(k));
 const idbDel=(k)=>idbRun('readwrite',st=>st.delete(k));
 const idbAll=()=>idbRun('readonly',st=>st.getAll());
+const idbKeys=()=>idbRun('readonly',st=>st.getAllKeys());   // 열쇠만 — 책을 펼치지 않는다
 /* 아이폰 사파리에서는 IndexedDB 가 아무 응답도 주지 않는 일이 있다.
    그걸 그냥 기다리면 앱이 영영 '불러오는 중…' 에서 멈춘다 — 기다림에 시간 제한을 둔다. */
 function withTimeout(pr,ms,fallback){
@@ -1312,15 +1313,31 @@ function metaPut(b){ try{ const l=(metaAll()||[]).filter(x=>x.id!==b.id); l.push
   localStorage.setItem(MET_KEY,JSON.stringify(l)); }catch(e){} }
 function metaDel(id){ try{ const l=metaAll(); if(!l) return;
   localStorage.setItem(MET_KEY,JSON.stringify(l.filter(x=>x.id!==id))); }catch(e){} }
-/* 적어 둔 목록이 있으면 그걸 쓰고, 없으면 한 번만 훑어서 만들어 둔다 */
-async function localManifest(force){
-  const cached=metaAll();
-  if(cached&&!force) return cached;
+/* 적어 둔 목록을 그대로 쓴다. 부팅 경로에서는 저장소를 훑지 않는다. */
+async function localManifest(){ return metaAll()||[]; }
+
+/* 빠진 책의 이름표를 뒤에서 한 권씩 채운다.
+   idbAll() 로 한꺼번에 읽으면 그림 책 하나에도 메인 스레드가 통째로 멈춰,
+   '불러오는 중…' 에서 타이머조차 돌지 못한다. 그래서 한 권 읽고 한 번 쉰다. */
+let metaBusy=false;
+async function metaSync(){
+  if(metaBusy) return metaAll()||[];
+  metaBusy=true;
   try{
-    const list=((await idbAll())||[]).map(bookMeta);
+    const keys=(await idbKeys())||[];
+    let list=metaAll()||[];
+    const have=new Set(list.map(x=>x.id));
+    list=list.filter(x=>keys.includes(x.id));            // 사라진 책은 목록에서도 뺀다
+    for(const k of keys){
+      if(have.has(k)) continue;
+      await new Promise(r=>setTimeout(r));               // 한 권마다 화면에 숨을 돌려준다
+      const b=await idbGet(k).catch(()=>null);
+      if(b) list.push(bookMeta(b));
+    }
     try{ localStorage.setItem(MET_KEY,JSON.stringify(list)); }catch(e){}
     return list;
-  }catch(e){ return cached||[]; }
+  }catch(e){ return metaAll()||[]; }
+  finally{ metaBusy=false; }
 }
 
 /* ---- pdf.js (필요할 때만 불러옴) ---- */
@@ -1915,7 +1932,7 @@ let _imp=null;   // 방금 해석한 책 (저장 전)
 function closeImport(){ $('#importModal').classList.remove('show'); _imp=null; }
 async function renderImport(state){
   const m=$('#importModal');
-  const list=await localManifest();
+  const list=await metaSync();
   let body;
   if(state==='busy'){
     body=`<h3>책 읽는 중…</h3>
@@ -2061,7 +2078,7 @@ let booted=false;
 function bootStuck(why){
   if(booted) return;
   $('#main').innerHTML=`<div class="empty"><div class="big">⚠️</div>
-    <p>여는 데 오래 걸리고 있어요.<br><small style="color:var(--faint)">${esc(why||'')}</small></p>
+    <p>여는 데 오래 걸리고 있어요.<br><small style="color:var(--faint)">${esc(why||'')} · ${BUILD}</small></p>
     <div class="toolrow" style="justify-content:center;margin-top:14px;flex-wrap:wrap">
       <button class="bigbtn" id="bootRetry">다시 시도</button>
       <button class="bigbtn" id="bootBuiltin">기본 책으로 열기</button>
@@ -2073,9 +2090,12 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
+const BUILD='0823-1353';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
-  $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…</p></div>';
+  /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
+  $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…'
+    +'<br><small style="color:var(--faint);font-size:11px">'+BUILD+'</small></p></div>';
   const watchdog=setTimeout(()=>bootStuck('책 목록이나 저장소가 응답하지 않습니다'),12000);
   try{
     const r=await withTimeout(fetch('books/manifest.json'),8000,null);
@@ -2104,10 +2124,10 @@ async function init(){
   if(!chap(S.chapter)) S.chapter=curBook.chapters[0].n;
   setNav(); renderSidebar(); renderMain();
   // 못 기다린 내 책 목록을 뒤늦게 채운다
-  localManifest(true).then(list=>{
-    if(!list.length) return;
+  metaSync().then(list=>{
     MANIFEST=MANIFEST.filter(m=>!m.local).concat(list);
     renderSidebar();
+    if(!MANIFEST.find(m=>m.id===S.bookId)&&MANIFEST.length) return;
   }).catch(()=>{});
 }
 /* 화면이 준비된 다음에 클라우드를 붙인다 — 목록이 있어야 복원한 책을 열 수 있다 */
