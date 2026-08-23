@@ -502,6 +502,35 @@ function bookLooksBroken(b){
   if(t.length<200) return false;
   return ((t.match(/ /g)||[]).length)/t.length < .05;
 }
+/* 예전 버전이 밀린 채로 넣어둔 책을 그 자리에서 되돌린다.
+   다시 넣으라고 하는 것보다 낫다 — 이미 기기에 있는 책이 바로 읽히게 된다.
+   '=' 는 줄을 이을 때 들어간 자리, 0x98~0x9c 는 따옴표·아포스트로피다. */
+const PDF_PUNCT={'=':' ','\u0098':'\u2018','\u0099':'\u201c','\u009a':'\u201d','\u009c':'\u2019'};
+function repairBook(b){
+  const sample=(b.chapters||[]).slice(0,3).map(c=>(c.paras||[]).join(' ')).join(' ').slice(0,3000);
+  const d=pdfShift(sample);
+  if(!d) return false;
+  const fix=s=>unshift(String(s),d)
+    .replace(/[=\u0098\u0099\u009a\u009c]/g,ch=>PDF_PUNCT[ch])
+    .replace(/[\u0080-\u009f]/g,'')          // 남은 제어문자는 버린다
+    .replace(/[ \t]+/g,' ').trim();
+  b.chapters.forEach(c=>{
+    if(Array.isArray(c.paras)) c.paras=c.paras.map(fix).filter(Boolean);
+    if(c.title) c.title=fix(c.title);
+  });
+  /* 한 장에 책 한 권이 들어 있으면 쪽 계산도 목차도 쓸 수 없다 — 적당히 끊어준다 */
+  const MAXP=40;
+  if(b.chapters.length===1&&b.chapters[0].paras.length>MAXP*2){
+    const all=b.chapters[0].paras, out=[];
+    for(let i=0;i<all.length;i+=MAXP)
+      out.push({n:out.length+1,part:1,title:`${i+1}–${Math.min(i+MAXP,all.length)}문단`,
+                paras:all.slice(i,i+MAXP)});
+    b.chapters=out;
+  }
+  b.words=b.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  b._repaired=true;
+  return true;
+}
 function fixBook(b){
   if(!b||typeof b!=='object') return b;
   if(!b.parts||typeof b.parts!=='object') b.parts={};
@@ -514,13 +543,20 @@ function fixBook(b){
     if(Array.isArray(c.pages)) c.pages.forEach(pp=>{ if(pp&&!Array.isArray(pp.w)) pp.w=pp.w? Object.values(pp.w) : []; });
   });
   if(typeof b.words!=='number') b.words=b.chapters.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  if(b.kind!=='image'&&bookLooksBroken(b)) repairBook(b);
   return b;
 }
 async function loadBook(id){
   if(bookCache[id]) return bookCache[id];
   if(id.startsWith(LP)){
     const b=await idbGet(id); if(!b) throw new Error('local missing');
-    bookCache[id]=fixBook(b); return bookCache[id];
+    bookCache[id]=fixBook(b);
+    if(bookCache[id]._repaired){                 // 되돌린 결과를 기기와 다른 기기에도 남긴다
+      delete bookCache[id]._repaired;
+      idbPut(id,bookCache[id]).then(()=>{ metaPut(bookCache[id]);
+        const up=uploadedSet(); up.delete(id); markUploaded(up); }).catch(()=>{});
+    }
+    return bookCache[id];
   }
   const r=await fetch('books/'+id+'.json'); if(!r.ok) throw new Error('load fail');
   const b=await r.json(); bookCache[id]=b; return b;
@@ -546,13 +582,40 @@ let _c=0; function stamp(){ // monotonic fake timestamp label based on Date subs
 
 /* ============ Network helpers (dictionary + translate) ============ */
 const trCache = {}, dictCache = {};
-async function translateKo(text){
+/* 번역기는 문장 조각으로 나눠 돌려준다 — [번역, 원문, …] 의 배열 */
+async function gtxSegments(q){
+  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q='+encodeURIComponent(q);
+  const r=await fetch(url); const j=await r.json();
+  return (j[0]||[]).map(g=>({ko:g[0]||'', src:g[1]||''}));
+}
+const trKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'');
+/* 문장을 홀로 떼어 보내면 앞뒤 문맥이 없어 번역이 겉돈다.
+   문단째 보내고, 돌려받은 조각 중 그 문장에 해당하는 것만 쓴다.
+   맞아떨어지지 않으면 예전처럼 문장만 보낸다 — 엉뚱한 조각을 보여주는 것보다 낫다.
+   덤으로 같은 문단의 나머지 문장도 미리 담아두어 다음 탭은 기다림이 없다. */
+async function translateKo(text,context){
   const key = text.trim().toLowerCase();
   if(trCache[key]!==undefined) return trCache[key];
+  if(context && context.length>text.length+20 && context.length<1200){
+    try{
+      const segs=await gtxSegments(context);
+      segs.forEach(g=>{ const k=g.src.trim().toLowerCase(); if(k&&g.ko) trCache[k]=g.ko.trim(); });
+      const want=trKey(text);
+      let ko=null;
+      for(let i=0;i<segs.length&&ko===null;i++){       // 조각이 더 잘게 쪼개졌으면 이어붙여 맞춰본다
+        let acc='', buf='';
+        for(let j=i;j<segs.length;j++){
+          acc+=trKey(segs[j].src); buf+=segs[j].ko;
+          if(acc.length>want.length) break;
+          if(acc===want){ ko=buf; break; }
+        }
+      }
+      if(ko!==null&&ko.trim()){ trCache[key]=ko.trim(); return trCache[key]; }
+    }catch(e){}
+  }
   try{
-    const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q='+encodeURIComponent(text);
-    const r=await fetch(url); const j=await r.json();
-    const out=(j[0]||[]).map(seg=>seg[0]).join('');
+    const segs=await gtxSegments(text);
+    const out=segs.map(g=>g.ko).join('');
     trCache[key]=out; return out;
   }catch(e){ return null; }
 }
@@ -932,20 +995,29 @@ function pgAvoidSplit(){
   const body=$('#readBody'), vp=$('#pageView');
   if(!body||!vp||body.classList.contains('imgbook')) return 0;
   const step=pgStep(vp);
-  const sents=[...body.querySelectorAll('.sent')];
   let moved=0;
-  for(let i=0;i<sents.length&&moved<150;i++){
-    const s=sents[i], prev=s.previousElementSibling;
-    if(prev&&prev.classList.contains('pgbrk')) continue;   // 이미 민 문장 — 한 쪽보다 길면 어쩔 수 없다
-    if(!prev&&s.parentNode.classList.contains('drop')) continue;  // 드롭캡을 건드리지 않는다
-    const rs=s.getClientRects();
-    if(rs.length<2) continue;                              // 한 줄짜리는 갈라질 수 없다
+  /* 한 문장씩 밀면 밀 때마다 조판이 통째로 다시 돌아, 쪽이 많은 장에서는 몇 초씩 걸린다.
+     한 바퀴에 걸린 문장을 모두 찾아 한꺼번에 밀고, 몇 바퀴만 반복한다.
+     바퀴마다 표식을 지우고 새로 재므로 앞 바퀴가 잘못 민 것도 스스로 바로잡힌다. */
+  for(let round=0; round<4; round++){
+    const sents=[...body.querySelectorAll('.sent')];
     const bx=body.getBoundingClientRect().left, sl=body.scrollLeft;
     const pageOf=x=>Math.floor((x-bx+sl)/step);
-    if(pageOf(rs[rs.length-1].right-1)<=pageOf(rs[0].left+1)) continue;
-    const brk=document.createElement('span'); brk.className='pgbrk';
-    s.parentNode.insertBefore(brk,s);
-    moved++;
+    const hits=[];
+    for(const s of sents){                       // 재는 동안에는 손대지 않는다 — 조판은 한 번만 돈다
+      const prev=s.previousElementSibling;
+      if(prev&&prev.classList.contains('pgbrk')) continue;
+      if(!prev&&s.parentNode.classList.contains('drop')) continue;
+      const rs=s.getClientRects();
+      if(rs.length<2) continue;
+      if(pageOf(rs[rs.length-1].right-1)>pageOf(rs[0].left+1)) hits.push(s);
+    }
+    if(!hits.length) break;
+    for(const s of hits){
+      const brk=document.createElement('span'); brk.className='pgbrk';
+      s.parentNode.insertBefore(brk,s); moved++;
+    }
+    if(hits.length<=2) break;                    // 한둘 남았다고 조판을 또 돌릴 것은 아니다
   }
   return moved;
 }
@@ -1013,7 +1085,9 @@ async function toggleSentTrans(sent){
   sent.parentNode.insertBefore(div, sent.nextSibling); sent._ko=div;
   div.addEventListener('click',()=>toggleSentTrans(sent));
   pgRelayout();
-  const ko=await translateKo(sent.dataset.raw||sent.textContent);
+  const para=[...sent.parentNode.querySelectorAll('.sent')]
+    .map(x=>x.dataset.raw||x.textContent).join(' ');
+  const ko=await translateKo(sent.dataset.raw||sent.textContent, para);
   div.textContent = ko || '⚠️ 번역을 불러오지 못했어요 (인터넷 연결 확인)';
   pgRelayout();                          // 번역이 들어오면 길이가 또 달라진다
 }
@@ -1844,13 +1918,17 @@ async function rtPush(){
   await rtReq('PATCH','state',{last});
   S.lastT=last.t;
 
-  // 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다
+  /* 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다.
+     열쇠만 먼저 보고, 올릴 책만 한 권씩 꺼낸다.
+     idbAll() 로 다 꺼내면 안 올릴 책까지 메인 스레드에서 펼쳐 화면이 멎는다. */
   const up=uploadedSet();
-  for(const b of (await idbAll())||[]){
-    if(up.has(b.id)) continue;
-    await rtReq('PUT','books/'+rtEnc(b.id),b);
-    up.add(b.id); markUploaded(up);
-    logEvent('☁️','책 올림 — '+(b.title||b.id));
+  for(const id of (await idbKeys())||[]){
+    if(up.has(id)) continue;
+    const b=await idbGet(id).catch(()=>null);
+    if(!b) continue;
+    await rtReq('PUT','books/'+rtEnc(id),b);
+    up.add(id); markUploaded(up);
+    logEvent('☁️','책 올림 — '+(b.title||id));
   }
   S.cloudAt=Date.now();
   save(); clearTimeout(pushTimer);                 // save() 가 다시 잡은 예약을 취소
