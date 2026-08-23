@@ -678,11 +678,23 @@ function speakNext(){
 }
 
 /* ============ Tokenizer ============ */
+/* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
+const RX_ABBR=/(?:^|\s)(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\.g|i\.e)\.$/i;
+const RX_INIT=/(?:^|\s)[A-Z]\.$/;
 function splitSentences(p){
-  // keep punctuation; split on sentence enders followed by space+capital/quote
-  // 곡선 따옴표(” ’)도 문장에 붙여둔다 — 안 그러면 닫는 따옴표만 남는 조각이 생긴다
+  // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
+  // 안 그러면 닫는 따옴표만 남는 조각이 생긴다.
   const parts=p.match(/[^.!?]+[.!?]*["'\u201d\u2019]*\s*|[^.!?]+$/g);
-  return parts?parts.map(s=>s.trim()).filter(Boolean):[p];
+  if(!parts) return [p];
+  const out=[];
+  for(const raw of parts){
+    const s=raw.trim(); if(!s) continue;
+    const prev=out[out.length-1];
+    // 앞 조각이 약어로 끝났으면 문장이 아직 안 끝난 것이다
+    if(prev&&(RX_ABBR.test(prev)||RX_INIT.test(prev))) out[out.length-1]=prev+' '+s;
+    else out.push(s);
+  }
+  return out.length?out:[p];
 }
 function tokenizeSentence(sent){
   // wrap alphabetic words in span.w
