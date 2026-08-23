@@ -66,9 +66,10 @@ header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
 
 /* Layout */
 .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto;
-  min-height:calc(100vh - 65px)}
+  min-height:calc(100vh - 65px);min-height:calc(100dvh - 65px)}
 aside{border-right:1px solid var(--line);background:var(--surface);
-  padding:16px;overflow-y:auto;max-height:calc(100vh - 65px);position:sticky;top:65px}
+  padding:16px;overflow-y:auto;max-height:calc(100vh - 65px);max-height:calc(100dvh - 65px);
+  position:sticky;top:65px}
 main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 #overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55;backdrop-filter:blur(1px)}
 
@@ -160,6 +161,11 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .pagebar .pgn{font-size:13px;color:var(--sub);min-width:72px;text-align:center;font-variant-numeric:tabular-nums}
 /* 한 줄만 덩그러니 남는 것을 막는다 — 다단에서도 줄 단위로 지켜진다 */
 .body.paged{orphans:2;widows:2}
+/* 페이지로 읽는 동안에는 창을 아예 스크롤하지 않는다.
+   아이폰 사파리의 100vh 는 '툴바를 숨겼을 때' 높이라, 툴바가 보이는 상태에서는
+   .wrap 의 min-height 가 문서를 그만큼 늘려 쪽 아래에 빈 공간이 생긴다. */
+html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
+html.paged .wrap{min-height:0}
 /* 북마크 목록 */
 .marklist{margin:14px 0 4px;border-top:1px solid var(--line2);padding-top:12px}
 .marklist .mk{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer}
@@ -273,7 +279,7 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
   padding:18px;background:rgba(20,16,10,.45);backdrop-filter:blur(2px)}
 .modal.show{display:flex}
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
-  width:min(520px,100%);max-height:88vh;overflow-y:auto;padding:22px;animation:pop .16s ease}
+  width:min(520px,100%);max-height:88vh;max-height:88dvh;overflow-y:auto;padding:22px;animation:pop .16s ease}
 .sheet h3{font-family:var(--serif);font-size:21px;font-weight:800;margin:0 0 5px}
 .sheet .lead{color:var(--sub);font-size:13px;line-height:1.6;margin-bottom:16px}
 .impdrop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;
@@ -351,7 +357,7 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 @media(max-width:960px){
   .wrap{grid-template-columns:1fr}
   .iconbtn{display:flex}
-  aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100vh;
+  aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100dvh;
     transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow);
     padding-top:calc(var(--mh,64px) + 16px)}
   body.drawer aside{transform:translateX(0)}
@@ -658,7 +664,11 @@ function openChapter(n){
   setNav(); renderSidebar(); renderMain();
   window.scrollTo({top:0,behavior:'auto'});
 }
+function applyPagedChrome(){
+  document.documentElement.classList.toggle('paged', pgOn()&&S.view==='read');
+}
 function renderMain(){
+  applyPagedChrome();
   if(S.view==='vocab'){ renderVocab(); return; }
   const b=book(), c=chap(S.chapter);
   const partName=b.parts[c.part]||('Part '+c.part);
@@ -811,18 +821,32 @@ function pgLayout(keepEl){
   const bar=$('#pageBar'), mn=$('#main');
   const barH=bar? bar.offsetHeight+(parseFloat(getComputedStyle(bar).marginTop)||0) : 0;
   const padB=mn? (parseFloat(getComputedStyle(mn).paddingBottom)||0) : 0;
-  let h=Math.max(240,Math.round(window.innerHeight-vp.getBoundingClientRect().top-barH-padB));
-  /* 줄 높이의 배수로 깎는다 — 안 그러면 쪽 맨 아래 줄이 반쯤 잘려 글이 끊긴 것처럼 보인다 */
+  /* visualViewport 는 아이폰 사파리에서 툴바를 뺀 '실제로 보이는' 높이를 준다.
+     innerHeight 는 툴바가 걸쳐 있어도 그만큼 크게 나와 쪽이 화면 밖으로 밀린다. */
+  const vh=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
   const lh=parseFloat(getComputedStyle(body).lineHeight)||0;
-  if(lh>0) h=Math.max(lh*4,Math.floor(h/lh)*lh);
+  /* 줄 높이의 배수로 깎는다 — 안 그러면 쪽 맨 아래 줄이 반쯤 잘려 글이 끊긴 것처럼 보인다 */
+  const snap=v=>lh>0? Math.max(lh*4,Math.floor(v/lh)*lh) : Math.max(240,v);
+  const setH=v=>{ vp.style.height=v+'px'; body.style.height=v+'px'; };
   const w=Math.round(vp.clientWidth);
   const cols=w>=900?2:1;                               // 넓은 화면은 책처럼 두 쪽씩
 
-  vp.style.height=h+'px';
   body.style.width=w+'px';
-  body.style.height=h+'px';
   body.style.columnGap=PG_GAP+'px';
   body.style.columnWidth=Math.floor((w-PG_GAP*(cols-1))/cols)+'px';
+  let h=snap(Math.max(240,vh-vp.getBoundingClientRect().top-barH-padB));
+  setH(h);
+  /* 식으로 잡히지 않는 브라우저 크롬(아이폰 툴바 등)은 실측으로 보정한다.
+     문서 높이가 아니라 페이지 바의 실제 아래쪽을 본다 — 문서 상자는 아이폰에서
+     '툴바를 숨긴' 큰 뷰포트 크기라, 그걸 기준 삼으면 끝없이 깎게 된다. */
+  for(let i=0;i<3;i++){
+    const bottom=bar? bar.getBoundingClientRect().bottom : vp.getBoundingClientRect().bottom;
+    const over=bottom+padB-vh;
+    if(over<=1) break;
+    const next=snap(h-over);
+    if(next>=h) break;
+    h=next; setH(h);
+  }
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
 
   pgTotal=Math.max(1,Math.round((body.scrollWidth+PG_GAP)/(w+PG_GAP)));
@@ -876,6 +900,9 @@ function pgRelayout(){
   pgLayout(anchor||null);
 }
 addEventListener('resize',()=>{ clearTimeout(pgTimer); pgTimer=setTimeout(pgRelayout,150); });
+addEventListener('orientationchange',()=>{ clearTimeout(pgTimer); pgTimer=setTimeout(pgRelayout,250); });
+if(window.visualViewport) visualViewport.addEventListener('resize',()=>{
+  clearTimeout(pgTimer); pgTimer=setTimeout(pgRelayout,150); });
 /* 방향키는 bindChrome 의 기존 핸들러 하나에서 함께 다룬다 — 여기서 또 듣지 않는다 */
 
 /* ============ Sentence translation ============ */
