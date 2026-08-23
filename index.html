@@ -146,11 +146,13 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 /* 페이지 모드에서는 아래 챕터 버튼·안내문을 접는다 —
    그게 남아 있으면 쪽을 다 채워놓고도 창이 세로로 또 스크롤된다 */
 .reader.paged .chap-nav,.reader.paged .readtip{display:none}
-/* 위쪽 머리글을 조금 줄여 본문 쪽에 높이를 넘긴다 —
-   노트북(720p)에서는 이걸 안 줄이면 읽을 수 있는 높이가 300px도 안 된다 */
-.reader.paged h1{font-size:clamp(22px,3.2vw,32px);margin:7px 0 9px}
-.reader.paged .byline{padding-bottom:11px}
-.reader.paged .toolbar{margin:11px 0 14px}
+/* 제목 묶음이 본문 안으로 들어오므로, 단 중간에서 쪼개지지 않게 한다 */
+.body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:1.1em}
+.body.paged .chaphead h1{font-size:clamp(24px,3.4vw,34px);margin:7px 0 9px}
+.body.paged .chaphead .byline{padding-bottom:11px;font-family:var(--sans)}
+.reader.paged .toolbar{margin:0 0 12px}
+/* 위아래 여백은 쪽에 넘긴다 — 좌우는 읽기 편한 폭을 위해 그대로 둔다 */
+html.paged main{padding-top:12px;padding-bottom:12px}
 .pagebar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;
   padding-top:12px;border-top:1px solid var(--line)}
 .pagebar button{border:1px solid var(--line);background:var(--surface);color:var(--ink);
@@ -683,28 +685,31 @@ function renderMain(){
   const prev=b.chapters[idx-1], next=b.chapters[idx+1];
   const pgKeyNow=S.bookId+':'+S.chapter;
   if(pgKey!==pgKeyNow){ pgKey=pgKeyNow; if(!pgWantLast) pgPage=S.pagePos[pgKeyNow]||0; }
+  /* 페이지 모드에서는 제목·저자를 본문 흐름 안에 넣는다 — 진짜 책처럼 1쪽에만 나오고
+     나머지 쪽은 글로 가득 찬다. 화면 위에 계속 붙어 있으면 읽을 높이를 그만큼 깎아먹는다. */
+  const head=`<div class="chaphead">
+      <div class="kicker">${esc(b.title)}</div>
+      <h1>${c.title? esc(c.title) : ('Chapter '+c.n)}</h1>
+      <div class="byline"><b>${esc(b.author)}</b>
+        <span>Chapter ${c.n} / ${totalChaps()}</span>
+        <span>${words} words</span></div>
+    </div>`;
   $('#main').innerHTML=`<div class="reader${pgOn()?' paged':''}">
-    <div class="kicker">${esc(b.title)}</div>
-    <h1>${c.title? esc(c.title) : ('Chapter '+c.n)}</h1>
-    <div class="byline">
-      <b>${esc(b.author)}</b>
-      <span>Chapter ${c.n} / ${totalChaps()}</span>
-      <span>${words} words</span>
-      <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음으로 표시'}</button>
-    </div>
+    ${pgOn()?'':head}
     <div class="toolbar">
       <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전</button>
       <button id="btnNext" ${next?'':'disabled'}>다음 ›</button>
       <span class="sep"></span>
       <button id="btnPlay"><span>🔊</span><span class="pl">듣기</span></button>
-      <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span>문장 해석</span></button>
+      <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span class="hide-sm">문장 해석</span></button>
       <button id="btnVocab2" class="${S._showvocab?'on':''}"><span>✨</span><span class="hide-sm">단어 강조</span></button>
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
       <button id="btnMark"><span>🔖</span><span class="hide-sm">북마크</span></button>
+      <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
     <div class="pageview" id="pageView">
-      <div class="body ${pgOn()?'paged':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${body}</div>
+      <div class="body ${pgOn()?'paged':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${pgOn()?head:''}${body}</div>
     </div>
     ${pgOn()?`<div class="pagebar" id="pageBar">
       <button id="pgPrevBtn" aria-label="이전 페이지">‹</button>
