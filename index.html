@@ -742,12 +742,19 @@ const COMMON=new Set("the a an and or but so if then than that this these those 
 
 /* ============ Render: Sidebar ============ */
 /* 책이 쉰 권 가까이 되니 한 줄로 늘어놓으면 찾기 어렵다 — 갈래로 묶는다 */
+/* 읽기 난이도 — 문장 길이와 긴 낱말 비율로 잰 값을 다섯 칸으로 나눠 둔다.
+   책 목록을 이 순서로 묶어야 '어디서부터 읽을까'가 한눈에 보인다. */
+const LEVELS=[[1,'🟢 레벨 1 · 입문'],[2,'🟢 레벨 2 · 쉬움'],[3,'🟡 레벨 3 · 보통'],
+              [4,'🟠 레벨 4 · 어려움'],[5,'🔴 레벨 5 · 아주 어려움']];
 function bookOptions(){
   const one=m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}${m.author?' — '+esc(m.author):''}</option>`;
   const grp=(label,list)=> list.length? `<optgroup label="${label}">${list.map(one).join('')}</optgroup>` : '';
-  return grp('📂 내 책', MANIFEST.filter(m=>m.local))
-       + grp('📚 수록된 책', MANIFEST.filter(m=>!m.local&&!m.gutenberg))
-       + grp('📖 고전 (Project Gutenberg)', MANIFEST.filter(m=>m.gutenberg));
+  const byWords=(a,b)=>(a.words||0)-(b.words||0);
+  let html=grp('📂 내 책', MANIFEST.filter(m=>m.local));
+  LEVELS.forEach(([n,label])=>{
+    html+=grp(label, MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords));
+  });
+  return html + grp('📚 그 밖의 책', MANIFEST.filter(m=>!m.local&&!m.level));
 }
 function renderSidebar(){
   const b=book();
@@ -1494,6 +1501,21 @@ const RX_SECT=/^(stave|adventure|letter|canto|chapter)\s+([0-9]+|[ivxlcdm]+|[a-z
 /* 홀로 선 대문자 로마 숫자 = 장 번호 (암흑의 핵심, 위대한 개츠비, 변신 …).
    소문자는 받지 않는다 — 본문에 낱말로 섞여 들어올 수 있어서. */
 const RX_ROMAN=/^([IVXLCDM]{1,7})\.?$/;
+/* "CHAPTER   PAGE" · "CONTENTS" — 장 제목이 아니라 목차표의 머리다.
+   이 줄로 열린 장에는 목차가 통째로 담기므로 나중에 버린다. */
+const RX_TOCH=/^(chapter\s+page|contents|table of contents)$/i;
+/* "_THE FIRST CHAPTER_" — 차례를 말로 적고 순서를 뒤집은 제목 (돌리틀 선생 이야기) */
+const RX_ORD=/^_?the\s+([a-z]+(?:[\s-][a-z]+)?)\s+chapter_?$/i;
+/* "01 My Early Home" — 번호와 제목이 한 줄에 붙은 형태 (검정 말 이야기).
+   문장 부호가 없고 제목이 대문자로 시작할 때만 받되, 번호가 지금까지 센
+   장 수의 바로 다음일 때만 인정한다. 출판사 광고 목록("6 AN OLD-FASHIONED
+   THANKSGIVING")이나 체스 기보("10. W.Q. to Q.R.'s 6th")가 장으로 잡히던 것을
+   이 차례 검사 하나가 걸러낸다. */
+const RX_NUMT=/^(\d{1,3})[.\s]\s*([A-Z][^.!?]{2,58})$/;
+/* "I. Granny Fox Gives Reddy a Scare" — 로마 숫자와 제목이 한 줄에.
+   RX_ROMAN 은 숫자만 홀로 선 줄만 받으므로 이런 장은 통째로 안 나뉘었다.
+   여기도 차례가 맞을 때만 인정한다. */
+const RX_ROMANT=/^([IVXLCDM]{1,7})\.\s+(\S[^.!?]{2,58})$/;
 const RX_BREAK=/^[*#•·—–\-\s]{2,}$/;
 const RVAL={i:1,v:5,x:10,l:50,c:100,d:500,m:1000};
 /* 제대로 된 로마 숫자 셈 — 예전엔 15까지 적어둔 표라 XVI 부터는 0 이 나왔고,
@@ -1510,6 +1532,16 @@ function rnum(s){
   return n;
 }
 /* 영어 숫자말 → 숫자 ("TWENTY-ONE" → 21). 많은 소설이 장 제목을 이렇게 씁니다. */
+/* 차례를 말로 적은 것 → 숫자 ("FIRST" → 1) */
+const OWORD={first:1,second:2,third:3,fourth:4,fifth:5,sixth:6,seventh:7,eighth:8,
+  ninth:9,tenth:10,eleventh:11,twelfth:12,thirteenth:13,fourteenth:14,fifteenth:15,
+  sixteenth:16,seventeenth:17,eighteenth:18,nineteenth:19,twentieth:20,thirtieth:30};
+function onum(s){
+  const ps=String(s).toLowerCase().trim().split(/[\s-]+/).filter(Boolean);
+  if(ps.length===1) return OWORD[ps[0]]||0;
+  if(ps.length===2 && NWORD[ps[0]] && OWORD[ps[1]]) return NWORD[ps[0]]+OWORD[ps[1]];
+  return 0;
+}
 const NWORD={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
   eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
   eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,
@@ -1593,7 +1625,10 @@ function stripFurniture(lines,pages){
 /* 목차 쪽 버리기 — 한 쪽에 제목꼴 줄이 잔뜩 모여 있으면 그 쪽이 목차다.
    쪽이 없는 TXT 는 파일 전체가 p=1 이라 이 셈이 성립하지 않는다.
    (그대로 두면 장이 6개만 넘어도 책 전체를 목차로 보고 통째로 버렸다) */
-const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$/i;
+/* 목차 줄 찾기 — "I. 제목" · "01 제목" 처럼 번호와 제목이 붙은 형태까지 알아본다.
+   이걸 못 보면 목차가 통째로 남아, 목차 항목이 장 제목으로 잡히고
+   진짜 장 번호가 하나씩 밀린다. */
+const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$|^[IVXLCDM]{1,7}\.\s+\S|^\d{1,3}[.\s]\s*[A-Z]/i;
 function dropTOC(lines,pages){
   if(pages>=4){                       // PDF — 제목꼴 줄이 잔뜩 있는 '쪽'이 목차다
     const per={};
@@ -1784,20 +1819,27 @@ function linesToBook(inp,meta){
   const rs=txt.map(l=>l.x1).sort((a,b)=>a-b);
   const mL=xs.length? xs[Math.floor(xs.length*0.2)] : 0;
   const mR=rs.length? rs[Math.floor(rs.length*0.8)] : 1e9;
-  const chapters=[]; const partName={}; let part=1, cur=null, prev=null;
-  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null; };
+  const chapters=[]; const partName={}; let part=1, cur=null, prev=null, numbered=0;
+  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null;
+    if(/^Chapter\s/i.test(title)) numbered++; };
   lines.forEach(l=>{
     const s=l.s;
     if(!s){ prev=null; return; }              // 빈 줄(txt) → 문단 구분
     if(big(l)){
       let m;
       if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
+      if(RX_TOCH.test(s)){ open('__toc__'); return; }   // 목차표 — 아래에서 버린다
       if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
+      if((m=s.match(RX_ORD))){ const n=onum(m[1]); if(n){ open('Chapter '+n); return; } }
       if((m=s.match(RX_CHAP))){ const n=rnum(m[1])||wnum(m[1]);
         const sub=clean(m[2]);
         open('Chapter '+(n||m[1])+(sub?' · '+sub:'')); return; }
       const wn=wnum(s); if(wn){ open('Chapter '+wn); return; }       // "ONE", "TWENTY-TWO"
       if(RX_NUM.test(s)){ open('Chapter '+s); return; }              // "1", "2"
+      if((m=s.match(RX_NUMT)) && +m[1]===numbered+1){
+        open('Chapter '+(+m[1])+' · '+clean(m[2])); return; }
+      if((m=s.match(RX_ROMANT)) && rnum(m[1])===numbered+1){
+        open('Chapter '+rnum(m[1])+' · '+clean(m[2])); return; }
       if((m=s.match(RX_ROMAN))){ const n=rnum(m[1]); if(n){ open('Chapter '+n); return; } }
       if((m=s.match(RX_SECT))){                                      // Stave One / Adventure I.
         const n=rnum(m[2])||wnum(m[2]); const sub=clean(m[3]);
@@ -1814,7 +1856,12 @@ function linesToBook(inp,meta){
     prev=l;
   });
   // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
-  const kept=chapters.filter(c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40);
+  const meaty=c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40;
+  /* 목차표로 열린 장은 버린다 — 다만 그것밖에 없으면 그게 본문이다.
+     장 제목이 하나도 없는 책(단편 모음 등)은 'Contents' 한 줄에 책 전체가 담긴다. */
+  let kept=chapters.filter(c=>c.title!=='__toc__' && meaty(c));
+  if(kept.length<2) kept=chapters.filter(meaty).map(c=>
+    c.title==='__toc__'? Object.assign({},c,{title:'Opening'}) : c);
   if(!kept.length) throw new Error('본문을 찾지 못했어요');
   // 첫 구조적 제목(Prologue/Chapter/Part) 앞의 속표지·판권 페이지는 버린다
   const firstReal=kept.findIndex(c=>/^(prologue|chapter\s|part\s)/i.test(c.title));
@@ -2400,7 +2447,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0130';
+const BUILD='0824-0330';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
