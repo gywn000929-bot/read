@@ -707,7 +707,7 @@ function speakNext(){
 /* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
 /* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
 const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
-const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e)\\.$','i');
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e|a|p)\\.$','i');
 const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
 function splitSentences(p){
   // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
@@ -2343,7 +2343,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0823-2305';
+const BUILD='0824-0030';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
