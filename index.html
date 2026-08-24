@@ -329,6 +329,52 @@ html.paged .wrap{min-height:0}
 .fld input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
 .fld input:focus{outline:none;border-color:var(--accent)}
+/* 책 고르개 — 레벨별 선반. 83권을 드롭다운에 넣으면 폰에서 고를 수가 없다. */
+.pk-sheet{width:min(560px,100%)}
+.pk-top{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
+.pk-top h3{margin:0}
+.pk-top .ct{font-size:12px;color:var(--faint)}
+.pk-top .x{margin-left:auto;border:1px solid var(--line);background:var(--surface);
+  width:34px;height:34px;border-radius:9px;font-size:15px;color:var(--sub);flex:none}
+.pk-find{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg);
+  border-radius:12px;padding:0 13px;height:46px;margin-bottom:16px}
+.pk-find input{flex:1;border:none;background:none;font:inherit;font-size:14px;color:var(--ink);
+  min-width:0;padding:0}
+.pk-find input:focus{outline:none}
+.pk-find svg{flex:none}
+.pk-now{border:1px solid var(--accent);border-radius:14px;padding:13px 14px;display:flex;
+  align-items:center;gap:12px;margin-bottom:18px;cursor:pointer;background:var(--surface)}
+.pk-now .mini{width:44px;height:58px;border-radius:7px;background:var(--accent-soft);
+  border:1px solid var(--line);flex:none}
+.pk-now .nt{font-family:var(--serif);font-size:14.5px;font-weight:700;line-height:1.3}
+.pk-now .ns{font-size:11px;color:var(--sub);margin-top:3px}
+.pk-now .bar{height:3px;background:var(--line2);border-radius:3px;margin-top:7px}
+.pk-now .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.pk-shelf{margin-bottom:18px}
+.pk-h{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.pk-h .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pk-h .nm{font-size:12.5px;font-weight:600;color:var(--ink)}
+.pk-h .ct{font-size:11px;color:var(--faint)}
+/* 가로로 미는 선반 — 한 줄에 서재의 결이 다 보인다 */
+.pk-rail{display:flex;gap:9px;overflow-x:auto;padding:1px 2px 5px;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch}
+.pk-bk{flex:none;width:112px;cursor:pointer;scroll-snap-align:start;background:none;border:none;
+  padding:0;text-align:left;font:inherit}
+.pk-cv{height:150px;border-radius:10px;border:1px solid var(--line);padding:12px 11px;
+  display:flex;align-items:flex-end;box-sizing:border-box;background-color:var(--surface)}
+.pk-bk.on .pk-cv{border-color:var(--accent);border-width:2px}
+.pk-cv span{font-family:var(--serif);font-size:13px;font-weight:700;line-height:1.28;
+  color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical}
+.pk-bk .ba{font-size:11px;color:var(--sub);margin-top:7px;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-bk .bm{font-size:10px;color:var(--faint);margin-top:2px;font-variant-numeric:tabular-nums}
+.pk-none{color:var(--sub);font-size:13px;padding:20px 2px}
+.bw-now{width:100%;display:flex;align-items:center;gap:9px;border:1px solid var(--line);
+  background:var(--surface);border-radius:10px;padding:10px 12px;text-align:left;min-height:46px}
+.bw-now:hover{border-color:var(--accent)}
+.bw-now .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bw-now .t{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bw-now .c{font-size:11px;color:var(--faint);flex:none}
 .mrow{display:flex;gap:8px;margin-top:18px}
 .mrow .bigbtn{flex:1;text-align:center}
 .prog{margin-top:16px;font-size:13px;color:var(--sub)}
@@ -362,7 +408,7 @@ html.paged .wrap{min-height:0}
 
 /* Settings menu */
 .setwrap{position:relative}
-.setmenu{position:absolute;right:0;top:calc(100% + 10px);width:264px;max-width:calc(100vw - 24px);
+.setmenu{position:absolute;right:0;top:calc(100% + 10px);width:322px;max-width:calc(100vw - 24px);
   background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
   padding:16px;z-index:70;display:none}
 .setmenu.show{display:block;animation:pop .16s ease}
@@ -379,6 +425,25 @@ html.paged .wrap{min-height:0}
 .set-size button:hover{border-color:var(--accent)}
 .set-size input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 .set-size .fsval{font-size:12px;color:var(--faint);min-width:38px;text-align:right}
+/* 설정을 라벨만 보고는 고를 수 없다 — 바꾸는 즉시 결과가 보이도록 본문 견본을 위에 둔다.
+   본문과 같은 변수를 쓰므로 값이 바뀌면 이 문단이 그대로 따라 움직인다. */
+.set-prev{border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:13px;
+  background:var(--bg);overflow:hidden}
+.set-prev .pk{font-size:10px;color:var(--faint);letter-spacing:.5px;margin-bottom:7px;
+  font-family:var(--sans);text-transform:uppercase}
+.set-prev p{margin:0;font-family:var(--reading-font,var(--serif));
+  font-size:min(var(--fs),19px);line-height:var(--lh);color:var(--ink);
+  text-wrap:pretty;overflow-wrap:break-word;max-height:5.2em;overflow:hidden}
+.set-prev.indent p{text-indent:1.5em}
+.set-prev.just p{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
+/* 한 줄에 하나씩 — 라벨은 왼쪽에 고정폭, 조절은 오른쪽 */
+.set-row{display:flex;align-items:center;gap:9px;min-height:52px;border-top:1px solid var(--line2)}
+.set-row:first-of-type{border-top:none}
+.set-row .lb{font-size:12px;color:var(--sub);width:58px;flex:none}
+.set-row .set-opts{flex:1;gap:5px}
+.set-row .set-opts button{padding:0;height:44px;font-size:12px;font-weight:500;border-radius:9px}
+.set-row .set-size{flex:1;gap:8px}
+.set-row .set-size button{height:44px;width:44px;padding:0;flex:none}
 
 .log-item{display:flex;gap:10px;align-items:baseline;padding:9px 12px;border:1px solid var(--line);
   border-radius:10px;margin-bottom:6px;background:var(--surface);font-size:13.5px}
@@ -445,56 +510,61 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
     <div class="setwrap">
       <button id="setBtn" title="설정">⚙️</button>
       <div class="setmenu" id="setmenu">
-        <div class="set-sec">
-          <div class="set-h">배경 테마</div>
+        <!-- 바꾼 결과가 바로 보이는 견본 문단. 본문과 같은 변수를 쓴다. -->
+        <div class="set-prev" id="setPrev">
+          <div class="pk">미리보기</div>
+          <p>The lamp burned low, and the house had gone quiet. She counted the coins twice, then set them down and listened.</p>
+        </div>
+        <div class="set-row">
+          <div class="lb">테마</div>
           <div class="set-opts" id="optTheme">
             <button data-theme="beige"><span class="set-swatch" style="background:#faf9f6"></span>베이지</button>
             <button data-theme="white"><span class="set-swatch" style="background:#fff"></span>화이트</button>
             <button data-theme="dark"><span class="set-swatch" style="background:#0f1216"></span>블랙</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">글꼴</div>
+        <div class="set-row">
+          <div class="lb">글꼴</div>
           <div class="set-opts" id="optFont">
             <button data-font="serif">세리프</button>
             <button data-font="sans">고딕</button>
             <button data-font="palatino">Palatino</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">글자 크기</div>
+        <div class="set-row">
+          <div class="lb">글자 크기</div>
           <div class="set-size">
-            <button id="fsMinus">A−</button>
-            <input type="range" id="fsRange" min="15" max="34" step="1">
-            <button id="fsPlus">A+</button>
+            <button id="fsMinus" aria-label="글자 작게">A−</button>
+            <input type="range" id="fsRange" min="15" max="34" step="1" aria-label="글자 크기">
+            <button id="fsPlus" aria-label="글자 크게">A+</button>
             <span class="fsval" id="fsVal">20px</span>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">줄 간격</div>
+        <div class="set-row">
+          <div class="lb">줄 간격</div>
           <div class="set-opts" id="optLh">
             <button data-lh="1.5">좁게</button>
             <button data-lh="1.75">보통</button>
             <button data-lh="2.05">넓게</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">본문 폭</div>
+        <div class="set-row">
+          <div class="lb">본문 폭</div>
           <div class="set-opts" id="optMeasure">
             <button data-measure="31rem">좁게</button>
             <button data-measure="37rem">보통</button>
             <button data-measure="44rem">넓게</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">문단 모양</div>
+        <div class="set-row">
+          <div class="lb">문단</div>
           <div class="set-opts" id="optPara">
             <button data-para="gap">여백</button>
             <button data-para="indent">들여쓰기</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">양쪽 정렬</div>
+        <div class="set-row">
+          <div class="lb">양쪽 정렬</div>
           <div class="set-opts" id="optJust">
             <button data-just="off">끄기</button>
             <button data-just="on">켜기</button>
@@ -514,6 +584,7 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 <div id="pop"></div>
 <div class="toast" id="toast"></div>
 <div class="modal" id="importModal"></div>
+<div class="modal" id="pickModal"></div>
 
 <script>
 "use strict";
@@ -801,25 +872,111 @@ const COMMON=new Set("the a an and or but so if then than that this these those 
 /* 책이 쉰 권 가까이 되니 한 줄로 늘어놓으면 찾기 어렵다 — 갈래로 묶는다 */
 /* 읽기 난이도 — 문장 길이와 긴 낱말 비율로 잰 값을 다섯 칸으로 나눠 둔다.
    책 목록을 이 순서로 묶어야 '어디서부터 읽을까'가 한눈에 보인다. */
-const LEVELS=[[1,'🟢 레벨 1 · 입문'],[2,'🟢 레벨 2 · 쉬움'],[3,'🟡 레벨 3 · 보통'],
-              [4,'🟠 레벨 4 · 어려움'],[5,'🔴 레벨 5 · 아주 어려움']];
-function bookOptions(){
-  const one=m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}${m.author?' — '+esc(m.author):''}</option>`;
-  const grp=(label,list)=> list.length? `<optgroup label="${label}">${list.map(one).join('')}</optgroup>` : '';
+/* 레벨 — 이름과 색. 이모지 대신 색점을 쓴다: 🟢🟢 는 1·2단계가 같은 초록이라 구분이 안 됐다. */
+const LEVELS=[[1,'입문','#2f8f57'],[2,'쉬움','#5aa06a'],[3,'보통','#d8b84a'],
+              [4,'어려움','#d9843f'],[5,'아주 어려움','#b23a2b']];
+const lvOf=id=>LEVELS.find(l=>l[0]===id);
+const lvColor=m=>{ const l=lvOf(m&&m.level); return l? l[2] : 'var(--faint)'; };
+/* 겉장 색 — 레벨 색을 옅게 깔아 배경 위에 얹는다. 밝은 테마·어두운 테마 둘 다에서 성립한다. */
+function tint(hex){
+  const h=String(hex).replace('#',''); if(h.length!==6) return 'none';
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  return `linear-gradient(0deg, rgba(${r},${g},${b},.11), rgba(${r},${g},${b},.11))`;
+}
+const kWords=w=>w>=10000? Math.round(w/1000)+'천 단어' : (w||0).toLocaleString()+'단어';
+
+/* 서재 — 레벨별 가로 선반. 찾을 때는 선반 대신 결과만 죽 보여준다. */
+function pickerHTML(){
+  const q=(S._pq||'').trim().toLowerCase();
+  const card=m=>{
+    const c=lvColor(m);
+    return `<button class="pk-bk ${m.id===S.bookId?'on':''}" data-pick="${esc(m.id)}">
+      <div class="pk-cv" style="background-image:${tint(c)}"><span>${esc(m.title)}</span></div>
+      <div class="ba">${esc(m.author||'—')}</div>
+      <div class="bm">${kWords(m.words)}</div>
+    </button>`;
+  };
+  const rail=list=>`<div class="pk-rail">${list.map(card).join('')}</div>`;
   const byWords=(a,b)=>(a.words||0)-(b.words||0);
-  let html=grp('📂 내 책', MANIFEST.filter(m=>m.local));
-  LEVELS.forEach(([n,label])=>{
-    html+=grp(label, MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords));
+
+  if(q){
+    const hit=MANIFEST.filter(m=>(m.title||'').toLowerCase().includes(q)
+                              || (m.author||'').toLowerCase().includes(q)).sort(byWords);
+    return hit.length
+      ? `<div class="pk-shelf"><div class="pk-h"><span class="nm">찾은 책</span><span class="ct">${hit.length}권</span></div>${rail(hit)}</div>`
+      : `<div class="pk-none">'${esc(q)}' 로는 찾지 못했어요.</div>`;
+  }
+  const cur=MANIFEST.find(m=>m.id===S.bookId);
+  let html='';
+  if(cur && curBook){
+    const pct=Math.round(readCount()/Math.max(1,totalChaps())*100);
+    html+=`<button class="pk-now" data-pick="${esc(cur.id)}">
+      <div class="mini" style="background-image:${tint(lvColor(cur))}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="nt">${esc(cur.title)}</div>
+        <div class="ns">${S.chapter}장 · 읽은 챕터 ${readCount()}/${totalChaps()} · ${pct}%</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div></button>`;
+  }
+  const mine=MANIFEST.filter(m=>m.local);
+  if(mine.length) html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:var(--accent)"></span>
+      <span class="nm">내 책</span><span class="ct">${mine.length}권</span></div>${rail(mine)}</div>`;
+  LEVELS.forEach(([n,nm,col])=>{
+    const list=MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords);
+    if(!list.length) return;
+    html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:${col}"></span>
+      <span class="nm">레벨 ${n} · ${nm}</span><span class="ct">${list.length}권</span></div>${rail(list)}</div>`;
   });
-  return html + grp('📚 그 밖의 책', MANIFEST.filter(m=>!m.local&&!m.level));
+  const rest=MANIFEST.filter(m=>!m.local&&!m.level);
+  if(rest.length) html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:var(--faint)"></span>
+      <span class="nm">그 밖의 책</span><span class="ct">${rest.length}권</span></div>${rail(rest)}</div>`;
+  return html;
+}
+function closePicker(){ $('#pickModal').classList.remove('show'); }
+function renderPicker(keepFocus){
+  const m=$('#pickModal');
+  m.innerHTML=`<div class="sheet pk-sheet">
+    <div class="pk-top">
+      <h3>서재</h3><span class="ct">${MANIFEST.length}권</span>
+      <button class="x" id="pkX" aria-label="닫기">✕</button>
+    </div>
+    <div class="pk-find">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" style="color:var(--faint)">
+        <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.7" y2="16.7"></line></svg>
+      <input id="pkQ" type="search" placeholder="제목이나 저자로 찾기" value="${esc(S._pq||'')}">
+    </div>
+    <div id="pkBody">${pickerHTML()}</div>
+  </div>`;
+  m.classList.add('show');
+  $('#pkX').addEventListener('click',closePicker);
+  m.addEventListener('click',e=>{ if(e.target===m) closePicker(); });
+  const q=$('#pkQ');
+  q.addEventListener('input',e=>{ S._pq=e.target.value; $('#pkBody').innerHTML=pickerHTML(); bindPicks(); });
+  if(keepFocus) q.focus();
+  bindPicks();
+}
+function bindPicks(){
+  $$('#pickModal [data-pick]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.pick; closePicker();
+    if(id!==S.bookId) switchBook(id);
+  }));
 }
 function renderSidebar(){
   const b=book();
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
+  const curM=MANIFEST.find(m=>m.id===S.bookId)||{};
   let html=`<div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
-    <select id="bookSel" aria-label="책 선택">${bookOptions()}</select>
+    <button class="bw-now" id="bookSel" aria-label="책 고르기">
+      <span class="dot" style="background:${lvColor(curM)}"></span>
+      <span class="t">${esc(curM.title||b.title)}</span>
+      <span class="c">바꾸기</span>
+    </button>
     <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
   </div>
   <div class="bookcard">
@@ -865,7 +1022,7 @@ function renderSidebar(){
     S.marks=S.marks.filter(m=>m.id!==id); S.del.m[id]=Date.now();
     save(); rtDrop('marks',id); toast('북마크를 뺐어요');
     renderSidebar(); const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt()); }));
-  const bs=$('#bookSel'); if(bs) bs.addEventListener('change',e=>switchBook(e.target.value));
+  const bs=$('#bookSel'); if(bs) bs.addEventListener('click',()=>renderPicker(true));
   const bi=$('#btnImport'); if(bi) bi.addEventListener('click',()=>renderImport());
 }
 async function switchBook(id){
@@ -1434,6 +1591,9 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',S.them
   const bd=$('#readBody');
   if(bd){ bd.classList.toggle('indent',S.para==='indent');
           bd.classList.toggle('just',S.just==='on'); }
+  const pv=$('#setPrev');                       // 견본 문단도 같이 따라간다
+  if(pv){ pv.classList.toggle('indent',S.para==='indent');
+          pv.classList.toggle('just',S.just==='on'); }
   if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 조판이 바뀌면 쪽 수가 달라진다
   $$('#optTheme button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
   $$('#optFont button').forEach(b=>b.classList.toggle('on',b.dataset.font===S.font));
@@ -2525,7 +2685,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0620';
+const BUILD='0824-0810';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
