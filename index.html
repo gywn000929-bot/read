@@ -23,7 +23,7 @@
   --serif:Georgia,"Times New Roman",'Nanum Myeongjo',serif;
   --palatino:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
-  --measure:37rem; --fs:20px;
+  --measure:37rem; --fs:20px; --lh:1.75;
 }
 html[data-theme="white"]{
   --bg:#ffffff; --surface:#ffffff; --line:#e8e8ec; --line2:#f3f3f5;
@@ -126,9 +126,23 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
 .toolbar .grp{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--faint);padding:0 4px;white-space:nowrap;flex:none}
 
-.body{font-family:var(--reading-font,var(--serif));font-size:var(--fs);line-height:1.75;color:var(--ink)}
-.body p{margin:0 0 1.35em;max-width:var(--measure)}
+.body{font-family:var(--reading-font,var(--serif));font-size:var(--fs);line-height:var(--lh);color:var(--ink);
+  /* 이어붙은 글자·숫자를 제 모양으로 — 세리프 글꼴에서 특히 차이가 난다 */
+  font-kerning:normal;font-variant-ligatures:common-ligatures contextual;
+  /* 여는 따옴표를 판면 밖으로 살짝 걸어 왼쪽 줄을 가지런히 (사파리) */
+  hanging-punctuation:first;
+  /* 긴 낱말·주소가 판면을 뚫고 나가지 않게 */
+  overflow-wrap:break-word}
+.body p{margin:0 0 1.35em;max-width:var(--measure);
+  /* 마지막 줄에 한 낱말만 덩그러니 남는 것을 줄인다 */
+  text-wrap:pretty}
 .body p.drop:first-letter{font-size:3.1em;line-height:.86;float:left;font-weight:800;padding:2px 10px 0 0;color:var(--ink)}
+/* 문단 모양 — 여백으로 띄우거나(기본), 책처럼 첫 줄을 들여쓰거나 */
+.body.indent p{margin-bottom:.15em;text-indent:1.5em}
+.body.indent p.drop,.body.indent .chaphead + p,.body.indent p:first-child{text-indent:0}
+/* 양쪽 정렬 — 하이픈을 함께 켜야 낱말 사이가 벌어지지 않는다 */
+.body.just p{text-align:justify;text-justify:inter-word;
+  hyphens:auto;-webkit-hyphens:auto;-ms-hyphens:auto}
 .body .sent{transition:background .2s;border-radius:3px}
 .body .sent.speaking{background:var(--mark)}
 .body.transmode .sent{cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -142,7 +156,9 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
    넘친 단이 scrollWidth 에 잡히고 scrollLeft 로 넘길 수 있다.
    overflow:visible 이면 넘친 단이 scrollWidth 에 안 잡혀 늘 1쪽으로 계산된다. */
 .body.paged{column-fill:auto;-webkit-column-fill:auto;overflow:hidden;overscroll-behavior:contain}
-.body.paged p{max-width:none}
+/* 쪽 모드에서도 본문 폭 설정이 먹게 — 단이 넓어도 글줄은 읽기 좋은 길이로 잡고
+   남는 자리는 좌우로 나눠 가운데 세운다. 폰처럼 단이 이미 좁으면 아무 영향이 없다. */
+.body.paged p{max-width:var(--measure);margin-inline:auto}
 /* 페이지 모드에서는 아래 챕터 버튼·안내문을 접는다 —
    그게 남아 있으면 쪽을 다 채워놓고도 창이 세로로 또 스크롤된다 */
 .reader.paged .chap-nav,.reader.paged .readtip{display:none}
@@ -449,9 +465,39 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
           <div class="set-h">글자 크기</div>
           <div class="set-size">
             <button id="fsMinus">A−</button>
-            <input type="range" id="fsRange" min="15" max="30" step="1">
+            <input type="range" id="fsRange" min="15" max="34" step="1">
             <button id="fsPlus">A+</button>
             <span class="fsval" id="fsVal">20px</span>
+          </div>
+        </div>
+        <div class="set-sec">
+          <div class="set-h">줄 간격</div>
+          <div class="set-opts" id="optLh">
+            <button data-lh="1.5">좁게</button>
+            <button data-lh="1.75">보통</button>
+            <button data-lh="2.05">넓게</button>
+          </div>
+        </div>
+        <div class="set-sec">
+          <div class="set-h">본문 폭</div>
+          <div class="set-opts" id="optMeasure">
+            <button data-measure="31rem">좁게</button>
+            <button data-measure="37rem">보통</button>
+            <button data-measure="44rem">넓게</button>
+          </div>
+        </div>
+        <div class="set-sec">
+          <div class="set-h">문단 모양</div>
+          <div class="set-opts" id="optPara">
+            <button data-para="gap">여백</button>
+            <button data-para="indent">들여쓰기</button>
+          </div>
+        </div>
+        <div class="set-sec">
+          <div class="set-h">양쪽 정렬</div>
+          <div class="set-opts" id="optJust">
+            <button data-just="off">끄기</button>
+            <button data-just="on">켜기</button>
           </div>
         </div>
       </div>
@@ -474,6 +520,8 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 /* ============ Data & State ============ */
 const LS_KEY = 'bookstudy_v1';
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
+  lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
+
   bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
   pagePos:{},          // 챕터별로 읽던 쪽 — 'bookId:chapter' → 쪽 번호
   marks:[],            // 북마크 [{id,bookId,chapter,page,text,t}]
@@ -706,9 +754,9 @@ function speakNext(){
 /* ============ Tokenizer ============ */
 /* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
 /* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
-const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
-const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e|a|p)\\.$','i');
-const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
+const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[_])';
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|mem|mo|inst|e\\.g|i\\.e|a|p)\\._?$','i');
+const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\._?$');
 function splitSentences(p){
   // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
   // 안 그러면 닫는 따옴표만 남는 조각이 생긴다.
@@ -718,8 +766,17 @@ function splitSentences(p){
   for(const raw of parts){
     const s=raw.trim(); if(!s) continue;
     const prev=out[out.length-1];
-    // 앞 조각이 약어로 끝났으면 문장이 아직 안 끝난 것이다
-    if(prev&&(RX_ABBR.test(prev)||RX_INIT.test(prev))) out[out.length-1]=prev+' '+s;
+    /* 이어지는 조각인지 — 셋 중 하나면 문장이 아직 안 끝난 것이다.
+       1) 앞이 약어로 끝났다 (Mrs. / J. / a.m.)
+       2) 이 조각에 글자가 하나도 없다 (닫는 따옴표만 남은 부스러기)
+       3) 이 조각이 소문자로 시작한다 — 영어는 문장을 대문자로 연다.
+          «“말이야!” 그가 말했다.» 처럼 대사 뒤에 붙는 말이 여기 걸린다.
+          전에는 이런 것이 통째로 다른 문장이 되어, 한 문장이 온점 앞에서 갈라졌다. */
+    const cont = prev && (
+      RX_ABBR.test(prev) || RX_INIT.test(prev) ||
+      !/[A-Za-z]/.test(s) ||
+      /^["'\u2018\u201c(\[]*[a-z]/.test(s));
+    if(cont) out[out.length-1]=prev+' '+s;
     else out.push(s);
   }
   return out.length?out:[p];
@@ -884,7 +941,7 @@ function renderMain(){
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
     <div class="pageview" id="pageView">
-      <div class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
+      <div lang="en" class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''} ${S.para==='indent'?'indent':''} ${S.just==='on'?'just':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
     </div>
     ${pgOn()?`<div class="pagebar" id="pageBar">
       <button id="pgPrevBtn" aria-label="이전 페이지">‹</button>
@@ -1058,7 +1115,12 @@ function pgAvoidSplit(){
   /* 한 문장씩 밀면 밀 때마다 조판이 통째로 다시 돌아, 쪽이 많은 장에서는 몇 초씩 걸린다.
      한 바퀴에 걸린 문장을 모두 찾아 한꺼번에 밀고, 몇 바퀴만 반복한다.
      바퀴마다 표식을 지우고 새로 재므로 앞 바퀴가 잘못 민 것도 스스로 바로잡힌다. */
-  for(let round=0; round<4; round++){
+  /* 한 바퀴 더 돌 때마다 조판이 다시 도니 무한정 돌 수는 없다.
+     다만 4바퀴로는 좁은 화면에서 다 못 밀어냈다 — 밀린 문장이 다음 쪽 경계를
+     또 넘기면 그 다음 바퀴에서야 잡히기 때문이다. 여덟 바퀴면 실측상 남지 않는다.
+     한 쪽보다 긴 문장은 앞에 표식이 붙은 채로 다시 걸리는데, 그런 것은
+     위의 pgbrk 검사에서 건너뛰므로 여기서 영영 돌지 않는다. */
+  for(let round=0; round<8; round++){
     const sents=[...body.querySelectorAll('.sent')];
     const bx=body.getBoundingClientRect().left, sl=body.scrollLeft;
     const pageOf=x=>Math.floor((x-bx+sl)/step);
@@ -1076,7 +1138,9 @@ function pgAvoidSplit(){
       const brk=document.createElement('span'); brk.className='pgbrk';
       s.parentNode.insertBefore(brk,s); moved++;
     }
-    if(hits.length<=2) break;                    // 한둘 남았다고 조판을 또 돌릴 것은 아니다
+    /* 예전엔 한둘 남으면 여기서 그만뒀다. 그런데 그 한둘을 민 결과가
+       또 경계를 넘는지 아무도 다시 재지 않아, 밀어낸 자리에 새 걸침이 남았다.
+       이제는 걸린 것이 없을 때까지(또는 여덟 바퀴까지) 재고 민다. */
   }
   return moved;
 }
@@ -1140,7 +1204,7 @@ async function toggleSentTrans(sent){
     return;
   }
   sent.classList.add('ko-open');
-  const div=document.createElement('span'); div.className='ko-inline'; div.textContent='해석 중…';
+  const div=document.createElement('span'); div.className='ko-inline'; div.lang='ko'; div.textContent='해석 중…';
   sent.parentNode.insertBefore(div, sent.nextSibling); sent._ko=div;
   div.addEventListener('click',()=>toggleSentTrans(sent));
   pgRelayout();
@@ -1364,9 +1428,19 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',S.them
   const fmap={serif:'var(--serif)',sans:'var(--sans)',palatino:'var(--palatino)'};
   document.documentElement.style.setProperty('--reading-font',fmap[S.font]||'var(--serif)');
   document.documentElement.style.setProperty('--fs',S.fs+'px');
-  if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 글자 크기가 바뀌면 쪽 수가 달라진다
+  document.documentElement.style.setProperty('--lh',S.lh);
+  document.documentElement.style.setProperty('--measure',S.measure);
+  /* 문단 모양·양쪽 정렬은 본문에 붙는 표식으로 — 다시 그리지 않고 바로 바뀐다 */
+  const bd=$('#readBody');
+  if(bd){ bd.classList.toggle('indent',S.para==='indent');
+          bd.classList.toggle('just',S.just==='on'); }
+  if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 조판이 바뀌면 쪽 수가 달라진다
   $$('#optTheme button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
   $$('#optFont button').forEach(b=>b.classList.toggle('on',b.dataset.font===S.font));
+  $$('#optLh button').forEach(b=>b.classList.toggle('on',+b.dataset.lh===+S.lh));
+  $$('#optMeasure button').forEach(b=>b.classList.toggle('on',b.dataset.measure===S.measure));
+  $$('#optPara button').forEach(b=>b.classList.toggle('on',b.dataset.para===S.para));
+  $$('#optJust button').forEach(b=>b.classList.toggle('on',b.dataset.just===S.just));
   const r=$('#fsRange'); if(r){ r.value=S.fs; $('#fsVal').textContent=S.fs+'px'; }
 }
 function bindChrome(){
@@ -1381,7 +1455,11 @@ function bindChrome(){
   $$('#optFont button').forEach(b=>b.addEventListener('click',()=>{ S.font=b.dataset.font; save(); applyTheme(); }));
   $('#fsRange').addEventListener('input',e=>{ S.fs=+e.target.value; save(); applyTheme(); });
   $('#fsMinus').addEventListener('click',()=>{ S.fs=Math.max(15,S.fs-1); save(); applyTheme(); });
-  $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(30,S.fs+1); save(); applyTheme(); });
+  $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(34,S.fs+1); save(); applyTheme(); });
+  $$('#optLh button').forEach(b=>b.addEventListener('click',()=>{ S.lh=+b.dataset.lh; save(); applyTheme(); }));
+  $$('#optMeasure button').forEach(b=>b.addEventListener('click',()=>{ S.measure=b.dataset.measure; save(); applyTheme(); }));
+  $$('#optPara button').forEach(b=>b.addEventListener('click',()=>{ S.para=b.dataset.para; save(); applyTheme(); }));
+  $$('#optJust button').forEach(b=>b.addEventListener('click',()=>{ S.just=b.dataset.just; save(); applyTheme(); }));
   document.addEventListener('click',e=>{ const p=$('#pop'); if(p.classList.contains('show') && !p.contains(e.target) && !e.target.closest('.w')) hidePop(); });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){ hidePop(); stopTTS(); }
@@ -2447,7 +2525,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0330';
+const BUILD='0824-0620';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
