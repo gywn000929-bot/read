@@ -558,8 +558,8 @@ async function loadBook(id){
       const t=String(k).trim().toLowerCase(); if(t) trCache[t]=bookCache[id].ko[k]; });
     if(bookCache[id]._repaired){                 // 되돌린 결과를 기기와 다른 기기에도 남긴다
       delete bookCache[id]._repaired;
-      idbPut(id,bookCache[id]).then(()=>{ metaPut(bookCache[id]);
-        const up=uploadedSet(); up.delete(id); markUploaded(up); }).catch(()=>{});
+      stamp(bookCache[id]);
+      idbPut(id,bookCache[id]).then(()=>{ metaPut(bookCache[id]); upForget(id); }).catch(()=>{});
     }
     return bookCache[id];
   }
@@ -707,7 +707,7 @@ function speakNext(){
 /* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
 /* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
 const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
-const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e)\\.$','i');
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e|a|p)\\.$','i');
 const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
 function splitSentences(p){
   // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
@@ -742,12 +742,19 @@ const COMMON=new Set("the a an and or but so if then than that this these those 
 
 /* ============ Render: Sidebar ============ */
 /* 책이 쉰 권 가까이 되니 한 줄로 늘어놓으면 찾기 어렵다 — 갈래로 묶는다 */
+/* 읽기 난이도 — 문장 길이와 긴 낱말 비율로 잰 값을 다섯 칸으로 나눠 둔다.
+   책 목록을 이 순서로 묶어야 '어디서부터 읽을까'가 한눈에 보인다. */
+const LEVELS=[[1,'🟢 레벨 1 · 입문'],[2,'🟢 레벨 2 · 쉬움'],[3,'🟡 레벨 3 · 보통'],
+              [4,'🟠 레벨 4 · 어려움'],[5,'🔴 레벨 5 · 아주 어려움']];
 function bookOptions(){
   const one=m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}${m.author?' — '+esc(m.author):''}</option>`;
   const grp=(label,list)=> list.length? `<optgroup label="${label}">${list.map(one).join('')}</optgroup>` : '';
-  return grp('📂 내 책', MANIFEST.filter(m=>m.local))
-       + grp('📚 수록된 책', MANIFEST.filter(m=>!m.local&&!m.gutenberg))
-       + grp('📖 고전 (Project Gutenberg)', MANIFEST.filter(m=>m.gutenberg));
+  const byWords=(a,b)=>(a.words||0)-(b.words||0);
+  let html=grp('📂 내 책', MANIFEST.filter(m=>m.local));
+  LEVELS.forEach(([n,label])=>{
+    html+=grp(label, MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords));
+  });
+  return html + grp('📚 그 밖의 책', MANIFEST.filter(m=>!m.local&&!m.level));
 }
 function renderSidebar(){
   if(!curBook){ renderFirstRun(); return; }   // 서재가 비면 첫 화면이 사이드바까지 그린다
@@ -781,7 +788,7 @@ function renderSidebar(){
   b.chapters.forEach(c=>{
     if(pf && c.part!=pf) return;
     if(q){ const hay=(c.title? c.title+' ':'')+c.paras.join(' '); if(!hay.toLowerCase().includes(q)) return; }
-    if(c.part!==curPart){ curPart=c.part; if(Object.keys(b.parts).length>1) items+=`<div class="part-h">${esc(b.parts[c.part]||('Part '+c.part))}</div>`; }
+    if(c.part!==curPart){ curPart=c.part; if(parts.length>1) items+=`<div class="part-h">${esc((b.parts||{})[c.part]||('Part '+c.part))}</div>`; }
     const label = c.title ? esc(c.title) : ('Chapter '+c.n);
     items+=`<div class="artitem ${c.n===S.chapter?'sel':''} ${isRead(c.n)?'done':''}" data-ch="${c.n}">
       <span class="readdot"></span>
@@ -833,7 +840,7 @@ function renderMain(){
   if(S.view==='vocab'){ renderVocab(); return; }
   if(!curBook){ renderFirstRun(); return; }   // 서재가 비어 있으면 읽기 탭도 첫 화면으로
   const b=book(), c=chap(S.chapter);
-  const partName=b.parts[c.part]||('Part '+c.part);
+  const partName=(b.parts||{})[c.part]||('Part '+c.part);
   const words=c.paras.join(' ').split(/\s+/).length;
   const isImg=b.kind==='image'&&Array.isArray(c.pages)&&c.pages.length;
   let body='';
@@ -1438,7 +1445,7 @@ function withTimeout(pr,ms,fallback){
 const MET_KEY='bookstudy_meta';
 const bookMeta=b=>({id:b.id,title:b.title,author:b.author,
   chapters:(b.chapters||[]).length,words:b.words||0,local:true,
-  localOnly:!!b.localOnly, ko:Object.keys(b.ko||{}).length,
+  localOnly:!!b.localOnly, ko:Object.keys(b.ko||{}).length, t:b.t||0,
   broken:bookLooksBroken(b)});
 function metaAll(){ try{ const v=JSON.parse(localStorage.getItem(MET_KEY)||'null'); return Array.isArray(v)?v:null; }catch(e){ return null; } }
 function metaPut(b){ try{ const l=(metaAll()||[]).filter(x=>x.id!==b.id); l.push(bookMeta(b));
@@ -1496,6 +1503,21 @@ const RX_SECT=/^(stave|adventure|letter|canto|chapter)\s+([0-9]+|[ivxlcdm]+|[a-z
 /* 홀로 선 대문자 로마 숫자 = 장 번호 (암흑의 핵심, 위대한 개츠비, 변신 …).
    소문자는 받지 않는다 — 본문에 낱말로 섞여 들어올 수 있어서. */
 const RX_ROMAN=/^([IVXLCDM]{1,7})\.?$/;
+/* "CHAPTER   PAGE" · "CONTENTS" — 장 제목이 아니라 목차표의 머리다.
+   이 줄로 열린 장에는 목차가 통째로 담기므로 나중에 버린다. */
+const RX_TOCH=/^(chapter\s+page|contents|table of contents)$/i;
+/* "_THE FIRST CHAPTER_" — 차례를 말로 적고 순서를 뒤집은 제목 (돌리틀 선생 이야기) */
+const RX_ORD=/^_?the\s+([a-z]+(?:[\s-][a-z]+)?)\s+chapter_?$/i;
+/* "01 My Early Home" — 번호와 제목이 한 줄에 붙은 형태 (검정 말 이야기).
+   문장 부호가 없고 제목이 대문자로 시작할 때만 받되, 번호가 지금까지 센
+   장 수의 바로 다음일 때만 인정한다. 출판사 광고 목록("6 AN OLD-FASHIONED
+   THANKSGIVING")이나 체스 기보("10. W.Q. to Q.R.'s 6th")가 장으로 잡히던 것을
+   이 차례 검사 하나가 걸러낸다. */
+const RX_NUMT=/^(\d{1,3})[.\s]\s*([A-Z][^.!?]{2,58})$/;
+/* "I. Granny Fox Gives Reddy a Scare" — 로마 숫자와 제목이 한 줄에.
+   RX_ROMAN 은 숫자만 홀로 선 줄만 받으므로 이런 장은 통째로 안 나뉘었다.
+   여기도 차례가 맞을 때만 인정한다. */
+const RX_ROMANT=/^([IVXLCDM]{1,7})\.\s+(\S[^.!?]{2,58})$/;
 const RX_BREAK=/^[*#•·—–\-\s]{2,}$/;
 const RVAL={i:1,v:5,x:10,l:50,c:100,d:500,m:1000};
 /* 제대로 된 로마 숫자 셈 — 예전엔 15까지 적어둔 표라 XVI 부터는 0 이 나왔고,
@@ -1512,6 +1534,16 @@ function rnum(s){
   return n;
 }
 /* 영어 숫자말 → 숫자 ("TWENTY-ONE" → 21). 많은 소설이 장 제목을 이렇게 씁니다. */
+/* 차례를 말로 적은 것 → 숫자 ("FIRST" → 1) */
+const OWORD={first:1,second:2,third:3,fourth:4,fifth:5,sixth:6,seventh:7,eighth:8,
+  ninth:9,tenth:10,eleventh:11,twelfth:12,thirteenth:13,fourteenth:14,fifteenth:15,
+  sixteenth:16,seventeenth:17,eighteenth:18,nineteenth:19,twentieth:20,thirtieth:30};
+function onum(s){
+  const ps=String(s).toLowerCase().trim().split(/[\s-]+/).filter(Boolean);
+  if(ps.length===1) return OWORD[ps[0]]||0;
+  if(ps.length===2 && NWORD[ps[0]] && OWORD[ps[1]]) return NWORD[ps[0]]+OWORD[ps[1]];
+  return 0;
+}
 const NWORD={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
   eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
   eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,
@@ -1595,7 +1627,10 @@ function stripFurniture(lines,pages){
 /* 목차 쪽 버리기 — 한 쪽에 제목꼴 줄이 잔뜩 모여 있으면 그 쪽이 목차다.
    쪽이 없는 TXT 는 파일 전체가 p=1 이라 이 셈이 성립하지 않는다.
    (그대로 두면 장이 6개만 넘어도 책 전체를 목차로 보고 통째로 버렸다) */
-const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$/i;
+/* 목차 줄 찾기 — "I. 제목" · "01 제목" 처럼 번호와 제목이 붙은 형태까지 알아본다.
+   이걸 못 보면 목차가 통째로 남아, 목차 항목이 장 제목으로 잡히고
+   진짜 장 번호가 하나씩 밀린다. */
+const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$|^[IVXLCDM]{1,7}\.\s+\S|^\d{1,3}[.\s]\s*[A-Z]/i;
 function dropTOC(lines,pages){
   if(pages>=4){                       // PDF — 제목꼴 줄이 잔뜩 있는 '쪽'이 목차다
     const per={};
@@ -1786,20 +1821,27 @@ function linesToBook(inp,meta){
   const rs=txt.map(l=>l.x1).sort((a,b)=>a-b);
   const mL=xs.length? xs[Math.floor(xs.length*0.2)] : 0;
   const mR=rs.length? rs[Math.floor(rs.length*0.8)] : 1e9;
-  const chapters=[]; const partName={}; let part=1, cur=null, prev=null;
-  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null; };
+  const chapters=[]; const partName={}; let part=1, cur=null, prev=null, numbered=0;
+  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null;
+    if(/^Chapter\s/i.test(title)) numbered++; };
   lines.forEach(l=>{
     const s=l.s;
     if(!s){ prev=null; return; }              // 빈 줄(txt) → 문단 구분
     if(big(l)){
       let m;
       if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
+      if(RX_TOCH.test(s)){ open('__toc__'); return; }   // 목차표 — 아래에서 버린다
       if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
+      if((m=s.match(RX_ORD))){ const n=onum(m[1]); if(n){ open('Chapter '+n); return; } }
       if((m=s.match(RX_CHAP))){ const n=rnum(m[1])||wnum(m[1]);
         const sub=clean(m[2]);
         open('Chapter '+(n||m[1])+(sub?' · '+sub:'')); return; }
       const wn=wnum(s); if(wn){ open('Chapter '+wn); return; }       // "ONE", "TWENTY-TWO"
       if(RX_NUM.test(s)){ open('Chapter '+s); return; }              // "1", "2"
+      if((m=s.match(RX_NUMT)) && +m[1]===numbered+1){
+        open('Chapter '+(+m[1])+' · '+clean(m[2])); return; }
+      if((m=s.match(RX_ROMANT)) && rnum(m[1])===numbered+1){
+        open('Chapter '+rnum(m[1])+' · '+clean(m[2])); return; }
       if((m=s.match(RX_ROMAN))){ const n=rnum(m[1]); if(n){ open('Chapter '+n); return; } }
       if((m=s.match(RX_SECT))){                                      // Stave One / Adventure I.
         const n=rnum(m[2])||wnum(m[2]); const sub=clean(m[3]);
@@ -1816,7 +1858,12 @@ function linesToBook(inp,meta){
     prev=l;
   });
   // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
-  const kept=chapters.filter(c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40);
+  const meaty=c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40;
+  /* 목차표로 열린 장은 버린다 — 다만 그것밖에 없으면 그게 본문이다.
+     장 제목이 하나도 없는 책(단편 모음 등)은 'Contents' 한 줄에 책 전체가 담긴다. */
+  let kept=chapters.filter(c=>c.title!=='__toc__' && meaty(c));
+  if(kept.length<2) kept=chapters.filter(meaty).map(c=>
+    c.title==='__toc__'? Object.assign({},c,{title:'Opening'}) : c);
   if(!kept.length) throw new Error('본문을 찾지 못했어요');
   // 첫 구조적 제목(Prologue/Chapter/Part) 앞의 속표지·판권 페이지는 버린다
   const firstReal=kept.findIndex(c=>/^(prologue|chapter\s|part\s)/i.test(c.title));
@@ -1931,8 +1978,18 @@ async function rtReq(method,sub,body,query){
   if(!r.ok){ const e=new Error(rtErrText(r.status)); e.status=r.status; throw e; }
   return r.status===200? r.json() : null;
 }
-function uploadedSet(){ try{ return new Set(JSON.parse(localStorage.getItem(UP_KEY)||'[]')); }catch(e){ return new Set(); } }
-function markUploaded(s){ try{ localStorage.setItem(UP_KEY,JSON.stringify([...s])); }catch(e){} }
+/* 올린 책을 '올렸다/안 올렸다'로만 적어두면, 책에 손번역을 넣어도 다시 올라가지 않는다.
+   그래서 책마다 마지막으로 고친 시각을 적어 두고, 그 시각이 달라졌을 때만 올린다. */
+function uploadedMap(){
+  try{ const v=JSON.parse(localStorage.getItem(UP_KEY)||'{}');
+    if(Array.isArray(v)){ const o={}; v.forEach(id=>o[id]=0); return o; }   // 예전 판(목록)에서 넘어온다
+    return (v&&typeof v==='object')? v : {};
+  }catch(e){ return {}; }
+}
+function markUploaded(m){ try{ localStorage.setItem(UP_KEY,JSON.stringify(m)); }catch(e){} }
+function upForget(id){ const m=uploadedMap(); delete m[id]; markUploaded(m); }
+/* 책을 고칠 때마다 시각을 새긴다 — 이 시각 하나로 올릴지, 받을지를 정한다 */
+function stamp(b){ if(b) b.t=Date.now(); return b; }
 
 /* 내려받아 합친다 — 지우지 않고, 더 많이 읽은 쪽·더 최근에 저장한 단어를 남긴다.
    applyLast 는 앱을 막 열었을 때만 참 — 읽는 도중 폴링이 화면을 옮겨버리면 안 된다. */
@@ -1941,8 +1998,8 @@ async function rtPull(applyLast){
     rtReq('GET','state'),
     rtReq('GET','books',undefined,'shallow=true').catch(()=>null)
   ]);
-  const before=JSON.stringify([S.chapters,S.read,S.words]);
-  let added=0;
+  const before=JSON.stringify([S.chapters,S.read,S.words,S.marks]);
+  let added=0, upd=0;
 
   if(d){
     /* 무덤부터 합친다 — 지운 것을 되살리지 않으려면 병합보다 먼저 알아야 한다 */
@@ -1973,7 +2030,9 @@ async function rtPull(applyLast){
     Object.values(d.marks||{}).forEach(m=>{
       if(!m||!m.id||(S.del.m[m.id]||0)>=(m.t||0)) return;
       const cur=mk.get(m.id); if(!cur||(m.t||0)>(cur.t||0)) mk.set(m.id,m); });
-    Object.keys(S.del.m).forEach(id=>mk.delete(id));
+    /* 지운 뒤에 다시 만든 표시까지 없애면 안 된다 — 지운 시각보다 새것이면 남긴다 */
+    Object.entries(S.del.m).forEach(([id,t])=>{ const cur=mk.get(id);
+      if(cur&&(cur.t||0)<=(+t||0)) mk.delete(id); });
     S.marks=[...mk.values()].sort((a,b)=>b.t-a.t).slice(0,300);
 
     const pp=Object.assign({},S.pagePos||{});
@@ -1981,18 +2040,39 @@ async function rtPull(applyLast){
     S.pagePos=pp;
   }
 
-  // 다른 기기가 지운 책은 여기서도 치운다
-  for(const id of Object.keys(S.del.b)){
-    if(await idbGet(id).catch(()=>null)){ await idbDel(id).catch(()=>{}); metaDel(id); delete bookCache[id]; }
+  /* 책마다 마지막으로 고친 시각 — state 를 받을 때 함께 와서, 책을 열어보지 않고도
+     저쪽이 더 새것인지 알 수 있다. 이것이 없으면 여기 있는 책은 영영 다시 받지 않아
+     다른 기기에서 넣은 손번역이 건너오지 못한다. */
+  const rbt=(d&&d.bookT)||{};
+
+  // 다른 기기가 지운 책은 여기서도 치운다 — 단, 지운 뒤에 다시 넣은 책은 남긴다
+  for(const [id,t] of Object.entries(S.del.b)){
+    const cur=await idbGet(id).catch(()=>null);
+    if(cur&&(cur.t||0)<(+t||0)){
+      await idbDel(id).catch(()=>{}); metaDel(id); delete bookCache[id]; upForget(id);
+    }
   }
-  // 다른 기기가 올린 책 중 여기 없는 것만 받아온다 (목록은 키 이름만 훑는다)
+  // 다른 기기가 올린 책을 받아온다 — 여기 없는 책과, 저쪽이 더 최근에 고친 책
   for(const k of Object.keys(ids||{})){
-    const id=rtDec(k);
-    if(S.del.b[id]) continue;                          // 지운 책은 다시 받지 않는다
-    if(await idbGet(id).catch(()=>null)) continue;
+    const id=rtDec(k), rt=+rbt[k]||0;
+    if(S.del.b[id]&&S.del.b[id]>=rt) continue;         // 지운 책은 다시 받지 않는다
+    const cur=await idbGet(id).catch(()=>null);
+    if(cur&&cur.localOnly) continue;                   // 이 기기에만 두기로 한 책은 건드리지 않는다
+    if(cur&&(cur.t||0)>=rt) continue;                  // 여기 것이 저쪽만큼 새것이다
     const b=fixBook(await rtReq('GET','books/'+k).catch(()=>null));
     if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
-    try{ await idbPut(b.id,b); metaPut(b); added++; }
+    b.t=rt||Date.now();
+    if(cur){
+      /* 손번역은 덮지 않고 합친다 — 기기마다 다른 문장을 넣어두었을 수 있다.
+         같은 문장이 양쪽에 있으면 이 기기 것을 남기고,
+         저쪽에 없는 것을 보탰으면 시각을 올려 다음 번에 다시 올라가게 한다. */
+      const mine=cur.ko||{}, theirs=b.ko||{};
+      const extra=Object.keys(mine).filter(x=>theirs[x]===undefined).length;
+      if(Object.keys(mine).length) b.ko=Object.assign({},theirs,mine);
+      if(extra) b.t=Date.now();
+      b.localOnly=!!cur.localOnly;
+    }
+    try{ await idbPut(b.id,b); metaPut(b); delete bookCache[b.id]; cur? upd++ : added++; }
     catch(e){ toast('저장 공간이 부족해요'); break; }
   }
 
@@ -2006,20 +2086,21 @@ async function rtPull(applyLast){
     if(d.last.page>0) S.pagePos[S.bookId+':'+S.chapter]=d.last.page;   // 읽던 쪽까지 이어받는다
   }
   save();
-  return { added, moved,
-    changed: added>0||moved||before!==JSON.stringify([S.chapters,S.read,S.words,S.marks]) };
+  return { added, upd, moved,
+    changed: added>0||upd>0||moved||before!==JSON.stringify([S.chapters,S.read,S.words,S.marks]) };
 }
 /* 지운 것을 원격에서도 바로 없앤다 — 오프라인이면 무덤이 다음 동기화에 다시 보낸다 */
 function rtDrop(kind,key){
   const node={words:'state/words',marks:'state/marks',books:'books'}[kind];
   if(!node) return;
   rtReq('PATCH',node,{[rtEnc(key)]:null}).catch(e=>console.error(e));
+  if(kind==='books') rtReq('PATCH','state/bookT',{[rtEnc(key)]:null}).catch(()=>{});
 }
 
 /* 올릴 때는 키 단위 PATCH — 다른 기기가 그 사이 넣은 것을 덮지 않는다 */
-async function rtPush(){
+async function rtPush(force){
   clearTimeout(pushTimer);
-  if(rtBusy){ cloudTouch(); return false; }        // 맞추는 중이면 조금 뒤에
+  if(rtBusy&&!force){ cloudTouch(); return false; }   // 맞추는 중이면 조금 뒤에
   const words={}, read={}, chapters={}, marks={}, pagePos={};
   Object.entries(S.words||{}).forEach(([k,v])=>words[rtEnc(k)]=v);
   Object.keys(S.read||{}).forEach(k=>read[rtEnc(k)]=true);
@@ -2034,39 +2115,54 @@ async function rtPush(){
 
   /* 자식 노드마다 따로 보낸다 — PATCH 는 본문 최상위 키를 통째로 갈아끼우므로
      한 번에 {words:…} 로 보내면 그 사이 다른 기기가 넣은 단어가 지워진다 */
-  if(Object.keys(words).length) await rtReq('PATCH','state/words',words);
-  if(Object.keys(read).length) await rtReq('PATCH','state/read',read);
-  if(Object.keys(chapters).length) await rtReq('PATCH','state/chapters',chapters);
-  if(Object.keys(marks).length) await rtReq('PATCH','state/marks',marks);
-  if(Object.keys(pagePos).length) await rtReq('PATCH','state/pagePos',pagePos);
-  if(Object.keys(dw).length) await rtReq('PATCH','state/deleted/words',dw);
-  if(Object.keys(dm).length) await rtReq('PATCH','state/deleted/marks',dm);
+  /* 한 걸음이 실패했다고 뒤의 것까지 통째로 건너뛰면, 단어 하나 때문에 책이 안 올라간다.
+     그래서 걸음마다 따로 붙잡아 두고, 다 보낸 뒤에 마지막으로 알린다. */
+  const fail=[];
+  const step=async(sub,body)=>{ try{ await rtReq('PATCH',sub,body); }catch(e){ fail.push(e); } };
+
+  if(Object.keys(words).length) await step('state/words',words);
+  if(Object.keys(read).length) await step('state/read',read);
+  if(Object.keys(chapters).length) await step('state/chapters',chapters);
+  if(Object.keys(marks).length) await step('state/marks',marks);
+  if(Object.keys(pagePos).length) await step('state/pagePos',pagePos);
+  if(Object.keys(dw).length) await step('state/deleted/words',dw);
+  if(Object.keys(dm).length) await step('state/deleted/marks',dm);
   if(Object.keys(db).length){
-    await rtReq('PATCH','state/deleted/books',db);
-    await rtReq('PATCH','books',Object.fromEntries(Object.keys(db).map(k=>[k,null])));
+    await step('state/deleted/books',db);
+    const nulls=Object.fromEntries(Object.keys(db).map(k=>[k,null]));
+    await step('books',nulls);
+    await step('state/bookT',nulls);
   }
   const last={ bookId:S.bookId, chapter:S.chapter, page:pgPage, t:Date.now() };
-  await rtReq('PATCH','state',{last});
+  await step('state',{last});
   S.lastT=last.t;
 
-  /* 새로 넣은 책만 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니다.
-     열쇠만 먼저 보고, 올릴 책만 한 권씩 꺼낸다.
-     idbAll() 로 다 꺼내면 안 올릴 책까지 메인 스레드에서 펼쳐 화면이 멎는다. */
-  const up=uploadedSet();
+  /* 새로 넣은 책과 '고친' 책을 올린다 — 한 권이 수 MB 라 매번 올릴 것이 아니라,
+     마지막으로 올린 시각과 지금 책의 시각이 다를 때만 올린다.
+     비교는 목록표(localStorage)로 하므로, 안 올릴 책은 IndexedDB 에서 펼치지도 않는다.
+     idbAll() 로 다 꺼내면 그림 책 한 권에도 메인 스레드가 통째로 멎는다. */
+  const up=uploadedMap();
+  const mt={}; (metaAll()||[]).forEach(m=>{ mt[m.id]=m.t||0; });
   for(const id of (await idbKeys())||[]){
-    if(up.has(id)) continue;
+    if(mt[id]!==undefined && up[id]===mt[id]) continue;   // 그대로면 들추지 않는다
     const b=await idbGet(id).catch(()=>null);
     if(!b) continue;
+    if(!b.t){ stamp(b); await idbPut(id,b).catch(()=>{}); }   // 시각이 없던 옛 책에 새겨 준다
+    metaPut(b);
     if(b.localOnly){                             // 이 기기에만 두기로 한 책은 올리지 않는다
-      up.add(id); markUploaded(up);              // 다음에 또 들춰보지 않게 표시만 해둔다
+      up[id]=b.t; markUploaded(up);              // 다음에 또 들춰보지 않게 시각만 적어둔다
       continue;
     }
-    await rtReq('PUT','books/'+rtEnc(id),b);
-    up.add(id); markUploaded(up);
-    logEvent('☁️','책 올림 — '+(b.title||id));
+    try{
+      await rtReq('PUT','books/'+rtEnc(id),b);
+      await rtReq('PATCH','state/bookT',{[rtEnc(id)]:b.t});
+      up[id]=b.t; markUploaded(up);
+      logEvent('☁️','책 올림 — '+(b.title||id));
+    }catch(e){ fail.push(e); }                   // 한 권이 막혀도 다음 책은 올린다
   }
-  S.cloudAt=Date.now();
+  S.cloudAt=fail.length? (S.cloudAt||0) : Date.now();
   save(); clearTimeout(pushTimer);                 // save() 가 다시 잡은 예약을 취소
+  if(fail.length) throw fail[0];
   return true;
 }
 
@@ -2077,7 +2173,7 @@ async function cloudSync(quiet,applyLast){
   rtBusy=true;
   try{
     const r=await rtPull(applyLast);
-    rtBusy=false; await rtPush(); rtBusy=true;     // rtPush 의 진행 중 검사를 지나가게
+    await rtPush(true);      // 맞추는 중에도 올린다 — rtBusy 를 내리면 폴링과 겹친다
     lastSync=Date.now(); rtErr='';
     if(r.changed){
       MANIFEST=MANIFEST.filter(m=>!m.local).concat(await localManifest());
@@ -2091,7 +2187,8 @@ async function cloudSync(quiet,applyLast){
       setNav(); renderSidebar(); renderMain();
     }
     if(r.added) logEvent('☁️','다른 기기에서 책 '+r.added+'권 받아옴');
-    if(!quiet) toast(r.added? `맞췄어요 — 책 ${r.added}권 받아옴` : '맞췄어요');
+    if(r.upd) logEvent('☁️','다른 기기에서 고친 책 '+r.upd+'권 받아옴');
+    if(!quiet) toast(r.added||r.upd? `맞췄어요 — 책 ${r.added+r.upd}권 받아옴` : '맞췄어요');
     renderCloudBox();
     return true;
   }catch(e){
@@ -2208,13 +2305,13 @@ async function renderImport(state){
     $$('[data-only]').forEach(x=>x.addEventListener('click',async()=>{
       const id=x.dataset.only;
       const b=await idbGet(id).catch(()=>null); if(!b) return;
-      b.localOnly=!b.localOnly;
+      b.localOnly=!b.localOnly; stamp(b);
       await idbPut(id,b); delete bookCache[id]; metaPut(b);
-      const up=uploadedSet();
+      const up=uploadedMap();
       if(b.localOnly){                       // 이미 올라가 있으면 거둬들인다
-        rtDrop('books',id); up.add(id);
+        rtDrop('books',id); up[id]=b.t;
         toast('이 기기에만 두기 — 클라우드에서 지웠어요');
-      }else{ up.delete(id); toast('클라우드에 올립니다'); }
+      }else{ delete up[id]; toast('클라우드에 올립니다'); }
       markUploaded(up); save();
       renderImport();
     }));
@@ -2223,7 +2320,7 @@ async function renderImport(state){
       await idbDel(id); metaDel(id);
       S.del.b[id]=Date.now();                    // 무덤을 남긴다 — 안 그러면 다시 받아온다
       S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 북마크도 같이 정리
-      const up=uploadedSet(); up.delete(id); markUploaded(up);
+      upForget(id);
       save(); rtDrop('books',id);
       MANIFEST=MANIFEST.filter(x=>x.id!==id);
       toast('삭제했어요');
@@ -2306,6 +2403,7 @@ async function importTrans(data){
     if(!hit.length) continue;
     b.ko=Object.assign({},b.ko||{});
     hit.forEach(k=>{ b.ko[k]=ko[k]; });
+    stamp(b);                                  // 고친 시각을 새겨 다음 동기화에 올라가게
     await idbPut(id,b); delete bookCache[id]; metaPut(b); n+=hit.length;
   }
   keys.forEach(k=>{ const t=String(k).trim().toLowerCase(); if(t) trCache[t]=ko[k]; });
@@ -2317,12 +2415,18 @@ async function saveImported(){
   if(!_imp) return;
   _imp.title=($('#impT').value||'').trim()||'제목 없는 책';
   _imp.author=($('#impA').value||'').trim()||'—';
+  stamp(_imp);
   try{ await idbPut(_imp.id,_imp); }
   catch(e){ toast('저장 공간이 부족해요'); return; }
-  metaPut(_imp);
-  delete S.del.b[_imp.id];    // 지웠던 책을 다시 넣었으면 무덤에서 꺼낸다
+  metaPut(_imp); upForget(_imp.id);
+  /* 지웠던 책을 다시 넣었으면 무덤에서 꺼낸다 — 여기서만 지우면 다음 동기화에
+     다른 기기의 무덤이 되돌아와 방금 넣은 책을 또 지워버린다 */
+  if(S.del.b[_imp.id]){
+    delete S.del.b[_imp.id];
+    rtReq('PATCH','state/deleted/books',{[rtEnc(_imp.id)]:null}).catch(()=>{});
+  }
   requestPersist();   // 브라우저가 임의로 지우지 않도록 (응답을 기다리지 않음)
-  bookCache[_imp.id]=_imp;
+  bookCache[_imp.id]=fixBook(_imp);
   MANIFEST=MANIFEST.concat([{id:_imp.id,title:_imp.title,author:_imp.author,
     chapters:_imp.chapters.length,words:_imp.words,local:true}]);
   const id=_imp.id; const t=_imp.title;
@@ -2369,7 +2473,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0823-2305';
+const BUILD='0824-0330';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
