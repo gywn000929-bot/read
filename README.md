@@ -16,60 +16,116 @@
 | Harry Potter and the Half-Blood Prince | J.K. Rowling | 30 |
 | Harry Potter and the Deathly Hallows | J.K. Rowling | 37 |
 
-### 📖 고전 41권 (Project Gutenberg)
+### 📖 고전 75권 (Project Gutenberg)
 
-퍼블릭 도메인 고전을 같은 형식으로 넣어 두었습니다. 사이드바 드롭다운의
-**📖 고전** 갈래에서 고르면 됩니다. 원문은 [Project Gutenberg](https://www.gutenberg.org/)
-의 평문(txt)을 이 앱의 파서로 장 단위로 나눈 것입니다.
+퍼블릭 도메인 고전을 같은 형식으로 넣어 두었습니다. 원문은
+[Project Gutenberg](https://www.gutenberg.org/) 의 평문(txt)을 이 앱의 파서로
+장 단위로 나눈 것입니다. 저작권이 살아 있는 요즘 책(펭귄 북스 등 상업 출판사
+카탈로그)은 넣을 수 없습니다.
 
-| 책 | 저자 | 챕터 |
-|----|------|------|
-| A Christmas Carol | Charles Dickens | 6 |
-| A Little Princess | Frances Hodgson Burnett | 19 |
-| A Study in Scarlet | Arthur Conan Doyle | 14 |
-| A Tale of Two Cities | Charles Dickens | 45 |
-| Adventures of Huckleberry Finn | Mark Twain | 45 |
-| Alice's Adventures in Wonderland | Lewis Carroll | 12 |
-| Anne of Green Gables | L. M. Montgomery | 38 |
-| Around the World in Eighty Days | Jules Verne | 37 |
-| Dracula | Bram Stoker | 27 |
-| Emma | Jane Austen | 56 |
-| Frankenstein | Mary Wollstonecraft Shelley | 24 |
-| Great Expectations | Charles Dickens | 62 |
-| Gulliver's Travels | Jonathan Swift | 21 |
-| Heart of Darkness | Joseph Conrad | 3 |
-| Jane Eyre | Charlotte Brontë | 38 |
-| Little Women | Louisa May Alcott | 48 |
-| Metamorphosis | Franz Kafka | 3 |
-| Moby Dick | Herman Melville | 131 |
-| Oliver Twist | Charles Dickens | 53 |
-| Peter Pan | J. M. Barrie | 17 |
-| Pride and Prejudice | Jane Austen | 65 |
-| Robinson Crusoe | Daniel Defoe | 20 |
-| Sense and Sensibility | Jane Austen | 51 |
-| The Adventures of Sherlock Holmes | Arthur Conan Doyle | 4 |
-| The Adventures of Tom Sawyer | Mark Twain | 35 |
-| The Call of the Wild | Jack London | 7 |
-| The Count of Monte Cristo | Alexandre Dumas | 120 |
-| The Great Gatsby | F. Scott Fitzgerald | 10 |
-| The Hound of the Baskervilles | Arthur Conan Doyle | 16 |
-| The Invisible Man | H. G. Wells | 28 |
-| The Picture of Dorian Gray | Oscar Wilde | 21 |
-| The Prince and the Pauper | Mark Twain | 33 |
-| The Scarlet Letter | Nathaniel Hawthorne | 25 |
-| The Secret Garden | Frances Hodgson Burnett | 27 |
-| The War of the Worlds | H. G. Wells | 27 |
-| The Wonderful Wizard of Oz | L. Frank Baum | 24 |
-| Through the Looking-Glass | Lewis Carroll | 12 |
-| Treasure Island | Robert Louis Stevenson | 34 |
-| Twenty Thousand Leagues under the Sea | Jules Verne | 47 |
-| White Fang | Jack London | 25 |
-| Wuthering Heights | Emily Brontë | 34 |
+책 고르개는 **읽기 난이도** 순으로 묶여 있습니다. 난이도는 문장 길이와
+3음절 이상 낱말의 비율을 반씩 섞어 잰 값이라, 사람이 손으로 매긴 것보다 고릅니다.
+같은 레벨 안에서는 짧은 책이 먼저 나옵니다.
 
-> 상업 출판사(펭귄 북스 등)의 책은 저작권이 있어 넣을 수 없습니다.
-> 개인 소장 파일은 아래 **📂 내 책 열기** 로 직접 넣어 읽으세요.
+#### 🟢 레벨 1 · 입문 — 3권
 
-사이드바 상단의 드롭다운으로 책을 전환합니다. 각 책은 선택할 때 필요한 만큼만 불러옵니다(빠른 로딩).
+| 책 | 저자 | 챕터 | 낱말 |
+|----|------|------|------|
+| The Adventures of Reddy Fox | Thornton W. Burgess | 18 | 14,727 |
+| The Adventures of Jimmy Skunk | Thornton W. Burgess | 23 | 15,771 |
+| Old Mother West Wind | Thornton W. Burgess | 16 | 16,897 |
+
+#### 🟢 레벨 2 · 쉬움 — 18권
+
+| 책 | 저자 | 챕터 | 낱말 |
+|----|------|------|------|
+| The Tale of Peter Rabbit | Beatrix Potter | 1 | 983 |
+| The Tale of Squirrel Nutkin | Beatrix Potter | 1 | 1,275 |
+| The Velveteen Rabbit | Margery Williams Bianco | 1 | 3,964 |
+| The Adventures of Danny Meadow Mouse | Thornton W. Burgess | 24 | 15,381 |
+| The Tale of Cuffy Bear | Arthur Scott Bailey | 23 | 15,411 |
+| The Adventures of Peter Cottontail | Thornton W. Burgess | 20 | 15,548 |
+| The Adventures of Buster Bear | Thornton W. Burgess | 23 | 15,826 |
+| The Story of Doctor Dolittle | Hugh Lofting | 20 | 24,764 |
+| Uncle Wiggily and Old Mother Hubbard | Howard Roger Garis | 27 | 30,747 |
+| The Adventures of Pinocchio | Carlo Collodi | 36 | 39,785 |
+| The Bobbsey Twins in the Country | Laura Lee Hope | 22 | 40,197 |
+| The Jungle Book | Rudyard Kipling | 14 | 50,750 |
+| The Story of the Treasure Seekers | E. Nesbit | 17 | 52,363 |
+| The Railway Children | E. Nesbit | 15 | 59,193 |
+| The Wouldbegoods | E. Nesbit | 13 | 78,031 |
+| The Secret Garden | Burnett, Frances Hodgson | 27 | 80,413 |
+| At the Back of the North Wind | George MacDonald | 38 | 88,304 |
+| Adventures of Huckleberry Finn | Twain, Mark | 45 | 110,547 |
+
+#### 🟡 레벨 3 · 보통 — 23권
+
+| 책 | 저자 | 챕터 | 낱말 |
+|----|------|------|------|
+| The Tale of Benjamin Bunny | Beatrix Potter | 1 | 1,179 |
+| Alice's Adventures in Wonderland | Carroll, Lewis | 12 | 26,317 |
+| A Christmas Carol | Dickens, Charles | 6 | 28,455 |
+| Just So Stories | Rudyard Kipling | 12 | 28,644 |
+| Through the Looking-Glass | Carroll, Lewis | 12 | 29,219 |
+| The Wonderful Wizard of Oz | Baum, L. Frank (Lyman Frank) | 24 | 39,224 |
+| Aesop's Fables | Aesop | 2 | 41,325 |
+| Peter Pan | Barrie, J. M. (James Matthew) | 17 | 47,078 |
+| The Invisible Man | Wells, H. G. (Herbert George) | 28 | 48,283 |
+| The Princess and the Goblin | George MacDonald | 32 | 50,740 |
+| Five Children and It | E. Nesbit | 11 | 52,531 |
+| Andersen's Fairy Tales | H. C. Andersen | 18 | 55,294 |
+| Pollyanna | Eleanor H. Porter | 32 | 55,340 |
+| The Hound of the Baskervilles | Doyle, Arthur Conan | 16 | 59,075 |
+| Black Beauty | Anna Sewell | 49 | 59,485 |
+| A Little Princess | Burnett, Frances Hodgson | 19 | 66,241 |
+| Treasure Island | Stevenson, Robert Louis | 34 | 67,830 |
+| The Adventures of Tom Sawyer | Twain, Mark | 35 | 69,689 |
+| White Fang | London, Jack | 25 | 71,972 |
+| The Picture of Dorian Gray | Wilde, Oscar | 21 | 78,888 |
+| Anne of Green Gables | Montgomery, L. M. (Lucy Maud) | 38 | 101,964 |
+| The Adventures of Sherlock Holmes | Doyle, Arthur Conan | 12 | 104,360 |
+| Dracula | Stoker, Bram | 27 | 160,078 |
+
+#### 🟠 레벨 4 · 어려움 — 22권
+
+| 책 | 저자 | 챕터 | 낱말 |
+|----|------|------|------|
+| The Tale of Jemima Puddle-Duck | Beatrix Potter | 1 | 1,299 |
+| A Dog of Flanders | Ouida | 1 | 14,150 |
+| Peter Pan in Kensington Gardens | J. M. Barrie | 7 | 22,088 |
+| The Call of the Wild | London, Jack | 7 | 31,716 |
+| Heart of Darkness | Conrad, Joseph | 3 | 37,894 |
+| A Study in Scarlet | Doyle, Arthur Conan | 14 | 43,245 |
+| The Great Gatsby | Fitzgerald, F. Scott (Francis Scott) | 10 | 48,139 |
+| The Wind in the Willows | Kenneth Grahame | 12 | 58,331 |
+| The War of the Worlds | Wells, H. G. | 27 | 59,848 |
+| Heidi | Johanna Spyri | 24 | 65,839 |
+| The Prince and the Pauper | Twain, Mark | 33 | 68,662 |
+| Rebecca of Sunnybrook Farm | Kate Douglas Smith Wiggin | 32 | 73,413 |
+| Grimms' Fairy Tales | Jacob Grimm, Wilhelm Grimm | 64 | 100,600 |
+| Twenty Thousand Leagues under the Sea | Verne, Jules | 47 | 104,227 |
+| Wuthering Heights | Brontë, Emily | 34 | 115,872 |
+| A Tale of Two Cities | Dickens, Charles | 45 | 135,550 |
+| Oliver Twist | Dickens, Charles | 53 | 157,069 |
+| Emma | Austen, Jane | 56 | 157,311 |
+| Great Expectations | Dickens, Charles | 62 | 184,215 |
+| Jane Eyre | Brontë, Charlotte | 38 | 184,376 |
+| Little Women | Alcott, Louisa May | 48 | 189,648 |
+| The Count of Monte Cristo | Dumas, Alexandre | 120 | 459,540 |
+
+#### 🔴 레벨 5 · 아주 어려움 — 9권
+
+| 책 | 저자 | 챕터 | 낱말 |
+|----|------|------|------|
+| Metamorphosis | Kafka, Franz | 3 | 21,932 |
+| Gulliver's Travels | Swift, Jonathan | 21 | 50,285 |
+| Around the World in Eighty Days | Verne, Jules | 37 | 62,675 |
+| The Scarlet Letter | Hawthorne, Nathaniel | 25 | 68,153 |
+| Frankenstein | Shelley, Mary Wollstonecraft | 24 | 69,380 |
+| Sense and Sensibility | Austen, Jane | 51 | 118,647 |
+| Robinson Crusoe | Defoe, Daniel | 20 | 120,687 |
+| Pride and Prejudice | Austen, Jane | 65 | 121,554 |
+| Moby Dick | Melville, Herman | 131 | 207,828 |
 
 ## 📂 내 책 열기 (개인 소장 파일)
 
