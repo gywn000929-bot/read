@@ -1553,8 +1553,27 @@ async function pdfLines(file,prog){
 }
 function txtLines(text){
   const lines=[];
+  /* 구텐베르크 평문에는 삽화·판권 덩어리가 본문 사이에 섞여 있다.
+     [Illustration: … [_Copyright 1894 by George Allen._]]
+     대괄호가 다시 닫힐 때까지 통째로 건너뛴다 — 산문은 줄 첫머리를 '[' 로 열지 않는다. */
+  let depth=0;
   text.split(/\r?\n/).forEach(raw=>{
     const s=raw.replace(/\s+/g,' ').trim();
+    if(depth===0 && /^\[/.test(s)) depth=1, depth+=(s.match(/\[/g)||[]).length-1;
+    else if(depth>0) depth+=(s.match(/\[/g)||[]).length;
+    if(depth>0){
+      depth-=(s.match(/\]/g)||[]).length;
+      if(depth<0) depth=0;
+      /* 오만과 편견은 장 제목이 삽화 덩어리의 마지막 줄이다:
+           [Illustration: ·PRIDE AND PREJUDICE·   …   Chapter I.]
+         덩어리를 통째로 버리면 1장이 통째로 사라지므로 제목 줄은 건져낸다. */
+      const bare=s.replace(/^[\[\s_]+|[\]\s_]+$/g,'');
+      if(bare && bare.length<60 && HEADISH.test(bare))
+        lines.push({s:bare, x0:0, x1:bare.length, h:0, yp:0, p:1});
+      else
+        lines.push({s:'', x0:0, x1:0, h:0, yp:0, p:1});   // 문단 구분은 남긴다
+      return;
+    }
     lines.push({s, x0:/^\s/.test(raw)?20:0, x1:s.length, h:0, yp:0, p:1});
   });
   return {lines,pages:1,hasFont:false};
