@@ -592,6 +592,7 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 const LS_KEY = 'bookstudy_v1';
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
+  wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
 
   bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
   pagePos:{},          // 챕터별로 읽던 쪽 — 'bookId:chapter' → 쪽 번호
@@ -982,8 +983,9 @@ function renderSidebar(){
   <div class="bookcard">
     <div class="bt">${esc(b.title)}</div>
     <div class="ba">${esc(b.author)}</div>
-    <div class="progbar"><i style="width:${Math.round(readCount()/totalChaps()*100)}%"></i></div>
-    <div class="progtxt"><span>읽은 챕터 ${readCount()} / ${totalChaps()}</span><span>${Math.round(readCount()/totalChaps()*100)}%</span></div>
+    <div class="progbar"><i style="width:${Math.round(bookDone()*100)}%"></i></div>
+    <div class="progtxt"><span>읽은 챕터 ${readCount()} / ${totalChaps()}</span><span>책의 ${Math.round(bookDone()*100)}%</span></div>
+    <div class="progtxt"><span>${esc(minText(minLeft(bookWords()*(1-bookDone()))))}</span><span>분당 ${wpm()}단어</span></div>
   </div>`;
   const bms=(S.marks||[]).filter(m=>m.bookId===S.bookId);
   if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 북마크 ${bms.length}</div>`+
@@ -1301,12 +1303,59 @@ function pgAvoidSplit(){
   }
   return moved;
 }
+/* ===== 읽는 시간과 책 전체 위치 =====
+   챕터별 단어 수는 한 번 세어 두고 책이 바뀔 때만 다시 센다 —
+   10만 단어짜리 책을 쪽 넘길 때마다 다시 세면 화면이 멎는다. */
+let _cw={id:null,map:null,total:0};
+function chapWords(c){
+  const b=book(); if(!b) return 0;
+  if(_cw.id!==b.id){
+    const map={}; let tot=0;
+    b.chapters.forEach(x=>{ const w=(x.paras||[]).join(' ').split(/\s+/).filter(Boolean).length;
+      map[x.n]=w; tot+=w; });
+    _cw={id:b.id,map,total:tot};
+  }
+  return c? (_cw.map[c.n]||0) : 0;   // 장이 없어도 캐시는 채워 둔다 — bookWords 가 이걸 쓴다
+}
+const bookWords=()=>{ chapWords(chap(S.chapter)); return _cw.total||0; };
+/* 지금 챕터에서 얼마나 왔나 — 쪽 모드는 쪽으로, 스크롤 모드는 0 으로 본다 */
+const chapDone=()=> (pgOn()&&pgTotal>0)? Math.min(1,(pgPage+1)/pgTotal) : 0;
+/* 책을 통틀어 지금 어디쯤인가 (0~1) */
+function bookDone(){
+  const b=book(); if(!b) return 0;
+  const total=bookWords(); if(!total) return 0;
+  let before=0;
+  b.chapters.forEach(x=>{ if(x.n<S.chapter) before+=(_cw.map[x.n]||0); });
+  return Math.min(1,(before+chapWords(chap(S.chapter))*chapDone())/total);
+}
+const WPM_MIN=70, WPM_MAX=600;
+const wpm=()=>Math.min(WPM_MAX,Math.max(WPM_MIN,+S.wpm||200));
+function minLeft(words){ return Math.max(0,Math.round(words/wpm())); }
+const minText=m=> m<1? '1분 미만' : m<60? m+'분 남음'
+  : Math.floor(m/60)+'시간 '+(m%60? (m%60)+'분':'')+' 남음';
+/* 쪽을 넘긴 간격으로 읽는 속도를 조금씩 맞춘다.
+   너무 빠르거나(훑어보기) 너무 느린(자리를 뜬) 것은 버리고, 천천히 옮겨간다. */
+let pgSeenAt=0;
+function noteTurn(){
+  const now=Date.now();
+  if(pgSeenAt){
+    const secs=(now-pgSeenAt)/1000;
+    const perPage=chapWords(chap(S.chapter))/Math.max(1,pgTotal);
+    if(perPage>20 && secs>=5 && secs<=600){
+      const w=perPage/(secs/60);
+      if(w>=WPM_MIN&&w<=WPM_MAX) S.wpm=Math.round(wpm()*0.8+w*0.2);
+    }
+  }
+  pgSeenAt=now;
+}
 function pgApply(smooth){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body||!pgOn()) return;
   body.scrollTo({left:pgPage*pgStep(vp),behavior:smooth?'smooth':'auto'});
   if(pgKey) S.pagePos[pgKey]=pgPage;                 // 읽던 쪽을 기억한다
-  const n=$('#pgNum'); if(n) n.textContent=`${pgPage+1} / ${pgTotal}`;
+  const n=$('#pgNum');
+  if(n){ const left=minLeft(chapWords(chap(S.chapter))*(1-chapDone()));
+    n.textContent=`${pgPage+1} / ${pgTotal} · ${minText(left)}`; }
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
 }
@@ -1319,6 +1368,7 @@ function pgPageOf(el){
 }
 function pgGo(i){
   if(!$('#readBody')) return;
+  noteTurn();                                        // 넘긴 간격으로 읽는 속도를 맞춘다
   pgPage=Math.min(Math.max(0,i),pgTotal-1);
   pgApply(true);
   save();                                            // 읽던 쪽을 남기고 다른 기기에도 보낸다
@@ -2685,7 +2735,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0810';
+const BUILD='0824-0910';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
