@@ -604,6 +604,15 @@
   "level": 4
  },
  {
+  "id": "gb1727",
+  "title": "The Odyssey",
+  "author": "Homer",
+  "chapters": 26,
+  "words": 120211,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
   "id": "gb1837",
   "title": "The Prince and the Pauper",
   "author": "Twain, Mark",

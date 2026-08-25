@@ -2107,15 +2107,22 @@ function linesToBook(inp,meta){
   const rs=txt.map(l=>l.x1).sort((a,b)=>a-b);
   const mL=xs.length? xs[Math.floor(xs.length*0.2)] : 0;
   const mR=rs.length? rs[Math.floor(rs.length*0.8)] : 1e9;
+  /* 줄을 훑어 장으로 나눈다. 한 번 훑어보고 장이 거의 안 나왔는데 'Book I' 같은
+     파트 제목만 잔뜩이면, 그 책은 파트가 곧 장이다 — 그때만 다시 훑는다.
+     (오디세이는 BOOK I~XXIV 가 장인데, 파트로 보면 본문이 서문 한 장에 통째로 뭉쳤다) */
+  function scan(partsAsChapters){
   const chapters=[]; const partName={}; let part=1, cur=null, prev=null, numbered=0;
   const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null;
-    if(/^Chapter\s/i.test(title)) numbered++; };
+    if(/^(chapter|book)\s/i.test(title)) numbered++; };
   lines.forEach(l=>{
     const s=l.s;
     if(!s){ prev=null; return; }              // 빈 줄(txt) → 문단 구분
     if(big(l)){
       let m;
-      if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
+      if((m=s.match(RX_PART))){
+        const pn=rnum(m[1])||wnum(m[1])||part+1;
+        if(partsAsChapters){ open('Book '+pn); return; }
+        part=pn; partName[part]=titleCase(s); return; }
       if(RX_TOCH.test(s)){ open('__toc__'); return; }   // 목차표 — 아래에서 버린다
       if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
       if((m=s.match(RX_ORD))){ const n=onum(m[1]); if(n){ open('Chapter '+n); return; } }
@@ -2143,8 +2150,16 @@ function linesToBook(inp,meta){
     else cur.paras[cur.paras.length-1]=last+' '+s;
     prev=l;
   });
-  // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
+  return {chapters,partName};
+  }
   const meaty=c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40;
+  let {chapters,partName}=scan(false);
+  /* 알맹이 있는 장이 둘 이하인데 파트는 넷 이상 — 파트가 곧 장인 책이다 */
+  if(chapters.filter(c=>c.title!=='__toc__'&&meaty(c)).length<=2
+     && Object.keys(partName).length>=4){
+    ({chapters,partName}=scan(true));
+  }
+  // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
   /* 목차표로 열린 장은 버린다 — 다만 그것밖에 없으면 그게 본문이다.
      장 제목이 하나도 없는 책(단편 모음 등)은 'Contents' 한 줄에 책 전체가 담긴다. */
   let kept=chapters.filter(c=>c.title!=='__toc__' && meaty(c));
@@ -2735,7 +2750,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0910';
+const BUILD='0824-1240';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
