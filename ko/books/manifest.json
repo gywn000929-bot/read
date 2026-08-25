@@ -237,7 +237,7 @@
   "author": "나도향",
   "kind": "prose",
   "chapters": 7,
-  "words": 1658
+  "words": 1657
  },
  {
   "id": "k249e692c",
@@ -374,6 +374,14 @@
   "kind": "prose",
   "chapters": 1,
   "words": 640
+ },
+ {
+  "id": "k373ebfc6",
+  "title": "정지용 산문선",
+  "author": "정지용",
+  "kind": "prose",
+  "chapters": 9,
+  "words": 4781
  },
  {
   "id": "k80821004",
@@ -549,7 +557,7 @@
   "author": "윤동주",
   "kind": "verse",
   "chapters": 32,
-  "words": 2655
+  "words": 2610
  },
  {
   "id": "k67f81deb",
@@ -560,12 +568,20 @@
   "words": 1079
  },
  {
-  "id": "k9717939e",
-  "title": "이육사 · 정지용 시선",
-  "author": "이육사, 정지용",
+  "id": "k77621db9",
+  "title": "이육사 시선",
+  "author": "이육사",
   "kind": "verse",
-  "chapters": 11,
-  "words": 719
+  "chapters": 9,
+  "words": 638
+ },
+ {
+  "id": "ka0c6446e",
+  "title": "정지용 시선",
+  "author": "정지용",
+  "kind": "verse",
+  "chapters": 104,
+  "words": 5759
  },
  {
   "id": "kfae86611",
