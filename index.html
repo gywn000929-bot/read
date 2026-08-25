@@ -684,7 +684,12 @@ async function loadBook(id){
     return bookCache[id];
   }
   const r=await fetch('books/'+id+'.json'); if(!r.ok) throw new Error('load fail');
-  const b=await r.json(); bookCache[id]=b; return b;
+  const b=await r.json(); bookCache[id]=b;
+  /* 저장소에 든 책도 손번역을 품고 있으면 번역 캐시에 올린다.
+     전에는 기기에 넣은 책만 읽어서, 책에 번역을 넣어 두어도 소용이 없었다. */
+  if(b.ko) Object.keys(b.ko).forEach(k=>{
+    const t=String(k).trim().toLowerCase(); if(t) trCache[t]=b.ko[k]; });
+  return b;
 }
 const book = () => curBook;
 const chap = (n) => curBook.chapters.find(c=>c.n===n);
@@ -2750,7 +2755,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-1240';
+const BUILD='0825-0130';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
