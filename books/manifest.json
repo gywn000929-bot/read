@@ -30,8 +30,8 @@
   "id": "gb76",
   "title": "Adventures of Huckleberry Finn",
   "author": "Twain, Mark",
-  "chapters": 45,
-  "words": 110547,
+  "chapters": 44,
+  "words": 110549,
   "gutenberg": true,
   "level": 2
  },
@@ -58,6 +58,15 @@
   "author": "Louis Sachar",
   "chapters": 50,
   "words": 47088,
+  "level": 2
+ },
+ {
+  "id": "gb8164",
+  "title": "My Man Jeeves",
+  "author": "P. G. Wodehouse",
+  "chapters": 8,
+  "words": 50687,
+  "gutenberg": true,
   "level": 2
  },
  {
@@ -199,8 +208,8 @@
   "id": "gb23213",
   "title": "Uncle Wiggily and Old Mother Hubbard",
   "author": "Howard Roger Garis",
-  "chapters": 27,
-  "words": 30747,
+  "chapters": 26,
+  "words": 30753,
   "gutenberg": true,
   "level": 2
  },
@@ -250,6 +259,15 @@
   "level": 3
  },
  {
+  "id": "gb47",
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "chapters": 30,
+  "words": 90817,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
   "id": "gb45",
   "title": "Anne of Green Gables",
   "author": "Montgomery, L. M. (Lucy Maud)",
@@ -273,6 +291,15 @@
   "author": "Stoker, Bram",
   "chapters": 27,
   "words": 160078,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb4517",
+  "title": "Ethan Frome",
+  "author": "Edith Wharton",
+  "chapters": 9,
+  "words": 30075,
   "gutenberg": true,
   "level": 3
  },
@@ -343,6 +370,15 @@
   "level": 3
  },
  {
+  "id": "gb421",
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "chapters": 31,
+  "words": 79804,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
   "id": "gb16",
   "title": "Peter Pan",
   "author": "Barrie, J. M. (James Matthew)",
@@ -382,8 +418,8 @@
   "id": "gb2852",
   "title": "The Hound of the Baskervilles",
   "author": "Doyle, Arthur Conan",
-  "chapters": 16,
-  "words": 59075,
+  "chapters": 15,
+  "words": 59082,
   "gutenberg": true,
   "level": 3
  },
@@ -393,6 +429,33 @@
   "author": "Wells, H. G. (Herbert George)",
   "chapters": 28,
   "words": 48283,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb834",
+  "title": "The Memoirs of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "chapters": 12,
+  "words": 95381,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb863",
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "chapters": 13,
+  "words": 56426,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb175",
+  "title": "The Phantom of the Opera",
+  "author": "Gaston Leroux",
+  "chapters": 26,
+  "words": 85173,
   "gutenberg": true,
   "level": 3
  },
@@ -415,6 +478,33 @@
   "level": 3
  },
  {
+  "id": "gb95",
+  "title": "The Prisoner of Zenda",
+  "author": "Anthony Hope",
+  "chapters": 22,
+  "words": 53525,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb1155",
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "chapters": 29,
+  "words": 74977,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb2097",
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "chapters": 12,
+  "words": 42978,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
   "id": "gb14407",
   "title": "The Tale of Benjamin Bunny",
   "author": "Beatrix Potter",
@@ -424,11 +514,29 @@
   "level": 3
  },
  {
+  "id": "gb558",
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "chapters": 12,
+  "words": 40875,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
   "id": "gb55",
   "title": "The Wonderful Wizard of Oz",
   "author": "Baum, L. Frank (Lyman Frank)",
   "chapters": 24,
   "words": 39224,
+  "gutenberg": true,
+  "level": 3
+ },
+ {
+  "id": "gb308",
+  "title": "Three Men in a Boat",
+  "author": "Jerome K. Jerome",
+  "chapters": 8,
+  "words": 23800,
   "gutenberg": true,
   "level": 3
  },
@@ -490,8 +598,8 @@
   "id": "gb158",
   "title": "Emma",
   "author": "Austen, Jane",
-  "chapters": 56,
-  "words": 157311,
+  "chapters": 55,
+  "words": 157322,
   "gutenberg": true,
   "level": 4
  },
@@ -526,8 +634,8 @@
   "id": "gb46409",
   "title": "Heidi",
   "author": "Johanna Spyri",
-  "chapters": 24,
-  "words": 65839,
+  "chapters": 23,
+  "words": 65847,
   "gutenberg": true,
   "level": 4
  },
@@ -537,6 +645,15 @@
   "author": "Brontë, Charlotte",
   "chapters": 38,
   "words": 184376,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb2166",
+  "title": "King Solomon's Mines",
+  "author": "H. Rider Haggard",
+  "chapters": 20,
+  "words": 81077,
   "gutenberg": true,
   "level": 4
  },
@@ -571,8 +688,17 @@
   "id": "gb498",
   "title": "Rebecca of Sunnybrook Farm",
   "author": "Kate Douglas Smith Wiggin",
-  "chapters": 32,
-  "words": 73413,
+  "chapters": 31,
+  "words": 73422,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb78",
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "chapters": 28,
+  "words": 85581,
   "gutenberg": true,
   "level": 4
  },
@@ -589,8 +715,17 @@
   "id": "gb1184",
   "title": "The Count of Monte Cristo",
   "author": "Dumas, Alexandre",
-  "chapters": 120,
-  "words": 459540,
+  "chapters": 117,
+  "words": 459555,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb1013",
+  "title": "The First Men in the Moon",
+  "author": "H. G. Wells",
+  "chapters": 26,
+  "words": 68151,
   "gutenberg": true,
   "level": 4
  },
@@ -600,6 +735,51 @@
   "author": "Fitzgerald, F. Scott (Francis Scott)",
   "chapters": 10,
   "words": 48139,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb844",
+  "title": "The Importance of Being Earnest",
+  "author": "Oscar Wilde",
+  "chapters": 2,
+  "words": 18597,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb204",
+  "title": "The Innocence of Father Brown",
+  "author": "G. K. Chesterton",
+  "chapters": 12,
+  "words": 78813,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb159",
+  "title": "The Island of Doctor Moreau",
+  "author": "H. G. Wells",
+  "chapters": 22,
+  "words": 42969,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb139",
+  "title": "The Lost World",
+  "author": "Arthur Conan Doyle",
+  "chapters": 16,
+  "words": 75514,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb155",
+  "title": "The Moonstone",
+  "author": "Wilkie Collins",
+  "chapters": 58,
+  "words": 194489,
   "gutenberg": true,
   "level": 4
  },
@@ -622,11 +802,56 @@
   "level": 4
  },
  {
+  "id": "gb60",
+  "title": "The Scarlet Pimpernel",
+  "author": "Baroness Orczy",
+  "chapters": 31,
+  "words": 85540,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb43",
+  "title": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+  "author": "Robert Louis Stevenson",
+  "chapters": 10,
+  "words": 25531,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
   "id": "gb14814",
   "title": "The Tale of Jemima Puddle-Duck",
   "author": "Beatrix Potter",
   "chapters": 1,
   "words": 1299,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb1257",
+  "title": "The Three Musketeers",
+  "author": "Alexandre Dumas",
+  "chapters": 69,
+  "words": 228068,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb35",
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "chapters": 16,
+  "words": 30679,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
+  "id": "gb209",
+  "title": "The Turn of the Screw",
+  "author": "Henry James",
+  "chapters": 25,
+  "words": 42215,
   "gutenberg": true,
   "level": 4
  },
@@ -649,6 +874,15 @@
   "level": 4
  },
  {
+  "id": "gb583",
+  "title": "The Woman in White",
+  "author": "Wilkie Collins",
+  "chapters": 52,
+  "words": 244207,
+  "gutenberg": true,
+  "level": 4
+ },
+ {
   "id": "gb164",
   "title": "Twenty Thousand Leagues under the Sea",
   "author": "Verne, Jules",
@@ -667,11 +901,38 @@
   "level": 4
  },
  {
+  "id": "gb18857",
+  "title": "A Journey to the Centre of the Earth",
+  "author": "Jules Verne",
+  "chapters": 44,
+  "words": 85300,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
+  "id": "gb62",
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "chapters": 30,
+  "words": 67129,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
   "id": "gb103",
   "title": "Around the World in Eighty Days",
   "author": "Verne, Jules",
   "chapters": 37,
   "words": 62675,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
+  "id": "gb201",
+  "title": "Flatland",
+  "author": "Edwin A. Abbott",
+  "chapters": 10,
+  "words": 21285,
   "gutenberg": true,
   "level": 5
  },
@@ -712,11 +973,29 @@
   "level": 5
  },
  {
+  "id": "gb121",
+  "title": "Northanger Abbey",
+  "author": "Jane Austen",
+  "chapters": 32,
+  "words": 77073,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
+  "id": "gb105",
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "chapters": 25,
+  "words": 83222,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
   "id": "gb1342",
   "title": "Pride and Prejudice",
   "author": "Austen, Jane",
-  "chapters": 65,
-  "words": 121554,
+  "chapters": 62,
+  "words": 121576,
   "gutenberg": true,
   "level": 5
  },
@@ -733,8 +1012,26 @@
   "id": "gb161",
   "title": "Sense and Sensibility",
   "author": "Austen, Jane",
-  "chapters": 51,
-  "words": 118647,
+  "chapters": 50,
+  "words": 118651,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
+  "id": "gb14522",
+  "title": "The Canterville Ghost",
+  "author": "Oscar Wilde",
+  "chapters": 7,
+  "words": 11297,
+  "gutenberg": true,
+  "level": 5
+ },
+ {
+  "id": "gb1268",
+  "title": "The Mysterious Island",
+  "author": "Jules Verne",
+  "chapters": 62,
+  "words": 193195,
   "gutenberg": true,
   "level": 5
  },
@@ -742,8 +1039,8 @@
   "id": "gb25344",
   "title": "The Scarlet Letter",
   "author": "Hawthorne, Nathaniel",
-  "chapters": 25,
-  "words": 68153,
+  "chapters": 24,
+  "words": 68157,
   "gutenberg": true,
   "level": 5
  }
