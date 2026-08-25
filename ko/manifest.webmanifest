@@ -1,0 +1,16 @@
+{
+  "name": "한국 문학 서재 · 근대문학 읽기",
+  "short_name": "한국 문학 서재",
+  "description": "저작권이 풀린 한국 근대문학을 작품 해설과 함께 읽는 리더",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf9f6",
+  "theme_color": "#faf9f6",
+  "icons": [
+    { "src": "../icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "../icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
