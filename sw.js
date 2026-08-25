@@ -3,7 +3,7 @@
 /* 캐시 이름을 올리면 activate 에서 예전 캐시를 통째로 지운다.
    페이지 이동은 네트워크 우선이지만, 네트워크가 흔들리면 캐시에 남은
    옛 index.html 이 나갈 수 있어 고친 내용이 기기에 도달하지 못한다. */
-const V = 'bookstudy-v4';
+const V = 'bookstudy-v5';
 /* index.html 은 일부러 미리 캐시하지 않는다.
    설치 시점 화면이 그대로 굳어버려서 새 기능이 배포돼도 안 보이는 일이 생긴다.
    페이지 이동은 네트워크 우선이고 성공한 응답을 그때 캐시하므로 오프라인도 그대로 동작한다. */
@@ -33,6 +33,20 @@ self.addEventListener('fetch', e => {
   let url;
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== location.origin) return;   // 사전·번역 API 는 그대로 통과
+
+  /* 책 목록도 네트워크 우선 — 책을 더하면 이 파일이 바뀐다.
+     캐시 우선으로 두었더니, 책을 34권 넣고도 폰에는 옛 목록이 계속 나왔다.
+     (캐시 이름을 올리면 지워지긴 하지만, 그걸 매번 기억해야 하는 게 잘못이다.)
+     네트워크가 안 되면 캐시에 남은 목록으로 물러난다. */
+  if (url.pathname.endsWith('/books/manifest.json')) {
+    e.respondWith(
+      fetch(req).then(r => {
+        if (r && r.ok) { const c = r.clone(); caches.open(V).then(x => x.put(req, c)); }
+        return r;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
 
   // 페이지 이동은 네트워크 우선 — 새 버전이 바로 반영되도록
   if (req.mode === 'navigate') {
