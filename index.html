@@ -988,7 +988,7 @@ function renderSidebar(){
       <span class="t">${esc(curM.title||b.title)}</span>
       <span class="c">바꾸기</span>
     </button>
-    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
+    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT · EPUB)</button>
   </div>
   <div class="bookcard">
     <div class="bt">${esc(b.title)}</div>
@@ -1881,6 +1881,108 @@ async function pdfLines(file,prog){
   }
   return {lines,pages:pdf.numPages,hasFont:true};
 }
+/* ---- EPUB → 줄 ----
+   EPUB 은 XHTML 을 담은 ZIP 이다. 푸는 데는 브라우저에 이미 있는
+   DecompressionStream 을 쓴다 — PDF 와 달리 따로 받아오는 라이브러리가 없다. */
+async function inflateRaw(bytes){
+  const st=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(st).arrayBuffer());
+}
+/* ZIP 중앙 디렉터리를 읽어 {이름 → 바이트 꺼내는 함수} 를 만든다.
+   미리 다 풀지 않는다 — 책 한 권에 안 쓰는 그림·글꼴이 잔뜩 들어 있다. */
+async function zipOpen(file){
+  const buf=await file.arrayBuffer(), dv=new DataView(buf), U8=new Uint8Array(buf);
+  /* 꼬리(EOCD)를 끝에서부터 찾는다 — 뒤에 주석이 붙어 있을 수 있다 */
+  let eo=-1;
+  for(let i=buf.byteLength-22, stop=Math.max(0,buf.byteLength-22-65535); i>=stop; i--)
+    if(dv.getUint32(i,true)===0x06054b50){ eo=i; break; }
+  if(eo<0) throw new Error('EPUB 이 아니거나 파일이 깨졌어요');
+  const n=dv.getUint16(eo+10,true);
+  if(n===0xffff) throw new Error('이 EPUB 은 ZIP64 라 읽지 못해요');
+  let p=dv.getUint32(eo+16,true);
+  const dec=new TextDecoder(), ent={};
+  for(let i=0;i<n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const how=dv.getUint16(p+10,true), size=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true);
+    const name=dec.decode(U8.subarray(p+46,p+46+nl));
+    ent[name]={how,size,lho:dv.getUint32(p+42,true)};
+    p+=46+nl+el+cl;
+  }
+  return async name=>{
+    const e=ent[name]; if(!e) return null;
+    /* 자료가 어디서 시작하는지는 지역 헤더를 봐야 안다 — 헤더마다 덧붙는 길이가 다르다 */
+    const nl=dv.getUint16(e.lho+26,true), el=dv.getUint16(e.lho+28,true);
+    const at=e.lho+30+nl+el, raw=U8.subarray(at,at+e.size);
+    return e.how===0? raw : await inflateRaw(raw);
+  };
+}
+/* 한 쪽(XHTML)에서 줄을 뽑는다. 블록 하나가 한 줄, 뒤에 빈 줄을 붙여 문단을 가른다. */
+const EPUB_BLOCK='p,h1,h2,h3,h4,h5,h6,li,blockquote,dd,dt,pre,td,div';
+function xhtmlLines(html,out){
+  let doc=new DOMParser().parseFromString(html,'application/xhtml+xml');
+  if(doc.querySelector('parsererror')) doc=new DOMParser().parseFromString(html,'text/html');
+  const body=doc.body||doc.documentElement; if(!body) return;
+  /* 주석 번호(<sup>1)</sup>)·루비는 본문에 섞이면 문장을 망친다.
+     삽화 설명(span.caption)도 뺀다 — 구텐베르크 EPUB 은 이것을 장 제목 <h2> 안에
+     같이 넣어서, 그냥 두면 제목이 'Covering a screen. CHAPTER VIII.' 이 되어
+     'CHAPTER' 로 시작하지 않는다. 그러면 그 장을 통째로 놓친다
+     (오만과 편견이 62장에서 27장으로 줄었다).
+     평문 파서가 [Illustration: …] 를 버리는 것과 같은 처리다. */
+  body.querySelectorAll('sup,script,style,rt,rp,figcaption,.caption').forEach(e=>e.remove());
+  const push=s=>{ s=String(s||'').replace(/\s+/g,' ').trim();
+    if(s){ out.push({s,x0:0,x1:s.length,h:0,yp:0,p:1}); out.push({s:'',x0:0,x1:0,h:0,yp:0,p:1}); } };
+  /* 'CHAPTERXXVII.' 처럼 붙어 나온 제목에 공백을 넣어 준다. 만든 쪽 오타인데,
+     파서는 'chapter' 뒤에 공백을 요구해서 그냥 두면 그 장을 통째로 놓친다
+     (구텐베르크 오만과 편견의 27·28장이 딱 이렇다).
+     숫자나 로마 숫자가 오고 그 뒤가 끊길 때만 손대므로 'Chapterhouse' 는 그대로 둔다. */
+  const unglue=s=>s.replace(/^(chapter|part|book)(?=(?:[IVXLCDM]+|\d+)(?:[.\s]|$))/i,'$1 ');
+  const blocks=body.querySelectorAll(EPUB_BLOCK);
+  let any=false;
+  blocks.forEach(el=>{
+    if(el.querySelector(EPUB_BLOCK)) return;      // 안에 또 블록이 있으면 그 자식이 낸다
+    let s=el.textContent; if(!(s&&s.trim())) return;
+    if(/^h[1-6]$/i.test(el.tagName)) s=unglue(s.replace(/\s+/g,' ').trim());
+    any=true; push(s);
+  });
+  if(!any) String(body.textContent||'').split(/\n/).forEach(push);   // 블록이 아예 없는 쪽
+}
+/* 표지·판권·해설처럼 본문이 아닌 쪽은 건너뛴다.
+   그냥 두면 해설의 소제목 번호와 주석 번호가 장 구분으로 잡혀서,
+   18장짜리 책이 29장이 된다 (민음사 세계문학전집 기준으로 확인).
+   낱말 자체가 파일 이름이어야 걸리게 했다 — 'nav' 로 시작한다고
+   'navy_chapter.xhtml' 까지 버리면 본문이 날아간다.
+   index 는 일부러 뺐다: 본문을 index.html 에 담는 EPUB 이 흔하다. */
+const EPUB_SKIP=/(^|\/)(cover|incover|title_?page|colophon|copyright|toc|nav|list_wl|logo|commentary|comment|chronology|author|appendix|afterword|biblio|acknowledg\w*)[_-]?\d*\.x?html?$/i;
+async function epubLines(file,prog){
+  const get=await zipOpen(file);
+  const dec=new TextDecoder();
+  const cx=await get('META-INF/container.xml');
+  if(!cx) throw new Error('EPUB 짜임새가 아니에요');
+  const opfPath=new DOMParser().parseFromString(dec.decode(cx),'application/xml')
+    .querySelector('rootfile')?.getAttribute('full-path');
+  if(!opfPath) throw new Error('EPUB 안에서 본문 목록을 찾지 못했어요');
+  const base=opfPath.includes('/')? opfPath.replace(/\/[^\/]*$/,'/') : '';
+  const opf=new DOMParser().parseFromString(dec.decode(await get(opfPath)),'application/xml');
+  const href={};
+  opf.querySelectorAll('manifest > item').forEach(it=>{
+    href[it.getAttribute('id')]=it.getAttribute('href');
+  });
+  const spine=[...opf.querySelectorAll('spine > itemref')]
+    .map(r=>href[r.getAttribute('idref')]).filter(Boolean)
+    .filter(h=>!EPUB_SKIP.test(h));
+  if(!spine.length) throw new Error('EPUB 에서 본문을 찾지 못했어요');
+  const lines=[];
+  for(let i=0;i<spine.length;i++){
+    /* 경로에 %20 같은 것이 들어 있을 수 있다 */
+    const raw=await get(base+decodeURIComponent(spine[i])) || await get(base+spine[i]);
+    if(raw) xhtmlLines(dec.decode(raw),lines);
+    if(i%4===0||i===spine.length-1) prog(i+1,spine.length);
+  }
+  const meta=t=>opf.querySelector('metadata > '+t)?.textContent?.trim()||'';
+  return {inp:{lines,pages:1,hasFont:false},
+          title:meta('title')||meta('dc\\:title'), author:meta('creator')||meta('dc\\:creator')};
+}
 function txtLines(text){
   const lines=[];
   /* 구텐베르크 평문에는 삽화·판권 덩어리가 본문 사이에 섞여 있다.
@@ -2576,11 +2678,11 @@ async function renderImport(state){
       </div>`;
   } else {
     body=`<h3>내 책 열기</h3>
-      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b> 파일을 고르면 장(chapter)으로 나눠
+      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b>·<b>EPUB</b> 파일을 고르면 장(chapter)으로 나눠
         읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
       <div class="impdrop" id="impDrop"><span class="di">📂</span>파일을 끌어다 놓거나 눌러서 고르기
-        <span class="ds">PDF · TXT · 백업 파일(.json)</span></div>
-      <input type="file" id="impFile" accept=".pdf,.txt,.json,application/pdf,text/plain,application/json" class="hide">
+        <span class="ds">PDF · TXT · EPUB · 백업 파일(.json)</span></div>
+      <input type="file" id="impFile" accept=".pdf,.txt,.epub,.json,application/pdf,text/plain,application/epub+zip,application/json" class="hide">
       ${list.length?`<div class="locallist"><div class="set-h">내 기기에 있는 책</div>
         ${list.map(b=>`<div class="li"><span class="t">${esc(b.title)}${b.ko?` <span class="m">🈯${b.ko}</span>`:''}</span>
           <span class="m">${b.broken?'⚠️ 글자가 깨짐':b.chapters+'장'}</span>
@@ -2689,6 +2791,10 @@ async function importFile(file){
         const g=guessMeta(inp);
         bk=linesToBook(inp,{id,title:g.title||name,author:g.author||''});
       }
+    } else if(/\.epub$/i.test(file.name)||file.type==='application/epub+zip'){
+      const ep=await epubLines(file,setP); setP(1,1);
+      bk=linesToBook(ep.inp,{id,title:ep.title||name,author:ep.author||''});
+      if(!bk.chapters.length) throw new Error('본문을 읽지 못했어요');
     } else {
       bk=linesToBook(txtLines(await file.text()),{id,title:name,author:''});
     }
@@ -2778,7 +2884,7 @@ async function init(){
   // 내 책 목록은 저장소가 느리면 기다리지 않는다 — 뒤에서 채워 넣는다
   MANIFEST=MANIFEST.concat(await withTimeout(localManifest(),5000,[]));
   if(!MANIFEST.length){ clearTimeout(watchdog); booted=true;
-    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT 파일을 열어주세요.</p></div>'; return; }
+    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT·EPUB 파일을 열어주세요.</p></div>'; return; }
   /* 목록이 아직 안 왔어도 읽던 책이 내 책이면 그 한 권만 바로 가져온다 —
      목록을 못 기다렸다고 엉뚱한 책으로 열리면 안 된다 */
   if(!MANIFEST.find(m=>m.id===S.bookId)&&String(S.bookId).startsWith(LP)){
