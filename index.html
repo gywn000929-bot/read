@@ -1968,17 +1968,31 @@ async function epubLines(file,prog){
   opf.querySelectorAll('manifest > item').forEach(it=>{
     href[it.getAttribute('id')]=it.getAttribute('href');
   });
-  const spine=[...opf.querySelectorAll('spine > itemref')]
-    .map(r=>href[r.getAttribute('idref')]).filter(Boolean)
-    .filter(h=>!EPUB_SKIP.test(h));
-  if(!spine.length) throw new Error('EPUB 에서 본문을 찾지 못했어요');
-  const lines=[];
-  for(let i=0;i<spine.length;i++){
-    /* 경로에 %20 같은 것이 들어 있을 수 있다 */
-    const raw=await get(base+decodeURIComponent(spine[i])) || await get(base+spine[i]);
-    if(raw) xhtmlLines(dec.decode(raw),lines);
-    if(i%4===0||i===spine.length-1) prog(i+1,spine.length);
-  }
+  const all=[...opf.querySelectorAll('spine > itemref')]
+    .map(r=>href[r.getAttribute('idref')]).filter(Boolean);
+  if(!all.length) throw new Error('EPUB 안에 읽을 쪽이 없어요');
+  /* 건너뛰기는 어디까지나 짐작이다. 이름만 보고 거르므로 'cover1.xhtml' 처럼
+     본문을 그렇게 이름 붙인 책에서는 통째로 다 걸러져 버린다.
+     그래서 걸러 낸 결과가 비면 거르지 않은 것을 쓴다 — 해설이 장으로 몇 개
+     끼는 것이 책이 아예 안 열리는 것보다 낫다. */
+  let spine=all.filter(h=>!EPUB_SKIP.test(h));
+  let skipped=spine.length<all.length;
+  if(!spine.length){ spine=all; skipped=false; }
+  const read=async list=>{
+    const out=[];
+    for(let i=0;i<list.length;i++){
+      /* 경로에 %20 같은 것이 들어 있을 수 있다 */
+      const raw=await get(base+decodeURIComponent(list[i])) || await get(base+list[i]);
+      if(raw) xhtmlLines(dec.decode(raw),out);
+      if(i%4===0||i===list.length-1) prog(i+1,list.length);
+    }
+    return out;
+  };
+  let lines=await read(spine);
+  /* 이름은 남았는데 정작 글이 한 줄도 안 나온 경우도 되돌린다 —
+     진짜 잣대는 '글이 나왔는가'이지 '이름이 남았는가'가 아니다. */
+  if(!lines.length&&skipped) lines=await read(all);
+  if(!lines.length) throw new Error('EPUB 에서 글을 한 줄도 읽지 못했어요');
   const meta=t=>opf.querySelector('metadata > '+t)?.textContent?.trim()||'';
   return {inp:{lines,pages:1,hasFont:false},
           title:meta('title')||meta('dc\\:title'), author:meta('creator')||meta('dc\\:creator')};
