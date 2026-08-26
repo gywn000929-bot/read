@@ -1961,7 +1961,7 @@ function xhtmlLines(html,out){
    낱말 자체가 파일 이름이어야 걸리게 했다 — 'nav' 로 시작한다고
    'navy_chapter.xhtml' 까지 버리면 본문이 날아간다.
    index 는 일부러 뺐다: 본문을 index.html 에 담는 EPUB 이 흔하다. */
-const EPUB_SKIP=/(^|\/)(cover|incover|title_?page|colophon|copyright|toc|nav|list_wl|logo|commentary|comment|chronology|author|appendix|afterword|biblio|acknowledg\w*)[_-]?\d*\.x?html?$/i;
+const EPUB_SKIP=/(^|\/)(?:\d+[_-]+)?(cover|incover|title_?page|colophon|copyright|toc|nav|list_wl|logo|commentary|comment|chronology|author|appendix|afterword|biblio|acknowledg\w*)[_-]?\d*\.x?html?$/i;
 async function epubLines(file,prog){
   const get=await zipOpen(file);
   const dec=new TextDecoder();
@@ -1997,12 +1997,17 @@ async function epubLines(file,prog){
   let spine=all.filter(h=>!EPUB_SKIP.test(h));
   let skipped=spine.length<all.length;
   if(!spine.length){ spine=all; skipped=false; }
+  /* 이어 붙인 줄과 별개로 쪽마다 따로도 담아 둔다 — 본문 글에서 장을 못 찾았을 때
+     EPUB 이 원래 나눠 둔 쪽 경계를 장으로 쓰기 위해서다. */
+  let docs=[];
   const read=async list=>{
-    const out=[];
+    const out=[]; docs=[];
     for(let i=0;i<list.length;i++){
       /* 경로에 %20 같은 것이 들어 있을 수 있다 */
       const raw=await get(base+decodeURIComponent(list[i])) || await get(base+list[i]);
+      const from=out.length;
       if(raw) xhtmlLines(dec.decode(raw),out);
+      docs.push({href:list[i],lines:out.slice(from)});
       if(i%4===0||i===list.length-1) prog(i+1,list.length);
     }
     return out;
@@ -2013,7 +2018,42 @@ async function epubLines(file,prog){
   if(!lines.length&&skipped) lines=await read(all);
   if(!lines.length) throw new Error('EPUB 에서 글을 한 줄도 읽지 못했어요');
   const meta=t=>tags(t)[0]?.textContent?.trim()||'';
-  return {inp:{lines,pages:1,hasFont:false},
+  /* 쪽마다의 제목은 책이 스스로 갖고 있는 목차에서 가져온다.
+     본문에 <h1> 같은 제목 태그가 아예 없는 책이 있는데(한국 전자책에 흔하다),
+     그런 책은 글만 봐서는 장을 나눌 근거가 없다. 목차는 그 근거가 된다.
+     EPUB2 는 toc.ncx(navPoint), EPUB3 는 nav 문서(<a href>)를 쓴다. */
+  const tocPath=tags('item').map(i=>i.getAttribute('href'))
+    .find(h=>h&&/\.ncx$/i.test(h));
+  const label={};
+  const put=(src,text)=>{
+    if(!src||!text) return;
+    const key=decodeURIComponent(String(src).split('#')[0]);
+    if(key&&!label[key]) label[key]=text.replace(/\s+/g,' ').trim();
+  };
+  if(tocPath){
+    const ncxRaw=await get(base+decodeURIComponent(tocPath)) || await get(base+tocPath);
+    if(ncxRaw){
+      const ncx=parseLoose(dec.decode(ncxRaw),'application/xml');
+      const nb=e=>(e.localName||e.tagName||'').replace(/^.*:/,'').toLowerCase();
+      [...ncx.getElementsByTagName('*')].filter(e=>nb(e)==='navpoint').forEach(np=>{
+        const kids=[...np.getElementsByTagName('*')];
+        const txt=kids.find(e=>nb(e)==='text')?.textContent;
+        const src=kids.find(e=>nb(e)==='content')?.getAttribute('src');
+        put(src,txt);
+      });
+    }
+  }
+  if(!Object.keys(label).length){            // EPUB3 nav 문서
+    const navHref=tags('item').find(i=>/\bnav\b/.test(i.getAttribute('properties')||''))
+      ?.getAttribute('href');
+    if(navHref){
+      const navRaw=await get(base+decodeURIComponent(navHref)) || await get(base+navHref);
+      if(navRaw) [...parseLoose(dec.decode(navRaw),'application/xhtml+xml')
+        .getElementsByTagName('a')].forEach(a=>put(a.getAttribute('href'),a.textContent));
+    }
+  }
+  docs.forEach(d=>{ d.title=label[decodeURIComponent(d.href)]||label[d.href]||''; });
+  return {inp:{lines,pages:1,hasFont:false},docs,
           title:meta('title'), author:meta('creator')};
 }
 function txtLines(text){
@@ -2239,6 +2279,40 @@ function guessMeta(inp){
   return {title:titleCase(t.s), author:a?titleCase(a.s):''};
 }
 
+/* EPUB 이 나눠 둔 쪽을 그대로 장으로 삼는다. 본문 글에서 장 제목을 하나도
+   못 찾았을 때만 쓴다 — 글에서 찾을 수 있으면 그쪽이 더 정확하다.
+   (구텐베르크 책은 한 파일에 여러 장이 들어 있어서, 쪽으로 나누면
+   오만과 편견이 61장에서 14장으로 줄어든다) */
+function docsToBook(docs,meta){
+  const chapters=[];
+  /* 목차에 이름이 있는 쪽에서 새 장을 열고, 이름 없는 쪽은 앞 장에 이어 붙인다.
+     글 하나가 여러 파일로 쪼개져 있고 첫 파일에만 목차 이름이 붙은 책이 흔하다.
+     쪽마다 장을 새로 열면 글 하나가 서너 토막으로 갈라지고, 뒤 토막에는 붙일
+     이름이 없어 번호만 남는다. 목차가 곧 그 책이 스스로 밝힌 장 구분이다. */
+  const labelled=docs.some(d=>String(d.title||'').trim());
+  /* 제목만 담고 본문은 한 줄도 없는 쪽이 있다 — 속표지처럼 글 이름만 크게 박아 둔
+     쪽이다. 그런 쪽을 그냥 버리면 이름까지 같이 사라지고, 정작 본문이 든 다음 쪽은
+     이름이 없어 앞 장에 붙어 버린다. 이름은 뒤따르는 본문의 것이니 넘겨준다. */
+  let pending='';
+  docs.forEach(d=>{
+    const paras=d.lines.map(l=>l.s).filter(s=>s&&s.trim());
+    let title=String(d.title||'').trim();
+    if(!paras.length){ if(title) pending=title; return; }
+    if(!title) title=pending;
+    pending='';
+    /* 이름을 어디서도 못 얻으면 첫 줄이 제목 노릇을 하는지 본다 — 짧은 한 줄이면
+       제목으로 올리고 본문에서는 뺀다. */
+    if(!title && paras.length>1 && paras[0].length<=40){ title=paras.shift(); }
+    if(!title && labelled && chapters.length){    // 앞 장의 이어짐
+      chapters[chapters.length-1].paras.push(...paras); return;
+    }
+    chapters.push({n:chapters.length+1,title:title||String(chapters.length+1),part:1,paras});
+  });
+  const words=chapters.reduce((a,c)=>
+    a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
+  return {id:meta.id,title:meta.title,author:meta.author,lang:meta.lang||'en',
+          local:true,words,parts:{},chapters};
+}
 const clean=t=>String(t||'').replace(/^[\s\[\](){}.,;:*_-]+|[\s\[\](){}.,;:*_-]+$/g,'');
 function linesToBook(inp,meta){
   let lines=stripFurniture(inp.lines,inp.pages);
@@ -2826,7 +2900,15 @@ async function importFile(file){
       }
     } else if(/\.epub$/i.test(file.name)||file.type==='application/epub+zip'){
       const ep=await epubLines(file,setP); setP(1,1);
-      bk=linesToBook(ep.inp,{id,title:ep.title||name,author:ep.author||''});
+      const em={id,title:ep.title||name,author:ep.author||''};
+      bk=linesToBook(ep.inp,em);
+      /* 글에서 장을 못 찾아 통째로 한 장이 됐으면, EPUB 이 원래 나눠 둔 쪽을 장으로
+         쓴다. 본문에 제목 태그가 없는 책은 이 길밖에 없다 — 그냥 두면 수백 문단이
+         한 장에 뭉쳐 쪽 넘김도 목차도 쓸모가 없어진다. */
+      if(bk.chapters.length<=1&&(ep.docs||[]).filter(d=>d.lines.length).length>1){
+        const alt=docsToBook(ep.docs,em);
+        if(alt.chapters.length>1) bk=alt;
+      }
       if(!bk.chapters.length) throw new Error('본문을 읽지 못했어요');
     } else {
       bk=linesToBook(txtLines(await file.text()),{id,title:name,author:''});
