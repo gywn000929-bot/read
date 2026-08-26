@@ -19,10 +19,13 @@
   --bg:#faf9f6; --surface:#ffffff; --ink:#16130f; --sub:#6a655d; --faint:#94908a;
   --line:#e7e3da; --line2:#efece5; --accent:#0a3d62; --accent-soft:#e8eef5;
   --mark:#f6ecc9; --mark-line:#d8b84a; --good:#2f8f57; --bad:#b23a2b;
-  --shadow:0 10px 40px rgba(20,16,10,.12); --radius:14px;
+  --shadow:0 10px 40px rgba(20,16,10,.12); --radius:14px; --on-accent:#fff;
   --serif:Georgia,"Times New Roman",'Nanum Myeongjo',serif;
   --ridi:'RIDIBatang',Georgia,'Nanum Myeongjo',serif;
   --barun:'NanumBarunGothic',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --bonmyeongjo:'Noto Serif KR',Georgia,'Nanum Myeongjo',serif;
+  --gowun:'Gowun Batang',Georgia,'Nanum Myeongjo',serif;
+  --pretendard:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --palatino:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   --measure:37rem; --fs:20px; --lh:1.75;
@@ -31,11 +34,25 @@ html[data-theme="white"]{
   --bg:#ffffff; --surface:#ffffff; --line:#e8e8ec; --line2:#f3f3f5;
   --accent-soft:#eaf1f8; --mark:#fdf0bf;
 }
+/* 세피아 — 누렇게 익은 종이. 오래 봐도 눈이 덜 시린 밝은 테마다. */
+html[data-theme="sepia"]{
+  --bg:#f3e7d3; --surface:#faf2e2; --ink:#3f3222; --sub:#6d5b44; --faint:#8b7a63;
+  --line:#ddccb0; --line2:#ebdfc8; --accent:#8a5324; --accent-soft:#eddcc0;
+  --mark:#f0d59a; --mark-line:#c79a3e; --good:#1f6f43; --bad:#a8331f;
+  --shadow:0 10px 40px rgba(70,50,20,.16); --on-accent:#fff8ec;
+}
+/* 잿빛 — 블랙과 흰 바탕 사이. 밤에 읽되 새까만 화면이 부담스러울 때 쓴다. */
+html[data-theme="ash"]{
+  --bg:#30343b; --surface:#3a3f47; --ink:#e3e1dc; --sub:#a9aeb6; --faint:#848a93;
+  --line:#4b515b; --line2:#40454e; --accent:#93bdf5; --accent-soft:#414c5c;
+  --mark:#4b4224; --mark-line:#7d6c2c; --good:#4cba7a; --bad:#ff9b8f;
+  --shadow:0 14px 50px rgba(0,0,0,.45); --on-accent:#20242a;
+}
 html[data-theme="dark"]{
   --bg:#0f1216; --surface:#171b21; --ink:#e9e6df; --sub:#a2a8b0; --faint:#767c85;
   --line:#262b33; --line2:#1e232a; --accent:#7fb0ff; --accent-soft:#1c2836;
   --mark:#3d3413; --mark-line:#6f5d1e; --good:#4cba7a; --bad:#ff9b8f;
-  --shadow:0 14px 50px rgba(0,0,0,.55);
+  --shadow:0 14px 50px rgba(0,0,0,.55); --on-accent:#0f1216;
 }
 /* 한글 본문 글꼴. 선언만 해 두면 브라우저는 이 글꼴로 실제 글자를 그릴 때
    비로소 파일을 받아온다 — 설정에서 고르지 않은 사람은 한 바이트도 안 받는다.
@@ -44,6 +61,12 @@ html[data-theme="dark"]{
   src:url('fonts/RIDIBatang.woff2') format('woff2')}
 @font-face{font-family:'NanumBarunGothic';font-display:swap;font-weight:400;
   src:url('fonts/NanumBarunGothic.woff2') format('woff2')}
+@font-face{font-family:'Noto Serif KR';font-display:swap;font-weight:400;
+  src:url('fonts/NotoSerifKR.woff2') format('woff2')}
+@font-face{font-family:'Gowun Batang';font-display:swap;font-weight:400;
+  src:url('fonts/GowunBatang.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-display:swap;font-weight:400;
+  src:url('fonts/Pretendard.woff2') format('woff2')}
 /* 사이트 탭 — 영어 원서 서재와 한국 문학 서재를 오간다.
    일부러 고정(sticky)하지 않았다. 아래 리더 머리말이 이미 top:0 에 붙어 있어서
    같이 붙이면 겹치고, 읽는 화면에서 세로를 두 줄이나 잡아먹는다. */
@@ -80,7 +103,7 @@ header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
   padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:6px;
   white-space:nowrap;transition:.15s}
 .nav button:hover{background:var(--line2);color:var(--ink)}
-.nav button.active{background:var(--accent);color:#fff}
+.nav button.active{background:var(--accent);color:var(--on-accent)}
 .nav button.active .badge{background:rgba(255,255,255,.25);color:#fff}
 .badge{background:var(--line2);color:var(--sub);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600}
 
@@ -265,7 +288,7 @@ html.paged .wrap{min-height:0}
 #pop .def{font-size:14px;margin:3px 0;line-height:1.55}
 #pop .ex{font-size:13px;color:var(--sub);font-style:italic;margin:2px 0 4px}
 #pop .mini{font-size:12px;color:var(--faint)}
-#pop button.act{border:none;background:var(--accent);color:#fff;padding:9px 14px;border-radius:10px;
+#pop button.act{border:none;background:var(--accent);color:var(--on-accent);padding:9px 14px;border-radius:10px;
   font-size:13px;font-weight:600;width:100%;margin-top:12px}
 #pop button.act.saved{background:var(--good)}
 #pop button.spk{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 10px;font-size:13px}
@@ -284,7 +307,7 @@ html.paged .wrap{min-height:0}
 .bigbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 16px;
   border-radius:11px;font-size:13.5px;font-weight:500;transition:.15s}
 .bigbtn:hover{border-color:var(--accent)}
-.bigbtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bigbtn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .bigbtn.primary:hover{filter:brightness(1.08)}
 .bigbtn.danger{color:var(--bad)}
 .bigbtn.danger:hover{border-color:var(--bad)}
@@ -423,7 +446,7 @@ html.paged .wrap{min-height:0}
 .cloud button{border:1px solid var(--line);background:var(--surface);color:var(--ink);
   border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:600}
 .cloud button:hover{border-color:var(--accent);color:var(--accent)}
-.cloud button.go{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cloud button.go{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .cloud textarea{width:100%;margin-top:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   border-radius:10px;padding:9px 11px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   min-height:74px;resize:vertical}
@@ -431,10 +454,27 @@ html.paged .wrap{min-height:0}
 .cloud .hint{font-size:11.5px;color:var(--faint);line-height:1.6;margin-top:7px}
 
 /* Settings menu */
+/* 테마는 설정을 열지 않고 머리말에서 바로 고른다 — 읽다가 해가 지면 손이
+   제일 자주 가는 것이 테마여서, 설정 안에 두면 세 번을 눌러야 한다. */
+.themewrap{position:relative}
+#btnTheme .set-swatch{width:17px;height:17px;margin:0;vertical-align:-3px;
+  box-shadow:inset 0 0 0 1px rgba(128,128,128,.45)}
+.thememenu{position:absolute;right:0;top:calc(100% + 10px);width:174px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:6px;display:none;z-index:60}
+.thememenu.show{display:block;animation:pop .16s ease}
+.thememenu button{display:flex;align-items:center;gap:10px;width:100%;height:38px;
+  padding:0 10px;border:none;background:transparent;color:var(--sub);border-radius:9px;
+  font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.thememenu button:hover{background:var(--line2);color:var(--ink)}
+.thememenu button.on{background:var(--accent);color:var(--on-accent)}
+.thememenu .set-swatch{width:15px;height:15px;margin:0;flex:none}
 .setwrap{position:relative}
 .setmenu{position:absolute;right:0;top:calc(100% + 10px);width:322px;max-width:calc(100vw - 24px);
   background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
-  padding:16px;z-index:70;display:none}
+  padding:16px;z-index:70;display:none;
+  /* 테마·글꼴이 늘면서 판이 길어졌다. 낮은 화면에서도 잘리지 않게 안에서 굴린다. */
+  max-height:calc(100vh - 96px);overflow:auto;overscroll-behavior:contain}
 .setmenu.show{display:block;animation:pop .16s ease}
 .set-sec+.set-sec{margin-top:15px;padding-top:15px;border-top:1px solid var(--line2)}
 .set-h{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px}
@@ -443,7 +483,7 @@ html.paged .wrap{min-height:0}
 .set-opts button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--sub);
   border-radius:10px;padding:9px 4px;font-size:12.5px;font-weight:600;transition:.12s}
 .set-opts button:hover{border-color:var(--accent);color:var(--ink)}
-.set-opts button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.set-opts button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .set-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--line);margin-right:5px;vertical-align:-1px}
 .set-size{display:flex;align-items:center;gap:9px}
 .set-size button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 11px;font-size:14px;font-weight:700}
@@ -536,6 +576,10 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   <nav class="nav">
     <button id="navRead" class="active"><span>📖</span><span class="label">읽기</span></button>
     <button id="navVocab"><span>📓</span><span class="label">내 단어장</span><span class="badge" id="vcount">0</span></button>
+    <div class="themewrap">
+      <button id="btnTheme" title="테마" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="thememenu" id="thememenu"></div>
+    </div>
     <div class="setwrap">
       <button id="setBtn" title="설정">⚙️</button>
       <div class="setmenu" id="setmenu">
@@ -546,11 +590,7 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
         </div>
         <div class="set-row">
           <div class="lb">테마</div>
-          <div class="set-opts" id="optTheme">
-            <button data-theme="beige"><span class="set-swatch" style="background:#faf9f6"></span>베이지</button>
-            <button data-theme="white"><span class="set-swatch" style="background:#fff"></span>화이트</button>
-            <button data-theme="dark"><span class="set-swatch" style="background:#0f1216"></span>블랙</button>
-          </div>
+          <div class="set-opts" id="optTheme"></div>
         </div>
         <div class="set-row">
           <div class="lb">글꼴</div>
@@ -559,7 +599,10 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
             <button data-font="sans">고딕</button>
             <button data-font="palatino">Palatino</button>
             <button data-font="ridi">리디바탕</button>
+            <button data-font="bon">본명조</button>
+            <button data-font="gowun">고운바탕</button>
             <button data-font="barun">바른고딕</button>
+            <button data-font="pretendard">프리텐다드</button>
           </div>
         </div>
         <div class="set-row">
@@ -622,6 +665,23 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 "use strict";
 /* ============ Data & State ============ */
 const LS_KEY = 'bookstudy_v1';
+/* 테마 한 벌. 머리말 고르개와 설정 줄이 같은 표를 본다 — 한 곳만 고치면 둘 다 바뀐다.
+   차례는 밝은 것에서 어두운 것으로. 하루가 흐르는 차례라 눈으로 짚기 쉽다. */
+const THEMES=[
+  {k:'beige',n:'베이지',c:'#faf9f6'},
+  {k:'white',n:'화이트',c:'#ffffff'},
+  {k:'sepia',n:'세피아',c:'#f3e7d3'},
+  {k:'ash',  n:'잿빛',  c:'#30343b'},
+  {k:'dark', n:'블랙',  c:'#0f1216'},
+];
+/* 단추가 아직 없을 때만 그린다 — applyTheme 은 설정을 만질 때마다 도는데,
+   그때마다 새로 그리면 눌린 단추가 사라져 :active 표시가 깜빡인다. */
+function renderThemePickers(){
+  const html=THEMES.map(t=>
+    `<button data-theme="${t.k}"><span class="set-swatch" style="background:${t.c}"></span>${t.n}</button>`).join('');
+  ['#optTheme','#thememenu'].forEach(sel=>{
+    const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
+}
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
   wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
@@ -1669,9 +1729,19 @@ function setNav(){
   $('#vcount').textContent=Object.keys(S.words).length;
   $('#brandTitle').textContent=curBook?curBook.title:'Book Study';
 }
-function applyTheme(){ document.documentElement.setAttribute('data-theme',S.theme);
+/* 열 때 판 높이를 화면에 맞춘다. max-height 를 CSS 상수로 두면 사이트 탭과
+   머리말 높이가 화면 폭마다 달라져서 몇십 픽셀씩 아래로 삐져나간다. */
+function fitMenu(el){
+  if(!el||!el.classList.contains('show')) return;
+  el.style.maxHeight='';
+  const top=el.getBoundingClientRect().top;
+  el.style.maxHeight=Math.max(220,innerHeight-top-12)+'px';
+}
+function applyTheme(){ renderThemePickers();
+  document.documentElement.setAttribute('data-theme',S.theme);
   const fmap={serif:'var(--serif)',sans:'var(--sans)',palatino:'var(--palatino)',
-    ridi:'var(--ridi)',barun:'var(--barun)'};
+    ridi:'var(--ridi)',barun:'var(--barun)',bon:'var(--bonmyeongjo)',
+    gowun:'var(--gowun)',pretendard:'var(--pretendard)'};
   document.documentElement.style.setProperty('--reading-font',fmap[S.font]||'var(--serif)');
   document.documentElement.style.setProperty('--fs',S.fs+'px');
   document.documentElement.style.setProperty('--lh',S.lh);
@@ -1684,7 +1754,14 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',S.them
   if(pv){ pv.classList.toggle('indent',S.para==='indent');
           pv.classList.toggle('just',S.just==='on'); }
   if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 조판이 바뀌면 쪽 수가 달라진다
-  $$('#optTheme button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
+  $$('#optTheme button, #thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
+  /* 휴대폰 주소창도 같이 물들여야 테마가 화면 끝까지 이어진다 */
+  const th=THEMES.find(t=>t.k===S.theme)||THEMES[0];
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=th.c);
+  const tbtn=$('#btnTheme');
+  if(tbtn){ tbtn.title='테마: '+th.n+' (눌러서 바꾸기)';
+    tbtn.setAttribute('aria-label',tbtn.title);
+    tbtn.innerHTML=`<span class="set-swatch" style="background:${th.c}"></span>`; }
   $$('#optFont button').forEach(b=>b.classList.toggle('on',b.dataset.font===S.font));
   $$('#optLh button').forEach(b=>b.classList.toggle('on',+b.dataset.lh===+S.lh));
   $$('#optMeasure button').forEach(b=>b.classList.toggle('on',b.dataset.measure===S.measure));
@@ -1698,9 +1775,21 @@ function bindChrome(){
   $('#menuBtn').addEventListener('click',()=>document.body.classList.toggle('drawer'));
   $('#overlay').addEventListener('click',closeDrawer);
   const setBtn=$('#setBtn'), setmenu=$('#setmenu');
-  setBtn.addEventListener('click',e=>{ e.stopPropagation(); setmenu.classList.toggle('show'); });
+  setBtn.addEventListener('click',e=>{ e.stopPropagation(); setmenu.classList.toggle('show'); fitMenu(setmenu); });
+  addEventListener('resize',()=>{ fitMenu(setmenu); fitMenu($('#thememenu')); });
   document.addEventListener('click',e=>{ if(!setmenu.contains(e.target)&&e.target!==setBtn) setmenu.classList.remove('show'); });
-  $$('#optTheme button').forEach(b=>b.addEventListener('click',()=>{ S.theme=b.dataset.theme; save(); applyTheme(); }));
+  /* 머리말 ◐ 와 설정 속 테마 줄은 같은 단추 묶음이다. 단추를 다시 그려도
+     끊기지 않게 상자에 한 번만 걸어 둔다. */
+  const tbtn=$('#btnTheme'), tmenu=$('#thememenu');
+  const shutTheme=()=>{ tmenu.classList.remove('show'); tbtn.setAttribute('aria-expanded','false'); };
+  tbtn.addEventListener('click',e=>{ e.stopPropagation();
+    const on=!tmenu.classList.contains('show');
+    tmenu.classList.toggle('show',on); tbtn.setAttribute('aria-expanded',String(on)); fitMenu(tmenu); });
+  document.addEventListener('click',e=>{ if(!tmenu.contains(e.target)&&e.target!==tbtn) shutTheme(); });
+  addEventListener('keydown',e=>{ if(e.key==='Escape') shutTheme(); });
+  [$('#optTheme'),tmenu].forEach(box=>box&&box.addEventListener('click',e=>{
+    const b=e.target.closest('[data-theme]'); if(!b) return;
+    S.theme=b.dataset.theme; save(); applyTheme(); shutTheme(); }));
   $$('#optFont button').forEach(b=>b.addEventListener('click',()=>{ S.font=b.dataset.font; save(); applyTheme(); }));
   $('#fsRange').addEventListener('input',e=>{ S.fs=+e.target.value; save(); applyTheme(); });
   $('#fsMinus').addEventListener('click',()=>{ S.fs=Math.max(15,S.fs-1); save(); applyTheme(); });
