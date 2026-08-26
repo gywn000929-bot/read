@@ -1919,9 +1919,17 @@ async function zipOpen(file){
 }
 /* 한 쪽(XHTML)에서 줄을 뽑는다. 블록 하나가 한 줄, 뒤에 빈 줄을 붙여 문단을 가른다. */
 const EPUB_BLOCK='p,h1,h2,h3,h4,h5,h6,li,blockquote,dd,dt,pre,td,div';
+/* EPUB 안의 XML 은 심심찮게 규칙을 어긴다. 실제로 본 것: <dc:creator opf:role="aut">
+   인데 xmlns:opf 를 선언하지 않은 책 — 딱 한 군데 어긋났을 뿐인데 XML 로는
+   파일 전체가 파싱 불가가 되고, 그러면 manifest·spine 을 하나도 못 찾는다.
+   엄격하게 읽어 보고 어긋나면 너그러운 HTML 파서로 다시 읽는다. */
+function parseLoose(text,strict){
+  let doc=new DOMParser().parseFromString(text,strict);
+  if(doc.querySelector('parsererror')) doc=new DOMParser().parseFromString(text,'text/html');
+  return doc;
+}
 function xhtmlLines(html,out){
-  let doc=new DOMParser().parseFromString(html,'application/xhtml+xml');
-  if(doc.querySelector('parsererror')) doc=new DOMParser().parseFromString(html,'text/html');
+  const doc=parseLoose(html,'application/xhtml+xml');
   const body=doc.body||doc.documentElement; if(!body) return;
   /* 주석 번호(<sup>1)</sup>)·루비는 본문에 섞이면 문장을 망친다.
      삽화 설명(span.caption)도 뺀다 — 구텐베르크 EPUB 은 이것을 장 제목 <h2> 안에
@@ -1959,17 +1967,28 @@ async function epubLines(file,prog){
   const dec=new TextDecoder();
   const cx=await get('META-INF/container.xml');
   if(!cx) throw new Error('EPUB 짜임새가 아니에요');
-  const opfPath=new DOMParser().parseFromString(dec.decode(cx),'application/xml')
+  const opfPath=parseLoose(dec.decode(cx),'application/xml')
     .querySelector('rootfile')?.getAttribute('full-path');
   if(!opfPath) throw new Error('EPUB 안에서 본문 목록을 찾지 못했어요');
   const base=opfPath.includes('/')? opfPath.replace(/\/[^\/]*$/,'/') : '';
-  const opf=new DOMParser().parseFromString(dec.decode(await get(opfPath)),'application/xml');
+  const opf=parseLoose(dec.decode(await get(opfPath)),'application/xml');
+  /* 자식 선택자(manifest > item)를 쓰면 안 된다. 규칙을 어긴 OPF 는 HTML 파서로
+     읽게 되는데, HTML 은 미지 태그의 self-closing 을 인정하지 않아서
+     <item .../> 39개가 형제가 아니라 서로 안으로 중첩된다. 그러면 직계 자식은
+     첫 하나뿐이라 나머지 38개를 통째로 놓친다.
+
+     태그 이름도 그대로 견주면 안 된다. <opf:item> 처럼 접두사를 붙여 쓴 OPF 가
+     있는데, XML 로 읽히면 이름이 'opf:item' 이고 HTML 로 읽혀도 마찬가지다.
+     그래서 접두사를 떼고 이름만 본다 — 접두사가 있든 없든, XML 로 읽혔든
+     HTML 로 읽혔든 같게 동작한다. 문서에 나온 차례는 그대로 지켜진다. */
+  const bare=e=>(e.localName||e.tagName||'').replace(/^.*:/,'').toLowerCase();
+  const every=[...opf.getElementsByTagName('*')];
+  const tags=n=>every.filter(e=>bare(e)===n);
   const href={};
-  opf.querySelectorAll('manifest > item').forEach(it=>{
-    href[it.getAttribute('id')]=it.getAttribute('href');
+  tags('item').forEach(it=>{
+    const id=it.getAttribute('id'); if(id) href[id]=it.getAttribute('href');
   });
-  const all=[...opf.querySelectorAll('spine > itemref')]
-    .map(r=>href[r.getAttribute('idref')]).filter(Boolean);
+  const all=tags('itemref').map(r=>href[r.getAttribute('idref')]).filter(Boolean);
   if(!all.length) throw new Error('EPUB 안에 읽을 쪽이 없어요');
   /* 건너뛰기는 어디까지나 짐작이다. 이름만 보고 거르므로 'cover1.xhtml' 처럼
      본문을 그렇게 이름 붙인 책에서는 통째로 다 걸러져 버린다.
@@ -1993,9 +2012,9 @@ async function epubLines(file,prog){
      진짜 잣대는 '글이 나왔는가'이지 '이름이 남았는가'가 아니다. */
   if(!lines.length&&skipped) lines=await read(all);
   if(!lines.length) throw new Error('EPUB 에서 글을 한 줄도 읽지 못했어요');
-  const meta=t=>opf.querySelector('metadata > '+t)?.textContent?.trim()||'';
+  const meta=t=>tags(t)[0]?.textContent?.trim()||'';
   return {inp:{lines,pages:1,hasFont:false},
-          title:meta('title')||meta('dc\\:title'), author:meta('creator')||meta('dc\\:creator')};
+          title:meta('title'), author:meta('creator')};
 }
 function txtLines(text){
   const lines=[];
