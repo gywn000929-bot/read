@@ -1736,7 +1736,6 @@ window.addEventListener('orientationchange', ()=>setTimeout(setMastheadVar,200))
 /* ============ Local library (내 기기의 책) ============
    사용자가 고른 파일은 브라우저 IndexedDB 에만 저장됩니다.
    서버로 올라가거나 저장소(repo)에 커밋되지 않습니다. */
-const LP='local:';
 const IDB_NAME='bookstudy_local', IDB_STORE='books';
 function idb(){
   return new Promise((res,rej)=>{
