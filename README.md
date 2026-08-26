@@ -170,14 +170,16 @@ SDK 를 받아오는 시간도 없이 열자마자 맞춰집니다. ([WSJ Englis
 
 ### 데이터베이스 규칙 (처음 한 번)
 
-같은 데이터베이스를 WSJ 앱과 함께 쓰고 경로만 `bookstudy` 로 나눕니다.
+같은 데이터베이스를 WSJ 앱과 함께 쓰고 경로만 나눕니다 — 영어 원서 서재는
+`bookstudy`, 한국 문학 서재(`/ko/`)는 `koread` 입니다.
 **Realtime Database → 규칙** 에 `bookstudy` 를 한 줄 추가하고 게시하세요.
 
 ```json
 {
   "rules": {
     "study":     { ".read": true, ".write": true },
-    "bookstudy": { ".read": true, ".write": true }
+    "bookstudy": { ".read": true, ".write": true },
+    "koread":    { ".read": true, ".write": true }
   }
 }
 ```

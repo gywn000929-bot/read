@@ -49,6 +49,16 @@ html[data-theme="dark"]{
   margin-bottom:-1px;transition:.15s}
 .sitetabs a:hover{color:var(--ink);background:var(--line2)}
 .sitetabs a.on{color:var(--accent);background:var(--bg);border-color:var(--line)}
+.cloud{border-top:1px solid var(--line2);margin-top:12px;padding-top:12px}
+.crow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cdot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.cdot.on{background:var(--good,#2f8f57)}
+.cst{flex:1;min-width:0;font-size:11.5px;color:var(--sub);line-height:1.5}
+.crow .go{border:1px solid var(--line);background:var(--surface);color:var(--sub);
+  border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;flex:none;
+  font-family:var(--gothic)}
+.crow .go:hover{border-color:var(--accent);color:var(--accent)}
+.locallist .li button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 /* 책 넣기 */
 .bw-add{width:100%;margin-top:7px;border:1px dashed var(--line);background:transparent;
   color:var(--sub);border-radius:11px;padding:10px;font-size:12.5px;cursor:pointer;
@@ -357,6 +367,7 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
       <div class="row"><div class="lb">문단</div><div class="opts" id="optPara">
         <button data-para="gap">여백</button><button data-para="indent">들여쓰기</button>
       </div></div>
+      <div class="cloud" id="cloudBox"></div>
     </div>
   </div>
 </header>
@@ -380,10 +391,13 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 /* ============ 상태 ============ */
 const LS='hanbook_v1';
 const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem', para:'gap',
-  bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'' };
+  bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
+  /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
+  del:{b:{},m:{}}, lastT:0, cloudAt:0 };
 let S=Object.assign({},defaults);
 try{ Object.assign(S, JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){}
-const save=()=>{ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} };
+const save=()=>{ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){}
+  if(typeof cloudTouch==='function') cloudTouch(); };
 
 let MANIFEST=[], curBook=null, cache={};
 let pgPage=0, pgTotal=1, pgKey='', pgTimer=null;
@@ -444,7 +458,8 @@ function withTimeout(pr,ms,fb){
 }
 const MET='koread_meta';
 const bookMeta=b=>({id:b.id,title:b.title,author:b.author,
-  chapters:(b.chapters||[]).length,words:b.words||0,local:true});
+  chapters:(b.chapters||[]).length,words:b.words||0,local:true,
+  localOnly:!!b.localOnly, t:b.t||0});
 function metaAll(){ try{ const v=JSON.parse(localStorage.getItem(MET)||'null'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function metaPut(b){ try{ const l=metaAll().filter(x=>x.id!==b.id); l.push(bookMeta(b));
   localStorage.setItem(MET,JSON.stringify(l)); }catch(e){} }
@@ -486,6 +501,204 @@ function sbHeight(){
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
 
+
+/* ---- 자동 동기화 ---- 영어 원서 서재와 같은 방식. 로그인이 없고, 같은 데이터베이스에서
+   경로만 달리 쓴다. 여기서 맞추는 것은 읽은 장·책갈피·쪽 위치·내가 넣은 책이다.
+   설정(테마·글꼴 같은 것)은 기기마다 다를 수 있으므로 올리지 않는다.
+
+   ⚠️ 로그인이 없다는 것은 주소를 아는 사람은 누구나 읽고 쓸 수 있다는 뜻이다.
+   남에게 보이면 안 되는 책은 책 목록에서 '📵 이 기기에만' 을 눌러 막아 둘 것. */
+const RTDB_URL='https://wall-street-57bf4-default-rtdb.firebaseio.com';
+const RTDB_PATH='koread';                    // 영어판(bookstudy)과 경로를 나눠 쓴다
+const UP_KEY='koread_uploaded';              // 이미 올린 책 — 매번 다시 올리지 않으려고
+let rtBusy=false, pushTimer=null, pollTimer=null, rtErr='', appReady=false, lastSync=0;
+
+/* RTDB 키에 못 쓰는 글자(. # $ / [ ])를 되돌릴 수 있게 바꾼다.
+   '%' 도 함께 바꿔야 되돌릴 때 원래 '%' 와 섞이지 않는다. */
+const rtEnc=k=>String(k).replace(/[%.#$/[\]]/g,c=>'%'+c.charCodeAt(0).toString(16));
+const rtDec=k=>String(k).replace(/%([0-9a-f]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+function rtErrText(st){
+  if(st===401||st===403) return '데이터베이스 규칙이 막고 있어요 — Rules 에서 '+RTDB_PATH+' 경로를 열어주세요';
+  if(st===404) return '데이터베이스 주소를 찾지 못했어요';
+  return '동기화하지 못했어요 (네트워크를 확인해 주세요)';
+}
+async function rtReq(method,sub,body,query){
+  const q=[query||'', method==='GET'?'t='+Date.now():''].filter(Boolean).join('&');
+  const url=RTDB_URL+'/'+RTDB_PATH+(sub?'/'+sub:'')+'.json'+(q?'?'+q:'');
+  const opt={method,cache:'no-store'};
+  if(body!==undefined){ opt.headers={'Content-Type':'application/json'}; opt.body=JSON.stringify(body); }
+  const r=await fetch(url,opt);
+  if(!r.ok){ const e=new Error(rtErrText(r.status)); e.status=r.status; throw e; }
+  return r.status===200? r.json() : null;
+}
+function uploadedMap(){ try{ const v=JSON.parse(localStorage.getItem(UP_KEY)||'{}');
+  return (v&&typeof v==='object'&&!Array.isArray(v))? v : {}; }catch(e){ return {}; } }
+function markUploaded(m){ try{ localStorage.setItem(UP_KEY,JSON.stringify(m)); }catch(e){} }
+function upForget(id){ const m=uploadedMap(); delete m[id]; markUploaded(m); }
+function stamp(b){ if(b) b.t=Date.now(); return b; }
+
+/* 받아서 합친다 — 지우지 않고, 읽은 장은 합집합, 책갈피는 더 최근 것을 남긴다.
+   applyLast 는 앱을 막 열었을 때만 참 — 읽는 도중 폴링이 화면을 옮기면 안 된다. */
+async function rtPull(applyLast){
+  const [d,ids]=await Promise.all([
+    rtReq('GET','state'),
+    rtReq('GET','books',undefined,'shallow=true').catch(()=>null)
+  ]);
+  const before=JSON.stringify([S.read,S.marks,S.pagePos]);
+  let added=0, moved=false;
+  if(d){
+    /* 무덤부터 — 지운 것을 되살리지 않으려면 합치기보다 먼저 알아야 한다 */
+    const rd=d.deleted||{};
+    ['b','m'].forEach(k=>{ const src=rd[k==='b'?'books':'marks']||{};
+      Object.entries(src).forEach(([kk,t])=>{ const id=rtDec(kk);
+        if(!S.del[k][id]||S.del[k][id]<t) S.del[k][id]=t; }); });
+    Object.entries(d.read||{}).forEach(([k])=>{ S.read[rtDec(k)]=1; });          // 읽음은 합집합
+    Object.entries(d.pagePos||{}).forEach(([k,v])=>{ const id=rtDec(k);
+      if((S.pagePos[id]||0)<v) S.pagePos[id]=v; });                              // 더 많이 읽은 쪽
+    const mine=new Map((S.marks||[]).map(m=>[m.id,m]));
+    Object.entries(d.marks||{}).forEach(([k,v])=>{ if(!v||!v.id) return;
+      const id=rtDec(k);
+      if(S.del.m[id]) return;                                                    // 지운 것은 안 받는다
+      const cur=mine.get(id);
+      if(!cur||(v.t||0)>(cur.t||0)) mine.set(id,v);
+    });
+    S.marks=[...mine.values()].filter(m=>!S.del.m[m.id]).sort((a,b)=>(b.t||0)-(a.t||0)).slice(0,200);
+    if(applyLast&&d.last&&(d.last.t||0)>(S.lastT||0)){
+      if(d.last.bookId&&d.last.bookId!==S.bookId){ S.bookId=d.last.bookId; moved=true; }
+      if(d.last.chapter) S.chapter=d.last.chapter;
+      if(typeof d.last.page==='number') pgPage=d.last.page;
+      S.lastT=d.last.t;
+    }
+  }
+  /* 다른 기기가 올린 책 받기 — 여기 없는 것만 */
+  for(const k of Object.keys(ids||{})){
+    const id=rtDec(k);
+    if(S.del.b[id]) continue;                                   // 지운 책은 다시 받지 않는다
+    const cur=await idbGet(id).catch(()=>null);
+    if(cur&&cur.localOnly) continue;                            // 이 기기에만 두기로 한 책은 건드리지 않는다
+    if(cur) continue;
+    const b=await rtReq('GET','books/'+k).catch(()=>null);
+    if(!b||!b.id||!Array.isArray(b.chapters)||!b.chapters.length) continue;
+    await idbPut(id,b).catch(()=>{}); metaPut(b); added++;
+  }
+  save();
+  return { changed: added>0||moved||JSON.stringify([S.read,S.marks,S.pagePos])!==before, added, moved };
+}
+function rtDrop(kind,key){
+  const node=kind==='books'?'books':'state/marks';
+  rtReq('PATCH',node,{[rtEnc(key)]:null}).catch(e=>console.error(e));
+  if(kind==='books') rtReq('PATCH','state/bookT',{[rtEnc(key)]:null}).catch(()=>{});
+}
+async function rtPush(force){
+  clearTimeout(pushTimer);
+  if(rtBusy&&!force){ cloudTouch(); return false; }
+  const read={}, marks={}, pagePos={};
+  Object.keys(S.read||{}).forEach(k=>read[rtEnc(k)]=true);
+  (S.marks||[]).forEach(m=>marks[rtEnc(m.id)]=m);
+  Object.entries(S.pagePos||{}).forEach(([k,v])=>pagePos[rtEnc(k)]=v);
+  const db={},dm={};
+  Object.entries(S.del.m).forEach(([k,t])=>{ dm[rtEnc(k)]=t; marks[rtEnc(k)]=null; });
+  Object.entries(S.del.b).forEach(([k,t])=>db[rtEnc(k)]=t);
+  /* 자식 노드마다 따로 보낸다 — PATCH 는 최상위 키를 통째로 갈아끼우므로, 한 번에
+     보내면 그 사이 다른 기기가 넣은 것이 지워진다. 한 걸음이 막혀도 뒤는 계속한다. */
+  const fail=[];
+  const step=async(sub,body)=>{ try{ await rtReq('PATCH',sub,body); }catch(e){ fail.push(e); } };
+  if(Object.keys(read).length) await step('state/read',read);
+  if(Object.keys(marks).length) await step('state/marks',marks);
+  if(Object.keys(pagePos).length) await step('state/pagePos',pagePos);
+  if(Object.keys(dm).length) await step('state/deleted/marks',dm);
+  if(Object.keys(db).length){
+    await step('state/deleted/books',db);
+    const nulls=Object.fromEntries(Object.keys(db).map(k=>[k,null]));
+    await step('books',nulls); await step('state/bookT',nulls);
+  }
+  const last={ bookId:S.bookId, chapter:S.chapter, page:pgPage, t:Date.now() };
+  await step('state',{last}); S.lastT=last.t;
+  /* 넣은 책은 한 권이 수 MB 라 매번 올릴 것이 아니다 — 마지막으로 올린 시각과
+     지금 책의 시각이 다를 때만 올린다. 비교는 목록표로 하므로 안 올릴 책은 펼치지 않는다. */
+  const up=uploadedMap(), mt={};
+  metaAll().forEach(m=>{ mt[m.id]=m.t||0; });
+  for(const m of metaAll()){
+    const id=m.id;
+    if(up[id]!==undefined && up[id]===mt[id]) continue;
+    const b=await idbGet(id).catch(()=>null);
+    if(!b) continue;
+    if(!b.t){ stamp(b); await idbPut(id,b).catch(()=>{}); metaPut(b); }
+    if(b.localOnly){ up[id]=b.t; markUploaded(up); continue; }   // 이 기기에만 — 안 올린다
+    try{
+      await rtReq('PUT','books/'+rtEnc(id),b);
+      await rtReq('PATCH','state/bookT',{[rtEnc(id)]:b.t});
+      up[id]=b.t; markUploaded(up);
+    }catch(e){ fail.push(e); }
+  }
+  S.cloudAt=fail.length? (S.cloudAt||0) : Date.now();
+  try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){}   // save() 를 부르면 되돌이가 된다
+  clearTimeout(pushTimer);
+  if(fail.length) throw fail[0];
+  return true;
+}
+async function cloudSync(quiet,applyLast){
+  if(rtBusy||!appReady) return false;
+  if(navigator.onLine===false) return false;
+  rtBusy=true;
+  try{
+    const r=await rtPull(applyLast);
+    await rtPush(true);
+    lastSync=Date.now(); rtErr='';
+    if(r.changed){
+      MANIFEST=MANIFEST.filter(m=>!m.local).concat(metaAll());
+      if(r.moved||r.added){ curBook=await loadBook(S.bookId).catch(()=>curBook); }
+      if(curBook&&!chap(S.chapter)) S.chapter=curBook.chapters[0].n;
+      render();
+    }
+    if(!quiet) toast(r.added? `맞췄어요 — 책 ${r.added}권 받아옴` : '맞췄어요');
+    renderCloudBox();
+    return true;
+  }catch(e){
+    console.error(e); rtErr=e.message||'동기화하지 못했어요';
+    if(!quiet) toast(rtErr);
+    renderCloudBox(); return false;
+  }finally{ rtBusy=false; }
+}
+/* 바뀔 때마다 곧바로 올리지 않고 잠깐 모았다가 한 번에 */
+function cloudTouch(){
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>{ if(appReady) rtPush().catch(e=>console.error(e)); },4000);
+}
+function startPoll(){
+  clearInterval(pollTimer);
+  pollTimer=setInterval(()=>{
+    if(document.hidden||navigator.onLine===false||rtBusy) return;
+    cloudSync(true,false).catch(e=>console.error(e));
+  },20000);
+}
+async function cloudBoot(){
+  appReady=true;
+  await cloudSync(true,true).catch(()=>{});
+  startPoll();
+}
+function cloudFlush(){ clearTimeout(pushTimer); if(appReady) rtPush().catch(()=>{}); }
+addEventListener('pagehide',cloudFlush);
+addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ cloudFlush(); return; }
+  if(Date.now()-lastSync>20000) cloudSync(true,false).catch(e=>console.error(e));
+});
+addEventListener('online',()=>cloudSync(true,false).catch(()=>{}));
+function renderCloudBox(){
+  const el=$('#cloudBox'); if(!el) return;
+  const when=S.cloudAt? new Date(S.cloudAt).toLocaleString('ko-KR',
+    {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+  el.innerHTML=`<div class="bw-lbl">☁️ 자동 동기화</div>
+    <div class="crow"><span class="cdot${rtErr?'':' on'}"></span>
+      <span class="cst">${rtErr? '⚠️ '+esc(rtErr)
+        : `켜짐 — 이 앱을 연 모든 기기가 맞춰집니다${when?` · 마지막 ${esc(when)}`:''}`}</span>
+      <button class="go" id="rtNow">지금 맞추기</button></div>
+    <p class="impnote">로그인이 없습니다. 읽은 장·책갈피·내가 넣은 책이 기기끼리 같아집니다.
+      대신 <b>주소를 아는 사람은 누구나 같은 데이터를 봅니다</b> — 남에게 보이면 안 되는 책은
+      책 목록에서 <b>📵 이 기기에만</b> 을 눌러 두세요.</p>`;
+  const b=$('#rtNow'); if(b) b.addEventListener('click',()=>cloudSync(false,false));
+}
+
 /* ---- 책 넣기 ---- EPUB 과 평문을 받는다. 푸는 일은 lib/bookparse.js 가 하고
    여기서는 화면과 저장만 맡는다. PDF 는 받지 않는다 — pdf.js 를 여기서는
    불러오지 않고, 한국 문학 서재에서 쓸 일도 드물다. */
@@ -505,6 +718,8 @@ function openImport(){
         <div class="bw-lbl">내 기기에 있는 책</div>
         ${mine.map(b=>`<div class="li"><span class="t">${esc(b.title)}</span>
           <span class="m">${b.chapters}장</span>
+          <button data-only="${esc(b.id)}" class="${b.localOnly?'on':''}"
+            title="켜면 이 책은 올리지 않습니다">${b.localOnly?'📵 이 기기에만':'☁️ 올림'}</button>
           <button data-del="${esc(b.id)}">지우기</button></div>`).join('')}</div>`:''}
       <p class="impnote">넣은 책은 이 브라우저 안에만 저장됩니다. 다른 기기로는 넘어가지
         않고, 브라우저 데이터를 지우면 함께 사라집니다.</p>
@@ -521,11 +736,24 @@ function openImport(){
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{
     e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) importFile(f); });
+  $$('#impModal [data-only]').forEach(el=>el.addEventListener('click',async()=>{
+    const id=el.dataset.only;
+    const b=await idbGet(id).catch(()=>null); if(!b) return;
+    b.localOnly=!b.localOnly; stamp(b);
+    await idbPut(id,b).catch(()=>{}); delete cache[id]; metaPut(b);
+    const up=uploadedMap();
+    if(b.localOnly){ rtDrop('books',id); up[id]=b.t; toast('이 기기에만 두기 — 올린 것을 거뒀어요'); }
+    else { delete up[id]; toast('이제 올립니다'); }
+    markUploaded(up); save(); openImport();
+  }));
   $$('#impModal [data-del]').forEach(b=>b.addEventListener('click',async()=>{
     const id=b.dataset.del;
-    await idbDel(id).catch(()=>{}); metaDel(id); delete cache[id];
+    await idbDel(id).catch(()=>{}); metaDel(id); delete cache[id]; upForget(id);
+    /* 무덤에 적어 둬야 다음 동기화가 되살려 놓지 않는다 */
+    S.del.b[id]=Date.now(); rtDrop('books',id);
     MANIFEST=MANIFEST.filter(x=>x.id!==id);
-    if(S.bookId===id){ S.bookId=null; curBook=null; save(); render(); }
+    if(S.bookId===id){ S.bookId=null; curBook=null; }
+    save(); if(!curBook) render();
     toast('지웠어요'); openImport();
   }));
 }
@@ -579,8 +807,10 @@ async function saveImported(){
   if(!_imp) return;
   _imp.title=($('#impT').value||'').trim()||'제목 없는 책';
   _imp.author=($('#impA').value||'').trim();
+  stamp(_imp);                      // 동기화가 이 시각으로 올릴지를 정한다
   try{ await idbPut(_imp.id,_imp); }
   catch(e){ return toast('저장 공간이 부족해요'); }
+  if(S.del.b[_imp.id]){ delete S.del.b[_imp.id]; }   // 지웠다 다시 넣으면 무덤에서 꺼낸다
   metaPut(_imp); cache[_imp.id]=_imp;
   MANIFEST=MANIFEST.filter(x=>x.id!==_imp.id).concat([bookMeta(_imp)]);
   const id=_imp.id;
@@ -991,7 +1221,8 @@ function bindChrome(){
   $('#btnMark').addEventListener('click',toggleMark);
   $('#btnToc').addEventListener('click',openToc);
   const sb=$('#btnSet'), sm=$('#setmenu');
-  sb.addEventListener('click',e=>{ e.stopPropagation(); sm.classList.toggle('show'); });
+  sb.addEventListener('click',e=>{ e.stopPropagation(); sm.classList.toggle('show');
+    if(sm.classList.contains('show')) renderCloudBox(); });
   document.addEventListener('click',e=>{ if(!sm.contains(e.target)&&e.target!==sb) sm.classList.remove('show'); });
   $$('#optTheme button').forEach(b=>b.addEventListener('click',()=>{ S.theme=b.dataset.theme; save(); applyTheme(); }));
   $$('#optFont button').forEach(b=>b.addEventListener('click',()=>{ S.font=b.dataset.font; save(); applyTheme(); }));
@@ -1018,6 +1249,7 @@ async function init(){
   const first=(MANIFEST.find(m=>m.id===S.bookId)||MANIFEST[0]);
   if(first) await openBook(first.id, S.bookId===first.id? S.chapter : null);
   applyTheme();
+  cloudBoot();
   console.log('한국 문학 서재', BUILD, MANIFEST.length+'권');
 }
 init();
