@@ -16,7 +16,7 @@
 | Harry Potter and the Half-Blood Prince | J.K. Rowling | 30 |
 | Harry Potter and the Deathly Hallows | J.K. Rowling | 37 |
 
-### 📖 고전 75권 (Project Gutenberg)
+### 📖 고전 76권 (Project Gutenberg)
 
 퍼블릭 도메인 고전을 같은 형식으로 넣어 두었습니다. 원문은
 [Project Gutenberg](https://www.gutenberg.org/) 의 평문(txt)을 이 앱의 파서로
@@ -86,7 +86,7 @@
 | The Adventures of Sherlock Holmes | Doyle, Arthur Conan | 12 | 104,360 |
 | Dracula | Stoker, Bram | 27 | 160,078 |
 
-#### 🟠 레벨 4 · 어려움 — 22권
+#### 🟠 레벨 4 · 어려움 — 23권
 
 | 책 | 저자 | 챕터 | 낱말 |
 |----|------|------|------|
@@ -97,6 +97,7 @@
 | Heart of Darkness | Conrad, Joseph | 3 | 37,894 |
 | A Study in Scarlet | Doyle, Arthur Conan | 14 | 43,245 |
 | The Great Gatsby | Fitzgerald, F. Scott (Francis Scott) | 10 | 48,139 |
+| Summer | Wharton, Edith | 18 | 57,274 |
 | The Wind in the Willows | Kenneth Grahame | 12 | 58,331 |
 | The War of the Worlds | Wells, H. G. | 27 | 59,848 |
 | Heidi | Johanna Spyri | 24 | 65,839 |
