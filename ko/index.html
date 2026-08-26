@@ -160,6 +160,8 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
 .readdot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;border:1px solid var(--line)}
 .artitem.done .readdot{background:var(--good,#2f8f57);border-color:var(--good,#2f8f57)}
 .emptymini{color:var(--faint);font-size:13px;padding:10px}
+/* 읽는 화면에서 위 껍데기가 세로를 너무 먹었다 — 폰에서 사이트 탭과 머리말이
+   화면 위쪽을 계속 차지했고, 쪽 모드는 창이 아예 스크롤되지 않아 늘 그대로였다. */
 @media(max-width:960px){
   .wrap{grid-template-columns:1fr}
   .iconbtn{display:flex}
@@ -167,7 +169,30 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
     transform:translateX(-100%);transition:transform .22s;border-right:1px solid var(--line)}
   body.drawer aside{transform:translateX(0)}
   body.drawer #overlay{display:block}
+  /* 서재를 오가는 탭은 서랍 맨 위로 옮긴다 — 읽는 동안 쓸 일이 없는데 자리를 먹었다 */
+  .sitetabs{display:none}
+  #sidebar .sblibs{display:flex;gap:6px;margin-bottom:14px}
+  .sblibs a{flex:1;text-decoration:none;text-align:center;padding:10px 8px;border-radius:10px;
+    border:1px solid var(--line);background:var(--surface);color:var(--sub);
+    font-size:12.5px;font-weight:600;white-space:nowrap}
+  .sblibs a.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  /* 이 서재는 늘 쪽 모드라 창이 스크롤되지 않는다. 그래서 '내리면 접힌다' 는
+     길이 없고, 대신 머리말 키를 낮춰 쪽에 돌려준다. */
+  header.top{padding:7px 13px;gap:8px}
+  .iconbtn{width:36px;height:36px}
+  .tbtn{padding:8px 9px;font-size:13px}
+  /* 머리글 'ㅎㅏㄴㄱㅜㄱ…' — 이 줄만 nowrap 이 없어서, 자리가 좁아지면 한 글자씩
+     세로로 쪼개지며 머리말을 104px 까지 밀어 올렸다. 폰에서는 아예 접는다. */
+  .brand .k{display:none}
+  /* 남는 자리를 밀어내던 빈칸을 없애고 책 이름에 준다 — 그러지 않으면 단추들이
+     자리를 다 가져가 제목이 말줄임표 한 점으로 찌그러진다. */
+  .sp{display:none}
+  .brand{flex:1 1 auto;min-width:0}
+  /* '서재' 와 '목차' 는 폰에서 ☰ 서랍이 이미 다 갖고 있다 — 책 고르기도, 장 목록도.
+     머리말에 또 두면 자리만 먹고 책 이름이 한 글자로 찌그러진다. */
+  #btnLib,#btnToc{display:none}
 }
+.sblibs{display:none}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--gothic);line-height:1.6;
@@ -248,7 +273,16 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 /* ── 작품 해설 ───────────────────────────────────────────── */
 .note{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;
   padding:14px 16px;margin:0 0 20px;background:var(--surface);max-width:var(--measure)}
-.note h3{font-family:var(--myeongjo);font-size:14px;margin:0 0 7px;color:var(--accent)}
+/* 해설은 쪽 바깥에 있어서, 첫 장에서는 모든 쪽마다 자리를 지킨다.
+   390×760 폰에서 237px — 화면의 3분의 1이었다. 폰에서는 접어 두고 눌러서 편다. */
+.note summary{font-family:var(--myeongjo);font-size:14px;color:var(--accent);font-weight:700;
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+.note summary::-webkit-details-marker{display:none}
+.note summary::after{content:'⌄';margin-left:auto;color:var(--faint);font-size:15px;
+  line-height:1;transition:transform .2s}
+.note[open] summary::after{transform:rotate(180deg)}
+.note[open] summary{margin-bottom:7px}
+.note.none summary{color:var(--faint)}
 .note p{font-family:var(--gothic);font-size:13.5px;line-height:1.75;color:var(--sub);margin:0;
   max-width:none;text-indent:0}
 .note.none{border-left-color:var(--line);color:var(--faint)}
@@ -888,7 +922,11 @@ function renderSidebar(){
   /* /ko/ 의 bookDone() 은 영어판과 달리 이미 퍼센트(0~100)를 돌려준다 — *100 하면 안 된다 */
   const pct=bookDone();
   const read=b.chapters.filter(c=>S.read[S.bookId+':'+c.n]).length;
-  let html=`<div class="bookswitch">
+  let html=`<div class="sblibs">
+    <a href="../">📖 영어 원서</a>
+    <a class="on" href="./">📚 한국 문학</a>
+  </div>
+  <div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · 서재</div>
     <button class="bw-now" id="sbPick" aria-label="책 고르기">
       <span class="dot"></span>
@@ -951,9 +989,11 @@ function render(){
   const b=book(), c=chap(S.chapter);
   $('#hTitle').textContent=b.title;
 
-  const note = b.note
-    ? `<div class="note"><h3>작품 해설</h3><p>${esc(b.note)}</p></div>`
-    : `<div class="note none"><h3>작품 해설</h3><p>아직 해설을 붙이지 못했습니다.</p></div>`;
+  /* 넓은 화면은 펼친 채로 둔다 — 자리가 남으니 접을 이유가 없다 */
+  const note = `<details class="note${b.note?'':' none'}"${innerWidth>960?' open':''}>
+      <summary>작품 해설</summary>
+      <p>${b.note? esc(b.note) : '아직 해설을 붙이지 못했습니다.'}</p>
+    </details>`;
 
   const paras=(c.paras||[]).map((p,i)=>{
     if(/^###\s+/.test(p)) return `<p class="sect">${esc(p.replace(/^###\s+/,''))}</p>`;
@@ -989,6 +1029,9 @@ function render(){
     </div>`;
   $('#pPrev').addEventListener('click',pgPrev);
   $('#pNext').addEventListener('click',pgNext);
+  /* 해설을 펴고 접으면 쪽 높이가 달라진다 — 그때마다 다시 잰다 */
+  const nt=m.querySelector('.note');
+  if(nt) nt.addEventListener('toggle',()=>requestAnimationFrame(()=>pgRelayout()));
   bindSwipe();
   pgKey=S.bookId+':'+S.chapter;
   pgPage=S.pagePos[pgKey]||0;
