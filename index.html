@@ -159,7 +159,7 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 26px;
   padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  position:sticky;top:65px;z-index:30;box-shadow:0 2px 10px rgba(20,16,10,.03)}
+  position:sticky;top:var(--mh,65px);z-index:30;box-shadow:0 2px 10px rgba(20,16,10,.03)}
 .toolbar button{border:1px solid transparent;background:transparent;color:var(--sub);
   padding:8px 11px;border-radius:9px;font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:5px;
   white-space:nowrap;flex:none}
@@ -532,13 +532,37 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .nav button{padding:9px 10px}
   .stats{grid-template-columns:repeat(2,1fr)}
 }
+/* 읽는 화면에서 위 껍데기가 세로를 너무 먹었다 — 390×760 폰에서
+   사이트 탭 47 + 머리말 61 + 툴바 49 = 157px, 화면의 21% 였다.
+   게다가 쪽 모드는 창이 아예 스크롤되지 않아서 그 157px 이 늘 자리를 지켰다. */
+@media(max-width:960px){
+  /* 서재를 오가는 탭은 서랍 맨 위로 옮긴다 — 읽는 동안 쓸 일이 없는데 47px 을 먹었다 */
+  .sitetabs{display:none}
+  #sidebar .sblibs{display:flex;gap:6px;margin-bottom:14px}
+  .sblibs a{flex:1;text-decoration:none;text-align:center;padding:10px 8px;border-radius:10px;
+    border:1px solid var(--line);background:var(--surface);color:var(--sub);
+    font-size:12.5px;font-weight:600;white-space:nowrap}
+  .sblibs a.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  /* 머리말과 툴바의 키를 낮춘다 */
+  header.masthead{padding:7px 14px;gap:10px}
+  .iconbtn{width:36px;height:36px;font-size:17px}
+  .toolbar{margin:10px 0 18px}
+  .toolbar button{padding:6px 10px}
+  /* 스크롤 모드에서는 내려갈 때 접히고 올라올 때 펴진다.
+     transform 만 쓰므로 조판을 다시 하지 않는다 — 쪽 모드에서 이걸 하면
+     자리는 그대로 비어 있어 아무 소용이 없고, 조판만 매번 다시 돈다. */
+  header.masthead,.toolbar{transition:transform .2s ease}
+  body.chrome-off header.masthead{transform:translateY(-100%)}
+  body.chrome-off .toolbar{transform:translateY(calc(-1 * var(--mh,56px)))}
+  @media(prefers-reduced-motion:reduce){ header.masthead,.toolbar{transition:none} }
+}
 @media(max-width:640px){
   /* --fs 는 JS가 인라인으로 지정해 :root 재정의가 먹지 않으므로 .body 에서 비율로 줄인다 */
   .body{font-size:calc(var(--fs) * .92);line-height:1.7}
   header.masthead{gap:10px;padding:10px 14px}
   .brand .k{display:none}          /* 좁은 화면에서 두 줄로 깨지던 머리글 */
   main{padding:20px 15px 44px}
-  .toolbar{top:61px;gap:4px;padding:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .toolbar{gap:4px;padding:5px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar .grp.hide-sm{display:none}
   .body p.drop:first-letter{font-size:1em;float:none;padding:0;line-height:inherit;font-weight:inherit}
@@ -549,6 +573,8 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .fcard{padding:38px 18px}
   .chap-nav button{max-width:none}
 }
+/* 폰에서는 위 사이트 탭 대신 서랍 맨 위에서 서재를 오간다 */
+.sblibs{display:none}
 .bookswitch{margin-bottom:14px}
 .bookswitch .bw-lbl{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.6px;margin:0 2px 6px}
 .bookswitch select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:11px;
@@ -1069,7 +1095,11 @@ function renderSidebar(){
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
   const curM=MANIFEST.find(m=>m.id===S.bookId)||{};
-  let html=`<div class="bookswitch">
+  let html=`<div class="sblibs">
+    <a class="on" href="./">📖 영어 원서</a>
+    <a href="ko/">📚 한국 문학</a>
+  </div>
+  <div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
     <button class="bw-now" id="bookSel" aria-label="책 고르기">
       <span class="dot" style="background:${lvColor(curM)}"></span>
@@ -1815,6 +1845,29 @@ function bindChrome(){
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
+/* 읽는 동안 위 껍데기를 접는다. 폰에서, 스크롤 모드에서만 —
+   쪽 모드는 창이 스크롤되지 않아 접을 신호가 없고, 접어 봐야 자리가 비어 있을 뿐이다.
+   서랍이나 단어 팝업이 떠 있으면 건드리지 않는다 — 그때는 머리말이 기준점이다. */
+let _chY=0,_chTick=false;
+function chromeOnScroll(){
+  _chTick=false;
+  const off=s=>document.body.classList.toggle('chrome-off',s);
+  if(innerWidth>960||pgOn()) return off(false);
+  const y=Math.max(0,window.scrollY);
+  const pop=$('#pop');
+  if(document.body.classList.contains('drawer')||(pop&&pop.classList.contains('show'))){
+    off(false); _chY=y; return;
+  }
+  const dy=y-_chY;
+  if(Math.abs(dy)<6) return;              // 손떨림은 무시하고 쌓아 둔다
+  if(dy>0&&y>160) off(true); else if(dy<0) off(false);
+  _chY=y;
+}
+addEventListener('scroll',()=>{
+  if(!_chTick){ _chTick=true; requestAnimationFrame(chromeOnScroll); }
+},{passive:true});
+addEventListener('resize',()=>{ if(innerWidth>960) document.body.classList.remove('chrome-off'); });
+
 function setMastheadVar(){
   const m=document.querySelector('header.masthead');
   if(m) document.documentElement.style.setProperty('--mh', m.offsetHeight+'px');
