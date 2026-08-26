@@ -15,16 +15,19 @@
   --bg:#faf9f6; --surface:#fff; --ink:#16130f; --sub:#6a655d; --faint:#94908a;
   --line:#e7e3da; --line2:#efece5; --accent:#0a3d62; --accent-soft:#e8eef5;
   --mark:#f6ecc9; --shadow:0 10px 40px rgba(20,16,10,.12);
+  --cv-tint:rgba(10,61,98,.11); --on-accent:#fff;
   --myeongjo:'Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
   --gothic:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
   --sans:var(--gothic);
   --measure:34rem; --fs:19px; --lh:1.9;
 }
-html[data-theme="white"]{ --bg:#fff; --line:#e8e8ec; --line2:#f3f3f5; --accent-soft:#eaf1f8 }
+html[data-theme="white"]{ --bg:#fff; --line:#e8e8ec; --line2:#f3f3f5; --accent-soft:#eaf1f8;
+  --cv-tint:rgba(10,61,98,.09) }
 html[data-theme="dark"]{
   --bg:#0f1216; --surface:#171b21; --ink:#e9e6df; --sub:#a2a8b0; --faint:#767c85;
   --line:#262b33; --line2:#1e232a; --accent:#7fb0ff; --accent-soft:#1c2836;
   --mark:#3d3413; --shadow:0 14px 50px rgba(0,0,0,.55);
+  --cv-tint:rgba(127,176,255,.10); --on-accent:#0f1216;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -40,11 +43,11 @@ header.top{background:var(--surface);border-bottom:1px solid var(--line);
 .brand .t{font-family:var(--myeongjo);font-size:clamp(17px,3.4vw,23px);font-weight:700;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp{flex:1}
-.tbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;
-  min-width:42px;height:42px;padding:0 11px;font-size:13px;color:var(--sub);
-  display:flex;align-items:center;justify-content:center;gap:5px;flex:none}
-.tbtn:hover{border-color:var(--accent);color:var(--accent)}
-.tbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.tbtn{border:1px solid transparent;background:transparent;color:var(--sub);
+  padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:500;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;cursor:pointer}
+.tbtn:hover{background:var(--line2);color:var(--ink)}
+.tbtn.on{background:var(--accent);color:var(--on-accent)}
 
 main{padding:16px clamp(12px,4vw,26px) 20px;max-width:calc(var(--measure) + 7rem);margin:0 auto}
 .reader.paged{max-width:min(1180px,100%)}
@@ -64,7 +67,14 @@ main{padding:16px clamp(12px,4vw,26px) 20px;max-width:calc(var(--measure) + 7rem
   margin:1.7em 0 .75em;break-after:avoid;-webkit-column-break-after:avoid;white-space:normal}
 .body p.sect:first-child,.body .chaphead + p.sect{margin-top:0}
 .chaphead{margin:0 0 18px}
-.chaphead h1{font-family:var(--myeongjo);font-size:clamp(20px,3.2vw,27px);font-weight:700;margin:2px 0 6px}
+.chaphead h1{font-family:var(--myeongjo);font-size:clamp(24px,4.2vw,38px);line-height:1.16;
+  font-weight:800;letter-spacing:-.5px;margin:9px 0 13px}
+.chaphead .kicker{color:var(--accent);letter-spacing:2px;font-size:11.5px;font-weight:700;
+  font-family:var(--gothic)}
+.chaphead .byline{font-size:13px;color:var(--sub);border-bottom:1px solid var(--line);
+  padding-bottom:15px;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;
+  font-family:var(--gothic)}
+.chaphead .byline b{color:var(--ink);font-weight:600;letter-spacing:.3px}
 .chaphead .by{font-size:12px;color:var(--faint);font-family:var(--gothic)}
 
 /* 쪽 넘김 — 본문을 다단으로 잘라 가로로 민다 */
@@ -128,7 +138,9 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 .bk{flex:none;width:108px;background:none;border:none;padding:0;text-align:left;font:inherit;
   scroll-snap-align:start}
 .cv{height:142px;border-radius:10px;border:1px solid var(--line);padding:11px 10px;
-  display:flex;align-items:flex-end;background:var(--surface)}
+  display:flex;align-items:flex-end;background:var(--surface);
+  /* 단축 background 뒤에 와야 한다 — 앞에 두면 그것이 background-image 를 none 으로 덮는다 */
+  background-image:linear-gradient(0deg,var(--cv-tint),var(--cv-tint))}
 .bk.on .cv{border-color:var(--accent);border-width:2px}
 .cv span{font-family:var(--myeongjo);font-size:13px;font-weight:700;line-height:1.3;
   word-break:keep-all;overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical}
@@ -165,7 +177,10 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 .opts{display:flex;gap:5px;flex:1}
 .opts button{flex:1;height:44px;border:1px solid var(--line);background:var(--surface);color:var(--sub);
   border-radius:9px;font-size:12px}
-.opts button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.opts button:hover{border-color:var(--accent);color:var(--ink)}
+.opts button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.set-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;
+  border:1px solid var(--line);margin-right:5px;vertical-align:-1px;flex:none}
 .size{display:flex;align-items:center;gap:8px;flex:1}
 .size button{width:44px;height:44px;border:1px solid var(--line);background:var(--surface);border-radius:9px;flex:none}
 .size input{flex:1;accent-color:var(--accent);min-width:0}
@@ -204,7 +219,7 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
         <p>산에는 꽃 피네. 꽃이 피네. 갈 봄 여름 없이 꽃이 피네.</p>
       </div>
       <div class="row"><div class="lb">테마</div><div class="opts" id="optTheme">
-        <button data-theme="beige">베이지</button><button data-theme="white">화이트</button><button data-theme="dark">블랙</button>
+        <button data-theme="beige"><span class="set-swatch" style="background:#faf9f6"></span>베이지</button><button data-theme="white"><span class="set-swatch" style="background:#fff"></span>화이트</button><button data-theme="dark"><span class="set-swatch" style="background:#0f1216"></span>블랙</button>
       </div></div>
       <div class="row"><div class="lb">글꼴</div><div class="opts" id="optFont">
         <button data-font="myeongjo">명조</button><button data-font="gothic">고딕</button>
@@ -312,8 +327,11 @@ function render(){
   }).join('');
 
   const head=`<div class="chaphead">
-      <h1>${esc(c.title||b.title)}</h1>
-      <div class="by">${esc(b.author||'')} · ${esc(b.title)}${totalChaps()>1?` · ${c.n}/${totalChaps()}`:''}</div>
+      <div class="kicker">${esc(b.title)}</div>
+      <h1>${c.title? esc(c.title) : esc(b.title)}</h1>
+      <div class="byline"><b>${esc(b.author||'')}</b>
+        ${totalChaps()>1?`<span>${c.n} / ${totalChaps()}장</span>`:''}
+        <span>${chapWords(c).toLocaleString()}낱말</span></div>
     </div>`;
 
   m.innerHTML=`<div class="reader paged">
@@ -326,8 +344,8 @@ function render(){
       <div class="pgfoot" id="pgFoot">
       <div class="pagebar" id="pageBar">
         <button id="pPrev" aria-label="이전">‹</button>
-        <span class="pgn" id="pgNum">1 / 1</span>
         <div class="pgtrack"><i id="pgFill"></i></div>
+        <span class="pgn" id="pgNum">1 / 1</span>
         <button id="pNext" aria-label="다음">›</button>
       </div>
       <div class="bookdone" id="bookDone"></div>
