@@ -2678,7 +2678,7 @@ async function renderImport(state){
       </div>`;
   } else {
     body=`<h3>내 책 열기</h3>
-      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b> 파일을 고르면 장(chapter)으로 나눠
+      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b>·<b>EPUB</b> 파일을 고르면 장(chapter)으로 나눠
         읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
       <div class="impdrop" id="impDrop"><span class="di">📂</span>파일을 끌어다 놓거나 눌러서 고르기
         <span class="ds">PDF · TXT · EPUB · 백업 파일(.json)</span></div>
@@ -2884,7 +2884,7 @@ async function init(){
   // 내 책 목록은 저장소가 느리면 기다리지 않는다 — 뒤에서 채워 넣는다
   MANIFEST=MANIFEST.concat(await withTimeout(localManifest(),5000,[]));
   if(!MANIFEST.length){ clearTimeout(watchdog); booted=true;
-    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT 파일을 열어주세요.</p></div>'; return; }
+    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT·EPUB 파일을 열어주세요.</p></div>'; return; }
   /* 목록이 아직 안 왔어도 읽던 책이 내 책이면 그 한 권만 바로 가져온다 —
      목록을 못 기다렸다고 엉뚱한 책으로 열리면 안 된다 */
   if(!MANIFEST.find(m=>m.id===S.bookId)&&String(S.bookId).startsWith(LP)){
