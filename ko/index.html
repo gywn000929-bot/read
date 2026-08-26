@@ -49,6 +49,63 @@ html[data-theme="dark"]{
   margin-bottom:-1px;transition:.15s}
 .sitetabs a:hover{color:var(--ink);background:var(--line2)}
 .sitetabs a.on{color:var(--accent);background:var(--bg);border-color:var(--line)}
+/* 옆단 — 영어 원서 리더와 같은 짜임. 넓은 화면에서는 왼쪽 붙박이,
+   좁은 화면에서는 ☰ 로 여는 서랍이 된다.
+   붙는 높이(--hh)는 숫자를 박지 않고 JS 가 머리말을 재서 넣는다.
+   브랜드가 두 줄이라 화면 폭에 따라 높이가 달라진다. */
+.wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto}
+aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
+  overflow-y:auto;max-height:calc(100dvh - var(--hh,64px));position:sticky;top:var(--hh,64px)}
+#overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55}
+.iconbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);
+  border-radius:10px;display:none;align-items:center;justify-content:center;font-size:18px;
+  flex:none;cursor:pointer}
+.iconbtn:hover{border-color:var(--accent)}
+.bookswitch{margin-bottom:14px}
+.bookswitch .bw-lbl{font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.6px;margin:0 2px 6px}
+.bw-now{width:100%;display:flex;align-items:center;gap:9px;border:1px solid var(--line);
+  background:var(--surface);border-radius:11px;padding:10px 12px;cursor:pointer;text-align:left}
+.bw-now:hover{border-color:var(--accent)}
+.bw-now .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--accent)}
+.bw-now .t{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bw-now .c{font-size:11px;color:var(--faint);flex:none}
+.bookcard{background:var(--accent-soft);border-radius:12px;padding:13px 14px;margin-bottom:14px}
+.bookcard .bt{font-family:var(--myeongjo);font-size:18px;font-weight:800;line-height:1.15;word-break:keep-all}
+.bookcard .ba{font-size:12px;color:var(--sub);margin-top:2px}
+.progbar{height:6px;border-radius:6px;background:var(--line);margin-top:10px;overflow:hidden}
+.progbar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.progtxt{font-size:11px;color:var(--faint);margin-top:6px;display:flex;justify-content:space-between}
+.marklist{margin:14px 0 4px;border-top:1px solid var(--line2);padding-top:12px}
+.marklist .mk{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer}
+.marklist .mk:hover{background:var(--line2)}
+.marklist .mkc{font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;flex:none}
+.marklist .mkt{flex:1;min-width:0;font-size:12.5px;color:var(--sub);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.marklist .mkx{border:none;background:none;color:var(--faint);cursor:pointer;font-size:12px;
+  padding:2px 5px;border-radius:6px;flex:none}
+.marklist .mkx:hover{color:var(--bad,#b23a2b);background:var(--line)}
+.searchbox{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
+  background:var(--bg);color:var(--ink);font-size:13px;margin-bottom:12px;font-family:var(--gothic)}
+.searchbox:focus{border-color:var(--accent);outline:none}
+.artitem{padding:11px 10px;border-radius:11px;cursor:pointer;transition:.12s;
+  display:flex;align-items:center;gap:10px}
+.artitem:hover{background:var(--line2)}
+.artitem.sel{background:var(--accent-soft)}
+.artitem .h{font-family:var(--myeongjo);font-size:14px;font-weight:600;line-height:1.3;
+  flex:1;min-width:0;word-break:keep-all}
+.artitem .h .cn{display:inline-block;min-width:20px;color:var(--accent);font-weight:800;
+  font-variant-numeric:tabular-nums}
+.readdot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;border:1px solid var(--line)}
+.artitem.done .readdot{background:var(--good,#2f8f57);border-color:var(--good,#2f8f57)}
+.emptymini{color:var(--faint);font-size:13px;padding:10px}
+@media(max-width:960px){
+  .wrap{grid-template-columns:1fr}
+  .iconbtn{display:flex}
+  aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100dvh;
+    transform:translateX(-100%);transition:transform .22s;border-right:1px solid var(--line)}
+  body.drawer aside{transform:translateX(0)}
+  body.drawer #overlay{display:block}
+}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--gothic);line-height:1.6;
@@ -228,6 +285,7 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
   <a class="on" href="./">📚 한국 문학</a>
 </div>
 <header class="top">
+  <button class="iconbtn" id="menuBtn" aria-label="메뉴">☰</button>
   <div class="brand">
     <span class="k">한국 근대문학</span>
     <span class="t" id="hTitle">서재</span>
@@ -266,7 +324,11 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
   </div>
 </header>
 
-<main id="main"><div class="empty">불러오는 중…</div></main>
+<div class="wrap">
+  <aside id="sidebar"></aside>
+  <main id="main"><div class="empty">불러오는 중…</div></main>
+</div>
+<div id="overlay"></div>
 <div class="modal" id="tocModal"></div>
 <div class="modal" id="libModal"></div>
 <div class="toast" id="toast"></div>
@@ -333,6 +395,78 @@ async function openBook(id, ch){
 }
 
 /* ============ 그리기 ============ */
+
+/* ---- 옆단 ---- 영어 원서 리더와 같은 짜임: 책 고르기 · 진행 · 책갈피 · 장 목록.
+   '내 책 열기'는 여기에 없다 — /ko/ 에는 책을 넣는 기능 자체가 없다. */
+function sbHeight(){
+  const h=document.querySelector('header.top');
+  if(h) document.documentElement.style.setProperty('--hh', Math.round(h.getBoundingClientRect().height)+'px');
+}
+function closeDrawer(){ document.body.classList.remove('drawer'); }
+let sbQ='';   /* 옆단 장 찾기. 서재 검색(S._q)과 다른 것이고, 저장하지 않는다 —
+                 일시적인 걸러내기가 남으면 다음에 열 때 장 목록이 비어 보인다 */
+function renderSidebar(){
+  const sb=$('#sidebar'); if(!sb) return;
+  if(!curBook){ sb.innerHTML='<div class="emptymini">서재에서 책을 골라주세요.</div>'; return; }
+  const b=book(), q=sbQ.trim().toLowerCase();
+  const total=totalChaps();
+  /* /ko/ 의 bookDone() 은 영어판과 달리 이미 퍼센트(0~100)를 돌려준다 — *100 하면 안 된다 */
+  const pct=bookDone();
+  const read=b.chapters.filter(c=>S.read[S.bookId+':'+c.n]).length;
+  let html=`<div class="bookswitch">
+    <div class="bw-lbl">📚 책 선택 · 서재</div>
+    <button class="bw-now" id="sbPick" aria-label="책 고르기">
+      <span class="dot"></span>
+      <span class="t">${esc(b.title)}</span>
+      <span class="c">바꾸기</span>
+    </button>
+  </div>
+  <div class="bookcard">
+    <div class="bt">${esc(b.title)}</div>
+    <div class="ba">${esc(b.author||'')}</div>
+    <div class="progbar"><i style="width:${pct}%"></i></div>
+    <div class="progtxt"><span>읽은 장 ${read} / ${total}</span><span>책의 ${pct}%</span></div>
+  </div>`;
+  const bms=(S.marks||[]).filter(m=>m.bookId===S.bookId);
+  if(bms.length) html+=`<div class="marklist">
+    <div class="bw-lbl">🔖 책갈피 ${bms.length}</div>`+
+    bms.map(m=>`<div class="mk" data-sbmk="${esc(m.id)}">
+      <span class="mkc">${m.chapter}장${m.page?` · ${m.page+1}쪽`:''}</span>
+      <span class="mkt">${esc(m.text||'저장한 자리')}</span>
+      <button class="mkx" data-sbmx="${esc(m.id)}" aria-label="책갈피 빼기">✕</button></div>`).join('')+`</div>`;
+  html+=`<input class="searchbox" id="sbSearch" placeholder="🔎 장 제목·내용 찾기…" value="${esc(sbQ)}">`;
+  let items='';
+  b.chapters.forEach(c=>{
+    if(q){ const hay=((c.title||'')+' '+(c.paras||[]).join(' ')).toLowerCase();
+      if(!hay.includes(q)) return; }
+    items+=`<div class="artitem ${c.n===S.chapter?'sel':''} ${S.read[S.bookId+':'+c.n]?'done':''}" data-sbch="${c.n}">
+      <span class="readdot"></span>
+      <span class="h"><span class="cn">${c.n}</span> ${esc(c.title||('제'+c.n+'장'))}</span>
+    </div>`;
+  });
+  html+= items || '<div class="emptymini">찾는 장이 없습니다.</div>';
+  sb.innerHTML=html;
+
+  $('#sbPick').addEventListener('click',()=>{ closeDrawer(); openLib(true); });
+  const sq=$('#sbSearch');
+  sq.addEventListener('input',e=>{
+    sbQ=e.target.value; const pos=e.target.selectionStart;
+    renderSidebar(); const n=$('#sbSearch'); n.focus(); n.setSelectionRange(pos,pos);
+  });
+  $$('#sidebar [data-sbch]').forEach(el=>el.addEventListener('click',()=>{
+    const n=+el.dataset.sbch; closeDrawer();
+    if(n!==S.chapter){ pgPage=0; S.chapter=n; save(); render(); }
+  }));
+  $$('#sidebar [data-sbmk]').forEach(el=>el.addEventListener('click',ev=>{
+    if(ev.target.dataset.sbmx) return;
+    const k=(S.marks||[]).find(x=>x.id===el.dataset.sbmk); if(!k) return;
+    closeDrawer(); pgPage=k.page; openBook(k.bookId,k.chapter);
+  }));
+  $$('#sidebar [data-sbmx]').forEach(el=>el.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    S.marks=(S.marks||[]).filter(x=>x.id!==el.dataset.sbmx); save(); renderSidebar();
+  }));
+}
 function render(){
   document.documentElement.classList.toggle('paged', true);
   const m=$('#main');
@@ -381,6 +515,8 @@ function render(){
   bindSwipe();
   pgKey=S.bookId+':'+S.chapter;
   pgPage=S.pagePos[pgKey]||0;
+  renderSidebar();
+  sbHeight();
   requestAnimationFrame(()=>pgRelayout());
 }
 
@@ -655,6 +791,14 @@ function applyTheme(){
   requestAnimationFrame(()=>pgRelayout());
 }
 function bindChrome(){
+  /* 좁은 화면에서 옆단은 ☰ 로 여는 서랍이 된다 */
+  const mb=$('#menuBtn'), ov=$('#overlay');
+  if(mb) mb.addEventListener('click',()=>document.body.classList.toggle('drawer'));
+  if(ov) ov.addEventListener('click',closeDrawer);
+  addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+  /* 머리말 높이는 브랜드가 두 줄이라 폭에 따라 달라진다 — 바뀔 때마다 다시 잰다 */
+  addEventListener('resize',sbHeight);
+  sbHeight();
   $('#btnLib').addEventListener('click',()=>openLib(true));
   $('#btnMark').addEventListener('click',toggleMark);
   $('#btnToc').addEventListener('click',openToc);
