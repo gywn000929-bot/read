@@ -38,6 +38,17 @@ html[data-theme="dark"]{
   src:url('../fonts/RIDIBatang.woff2') format('woff2')}
 @font-face{font-family:'NanumBarunGothic';font-display:swap;font-weight:400;
   src:url('../fonts/NanumBarunGothic.woff2') format('woff2')}
+/* 사이트 탭 — 영어 원서 서재와 한국 문학 서재를 오간다.
+   일부러 고정(sticky)하지 않았다. 아래 리더 머리말이 이미 top:0 에 붙어 있어서
+   같이 붙이면 겹치고, 읽는 화면에서 세로를 두 줄이나 잡아먹는다. */
+.sitetabs{display:flex;gap:4px;background:var(--surface);
+  border-bottom:1px solid var(--line);padding:7px clamp(12px,4vw,26px) 0}
+.sitetabs a{text-decoration:none;color:var(--sub);font-size:13px;font-weight:600;
+  padding:9px 14px;border-radius:10px 10px 0 0;border:1px solid transparent;
+  border-bottom:none;display:flex;align-items:center;gap:6px;white-space:nowrap;
+  margin-bottom:-1px;transition:.15s}
+.sitetabs a:hover{color:var(--ink);background:var(--line2)}
+.sitetabs a.on{color:var(--accent);background:var(--bg);border-color:var(--line)}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--gothic);line-height:1.6;
@@ -212,6 +223,10 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 </head>
 <body>
 
+<div class="sitetabs">
+  <a href="../">📖 영어 원서</a>
+  <a class="on" href="./">📚 한국 문학</a>
+</div>
 <header class="top">
   <div class="brand">
     <span class="k">한국 근대문학</span>
