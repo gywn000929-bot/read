@@ -17,6 +17,8 @@
   --mark:#f6ecc9; --shadow:0 10px 40px rgba(20,16,10,.12);
   --cv-tint:rgba(10,61,98,.11); --on-accent:#fff;
   --myeongjo:'Nanum Myeongjo','Apple SD Gothic Neo','Malgun Gothic',serif;
+  --ridi:'RIDIBatang','Nanum Myeongjo','Apple SD Gothic Neo',serif;
+  --barun:'NanumBarunGothic',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --gothic:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
   --sans:var(--gothic);
   --measure:34rem; --fs:19px; --lh:1.9;
@@ -29,6 +31,13 @@ html[data-theme="dark"]{
   --mark:#3d3413; --shadow:0 14px 50px rgba(0,0,0,.55);
   --cv-tint:rgba(127,176,255,.10); --on-accent:#0f1216;
 }
+/* 한글 본문 글꼴. 선언만 해 두면 브라우저는 이 글꼴로 실제 글자를 그릴 때
+   비로소 파일을 받아온다 — 설정에서 고르지 않은 사람은 한 바이트도 안 받는다.
+   swap 이라 받아오는 동안에도 글은 곧바로 보인다. */
+@font-face{font-family:'RIDIBatang';font-display:swap;font-weight:400;
+  src:url('../fonts/RIDIBatang.woff2') format('woff2')}
+@font-face{font-family:'NanumBarunGothic';font-display:swap;font-weight:400;
+  src:url('../fonts/NanumBarunGothic.woff2') format('woff2')}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--gothic);line-height:1.6;
@@ -174,7 +183,8 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 .row{display:flex;align-items:center;gap:9px;min-height:52px;border-top:1px solid var(--line2)}
 .row:first-of-type{border-top:none}
 .row .lb{font-size:12px;color:var(--sub);width:56px;flex:none}
-.opts{display:flex;gap:5px;flex:1}
+.opts{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.opts button{min-width:70px}
 .opts button{flex:1;height:44px;border:1px solid var(--line);background:var(--surface);color:var(--sub);
   border-radius:9px;font-size:12px}
 .opts button:hover{border-color:var(--accent);color:var(--ink)}
@@ -222,7 +232,7 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
         <button data-theme="beige"><span class="set-swatch" style="background:#faf9f6"></span>베이지</button><button data-theme="white"><span class="set-swatch" style="background:#fff"></span>화이트</button><button data-theme="dark"><span class="set-swatch" style="background:#0f1216"></span>블랙</button>
       </div></div>
       <div class="row"><div class="lb">글꼴</div><div class="opts" id="optFont">
-        <button data-font="myeongjo">명조</button><button data-font="gothic">고딕</button>
+        <button data-font="myeongjo">명조</button><button data-font="gothic">고딕</button><button data-font="ridi">리디바탕</button><button data-font="barun">바른고딕</button>
       </div></div>
       <div class="row"><div class="lb">글자 크기</div><div class="size">
         <button id="fsMinus">가−</button><input type="range" id="fsRange" min="15" max="32" step="1">
@@ -613,7 +623,9 @@ function openToc(){
 function applyTheme(){
   const d=document.documentElement;
   d.setAttribute('data-theme',S.theme);
-  d.style.setProperty('--reading-font', S.font==='gothic'?'var(--gothic)':'var(--myeongjo)');
+  const fmap={gothic:'var(--gothic)',myeongjo:'var(--myeongjo)',
+    ridi:'var(--ridi)',barun:'var(--barun)'};
+  d.style.setProperty('--reading-font', fmap[S.font]||'var(--myeongjo)');
   d.style.setProperty('--fs',S.fs+'px');
   d.style.setProperty('--lh',S.lh);
   d.style.setProperty('--measure',S.measure);
