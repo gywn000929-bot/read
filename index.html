@@ -34,6 +34,15 @@ html[data-theme="white"]{
   --bg:#ffffff; --surface:#ffffff; --line:#e8e8ec; --line2:#f3f3f5;
   --accent-soft:#eaf1f8; --mark:#fdf0bf;
 }
+/* 벚꽃 — 부드러운 분홍. 모서리도 함께 둥글려서 색만이 아니라 형태로도 다르게 둔다. */
+html[data-theme="sakura"]{
+  --bg:#ffeef4; --surface:#fffafc; --ink:#462936; --sub:#754c5e; --faint:#977284;
+  --line:#ffd3e3; --line2:#ffe4ee; --accent:#b8306a; --accent-soft:#ffdcea;
+  --mark:#ffd0e2; --mark-line:#e88ab4; --good:#1f7a52; --bad:#ab2439;
+  --shadow:0 10px 40px rgba(184,48,106,.15); --on-accent:#fff6fa;
+}
+html[data-theme="sakura"] .bookcard,html[data-theme="sakura"] .pk-cv{border-radius:18px}
+html[data-theme="sakura"] .toolbar button,html[data-theme="sakura"] .set-opts button{border-radius:999px}
 /* 세피아 — 누렇게 익은 종이. 오래 봐도 눈이 덜 시린 밝은 테마다. */
 html[data-theme="sepia"]{
   --bg:#f3e7d3; --surface:#faf2e2; --ink:#3f3222; --sub:#6d5b44; --faint:#8b7a63;
@@ -705,6 +714,7 @@ const THEMES=[
   {k:'beige',n:'베이지',c:'#faf9f6'},
   {k:'white',n:'화이트',c:'#ffffff'},
   {k:'sepia',n:'세피아',c:'#f3e7d3'},
+  {k:'sakura',n:'벚꽃',c:'#ffeef4'},
   {k:'ash',  n:'잿빛',  c:'#30343b'},
   {k:'dark', n:'블랙',  c:'#0f1216'},
 ];
@@ -717,6 +727,7 @@ function renderThemePickers(){
     const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
 }
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
+  cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
   wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
 
@@ -1231,6 +1242,7 @@ function renderMain(){
       <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span class="hide-sm">문장 해석</span></button>
       <button id="btnVocab2" class="${S._showvocab?'on':''}"><span>✨</span><span class="hide-sm">단어 강조</span></button>
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
+      ${pgOn()? `<button id="btnCols"><span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span></button>`:''}
       <button id="btnMark"><span>🔖</span><span class="hide-sm">북마크</span></button>
       <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
@@ -1260,6 +1272,11 @@ function renderMain(){
   $('#btnTrans').addEventListener('click',()=>{ S._trans=!S._trans; renderMain(); });
   $('#btnVocab2').addEventListener('click',()=>{ S._showvocab=!S._showvocab; renderMain(); });
   $('#btnPage').addEventListener('click',()=>{ S.paged=!pgOn(); save(); renderMain(); });
+  /* 한 쪽 ↔ 두 쪽. 단 수가 바뀌면 쪽 나눔이 통째로 달라지므로 다시 잰다.
+     좁은 화면에서는 애초에 두 쪽이 안 되므로 단추도 나오지 않는다. */
+  const bc=$('#btnCols');
+  if(bc) bc.addEventListener('click',()=>{ S.cols=S.cols===1?2:1; save(); renderMain(); });
+  paintCols();
   $('#btnMark').addEventListener('click',toggleMark);
   if(pgOn()){
     $('#pgPrevBtn').addEventListener('click',pgPrev);
@@ -1343,6 +1360,14 @@ let pgPage=0, pgTotal=1, pgWantLast=false, pgKey='', pgTimer=null;
 const pgOn=()=>S.paged!==false;
 const pgStep=vp=>vp.clientWidth+PG_GAP;
 
+/* 두 쪽 단추의 보임새. 창 폭이 아니라 본문이 실제로 차지하는 폭을 본다 —
+   옆단이 자리를 먹으면 창은 넓어도 두 쪽이 안 들어간다.
+   쪽 나눔이 쓰는 값과 같은 값이어야 단추와 결과가 어긋나지 않는다. */
+function paintCols(){
+  const b=$('#btnCols'), vp=$('#pageView');
+  if(!b) return;
+  b.style.display=(vp && vp.clientWidth>=900)? '' : 'none';
+}
 function pgLayout(keepEl){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body) return;
@@ -1362,7 +1387,9 @@ function pgLayout(keepEl){
   const snap=v=>lh>0? Math.max(lh*4,Math.floor(v/lh)*lh) : Math.max(240,v);
   const setH=v=>{ vp.style.height=v+'px'; body.style.height=v+'px'; };
   const w=Math.round(vp.clientWidth);
-  const cols=w>=900?2:1;                               // 넓은 화면은 책처럼 두 쪽씩
+  /* 좁은 화면은 두 쪽이 들어갈 자리가 없어 늘 한 쪽이다.
+     자리가 되는 화면에서만 고를 수 있고, 그때 고른 값을 따른다. */
+  const cols=(w>=900&&S.cols!==1)?2:1;
 
   const img=body.classList.contains('imgbook');
   if(img){
@@ -1389,6 +1416,7 @@ function pgLayout(keepEl){
     if(next>=h) break;
     h=next; setH(h);
   }
+  paintCols();                                         // 폭이 정해진 뒤에 단추를 맞춘다
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
   if(!img) pgAvoidSplit();                             // 쪽에 걸친 문장을 다음 쪽으로
 
