@@ -205,9 +205,6 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
      자리를 다 가져가 제목이 말줄임표 한 점으로 찌그러진다. */
   .sp{display:none}
   .brand{flex:1 1 auto;min-width:0}
-  /* '서재' 와 '목차' 는 폰에서 ☰ 서랍이 이미 다 갖고 있다 — 책 고르기도, 장 목록도.
-     머리말에 또 두면 자리만 먹고 책 이름이 한 글자로 찌그러진다. */
-  #btnLib,#btnToc{display:none}
 }
 .sblibs{display:none}
 *{box-sizing:border-box}
@@ -275,13 +272,38 @@ html.paged main{max-width:min(1180px,100%);width:100%}
 .body.paged{column-fill:auto;-webkit-column-fill:auto;overflow:hidden;
   overscroll-behavior:contain;orphans:2;widows:2}
 .body.paged p{max-width:var(--measure);margin-inline:auto}
+/* 얹힌 도구 줄이 장 제목을 가리지 않게 첫 쪽만 그만큼 내려 앉힌다.
+   줄 높이는 화면 폭에 따라 달라지므로 조판할 때 재서 --tbh 로 넘긴다.
+   쪽마다 드는 값이 아니라 장의 첫 쪽에만 드는 값이다. */
+.body.paged .chaphead{padding-top:var(--tbh,0px)}
 .body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid}
 .body.paged .pgbrk{display:block;height:0;margin:0;-webkit-column-break-before:always;break-before:column}
 html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
+/* 본문 위 도구 줄. 영어 원서 서재와 같은 자리·같은 차례로 둔다 —
+   두 서재를 오갈 때 같은 일의 단추가 같은 자리에 있어야 손이 헛돌지 않는다. */
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  padding:7px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.toolbar button{border:1px solid transparent;background:transparent;color:var(--sub);
+  padding:7px 10px;border-radius:9px;font-size:12.5px;font-weight:500;
+  display:flex;align-items:center;gap:5px;white-space:nowrap;flex:none;transition:.15s}
+.toolbar button:hover:not(:disabled){background:var(--line2);color:var(--ink)}
+.toolbar button:disabled{opacity:.35;cursor:default}
+.toolbar button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.toolbar .sep{width:1px;height:16px;background:var(--line)}
+@media(max-width:640px){
+  .toolbar{gap:3px;padding:5px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .toolbar::-webkit-scrollbar{display:none}
+  .toolbar .hide-sm{display:none}
+}
 /* 쪽 모드에서 쪽 바를 흐름에서 빼서 쪽 위에 얹는다. 이 서재는 늘 쪽 모드라
    창이 스크롤되지 않고, 흐름에 두면 그 높이가 끝까지 자리를 지킨다.
    얹으면 쪽 높이가 달라지지 않으므로 여닫아도 조판을 다시 하지 않는다. */
 .reader.paged{position:relative}
+.reader.paged .toolbar{position:absolute;left:0;right:0;top:0;z-index:22;margin:0;
+  opacity:0;pointer-events:none;transform:translateY(-6px);box-shadow:var(--shadow);
+  transition:opacity .18s ease,transform .18s ease}
+body.chrome-show .reader.paged .toolbar{opacity:1;transform:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){ .reader.paged .toolbar{transition:none} }
 .reader.paged .pgfoot{position:absolute;left:0;right:0;bottom:0;z-index:22;margin:0;
   opacity:0;pointer-events:none;transform:translateY(6px);
   transition:opacity .18s ease,transform .18s ease;
@@ -368,16 +390,6 @@ body.chrome-show .pgcap{visibility:hidden}
   font-size:12.5px;color:var(--sub);text-decoration:none;text-align:center}
 .sitelink:hover{color:var(--accent)}
 
-/* ── 목차 ───────────────────────────────────────────────── */
-.toc{display:flex;flex-direction:column;gap:2px}
-.toc button{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
-  border:none;background:none;padding:10px 11px;border-radius:9px;font:inherit;font-size:14px}
-.toc button:hover{background:var(--accent-soft)}
-.toc button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
-.toc .n{font-size:11px;color:var(--faint);min-width:26px;font-variant-numeric:tabular-nums}
-.toc .tt{flex:1;font-family:inherit;word-break:keep-all}
-.toc .dn{font-size:11px;color:var(--faint)}
-
 /* ── 설정 ───────────────────────────────────────────────── */
 /* 테마는 설정을 열지 않고 머리말에서 바로 고른다 — 읽다가 해가 지면 손이
    제일 자주 가는 것이 테마여서, 설정 안에 두면 세 번을 눌러야 한다. */
@@ -448,10 +460,6 @@ body.chrome-show .pgcap{visibility:hidden}
     <span class="t" id="hTitle">서재</span>
   </div>
   <div class="sp"></div>
-  <button class="tbtn" id="btnLib" title="서재">서재</button>
-  <button class="tbtn" id="btnToc" title="목차">목차</button>
-  <button class="tbtn" id="btnCols" title="한 쪽 / 두 쪽 보기"></button>
-  <button class="tbtn" id="btnMark" title="북마크">🔖</button>
   <div class="themewrap">
     <button class="tbtn" id="btnTheme" title="테마" aria-haspopup="true" aria-expanded="false"></button>
     <div class="thememenu" id="thememenu"></div>
@@ -490,7 +498,6 @@ body.chrome-show .pgcap{visibility:hidden}
   <main id="main"><div class="empty">불러오는 중…</div></main>
 </div>
 <div id="overlay"></div>
-<div class="modal" id="tocModal"></div>
 <div class="modal" id="libModal"></div>
 <div class="modal" id="impModal"></div>
 <div class="toast" id="toast"></div>
@@ -1028,6 +1035,8 @@ function render(){
   if(!curBook){ m.innerHTML='<div class="empty">서재에서 책을 골라주세요.</div>'; return; }
   const b=book(), c=chap(S.chapter);
   $('#hTitle').textContent=b.title;
+  const ci=b.chapters.findIndex(x=>x.n===S.chapter);
+  const prevCh=b.chapters[ci-1], nextCh=b.chapters[ci+1];
 
   /* 넓은 화면은 펼친 채로 둔다 — 자리가 남으니 접을 이유가 없다 */
   const note = `<details class="note${b.note?'':' none'}"${innerWidth>960?' open':''}>
@@ -1051,6 +1060,13 @@ function render(){
     </div>`;
 
   m.innerHTML=`<div class="reader paged">
+      <div class="toolbar">
+        <button id="btnPrevCh"${prevCh?'':' disabled'}>‹ 이전 장</button>
+        <button id="btnNextCh"${nextCh?'':' disabled'}>다음 장 ›</button>
+        <span class="sep"></span>
+        <button id="btnCols" title="한 쪽 / 두 쪽 보기"></button>
+        <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
+      </div>
       ${S.chapter===curBook.chapters[0].n? note : ''}
       <div class="pageview" id="pageView">
         <div class="body paged ${isVerse()?'verse':''} ${S.para==='indent'&&!isVerse()?'indent':''}" id="readBody">
@@ -1070,6 +1086,15 @@ function render(){
     </div>`;
   $('#pPrev').addEventListener('click',pgPrev);
   $('#pNext').addEventListener('click',pgNext);
+  /* 본문 위 도구 줄 — 장마다 다시 그려지므로 여기서 묶는다 */
+  const gotoCh=n=>{ pgPage=0; S.chapter=n; save(); render(); };
+  const bp=$('#btnPrevCh'), bn=$('#btnNextCh');
+  if(bp&&prevCh) bp.addEventListener('click',()=>gotoCh(prevCh.n));
+  if(bn&&nextCh) bn.addEventListener('click',()=>gotoCh(nextCh.n));
+  $('#btnMark').addEventListener('click',toggleMark);
+  $('#btnCols').addEventListener('click',()=>{
+    S.cols=S.cols===1?2:1; save(); paintCols(); pgRelayout(); });
+  paintCols();
   /* 해설을 펴고 접으면 쪽 높이가 달라진다 — 그때마다 다시 잰다 */
   const nt=m.querySelector('.note');
   if(nt) nt.addEventListener('toggle',()=>requestAnimationFrame(()=>pgRelayout()));
@@ -1114,6 +1139,9 @@ function pgRelayout(){
     let nx=snap(h-over); if(nx>=h) nx=Math.max(lh*4,h-lh);
     if(nx>=h) break; h=nx; setH(h);
   }
+  /* 얹힌 도구 줄 높이 — 장 제목이 그 아래로 내려앉게 넘긴다 */
+  const tb=document.querySelector('.reader.paged .toolbar');
+  document.documentElement.style.setProperty('--tbh', (tb? tb.offsetHeight+6 : 0)+'px');
   body.scrollLeft=0;
   pgAvoidSplit();
   pgTotal=Math.max(1,Math.round((body.scrollWidth+PG_GAP)/(w+PG_GAP)));
@@ -1330,29 +1358,6 @@ function bindPicks(){
   }));
 }
 
-/* ============ 목차 ============ */
-function openToc(){
-  if(!curBook) return toast('먼저 책을 골라주세요');
-  const m=$('#tocModal');
-  m.innerHTML=`<div class="sheet">
-    <div class="sh-top"><h2>목차</h2><span class="ct">${esc(curBook.title)} · ${totalChaps()}장</span>
-      <button class="x" id="tocX">✕</button></div>
-    <div class="toc">${curBook.chapters.map(c=>`
-      <button data-ch="${c.n}" class="${c.n===S.chapter?'on':''}">
-        <span class="n">${c.n}</span><span class="tt">${esc(c.title||('제'+c.n+'장'))}</span>
-        <span class="dn">${S.read[S.bookId+':'+c.n]?'읽음':''}</span>
-      </button>`).join('')}</div>
-  </div>`;
-  m.classList.add('show');
-  $('#tocX').addEventListener('click',()=>m.classList.remove('show'));
-  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
-  $$('#tocModal [data-ch]').forEach(b=>b.addEventListener('click',()=>{
-    m.classList.remove('show');
-    const n=+b.dataset.ch;
-    if(n!==S.chapter){ pgPage=0; S.chapter=n; save(); render(); }
-  }));
-}
-
 /* ============ 설정 ============ */
 /* 열 때 판 높이를 화면에 맞춘다. max-height 를 CSS 상수로 두면 사이트 탭과
    머리말 높이가 화면 폭마다 달라져서 몇십 픽셀씩 아래로 삐져나간다. */
@@ -1370,7 +1375,8 @@ function paintCols(){
   const vp=$('#pageView');
   const wide=(vp? vp.clientWidth : innerWidth)>=900;
   b.style.display=wide? '' : 'none';
-  b.textContent=S.cols===1? '▯' : '▯▯';
+  /* 영어 원서 서재와 같은 꼴로 — 기호와 이름을 같이 두고 좁은 화면에서 이름만 접는다 */
+  b.innerHTML=`<span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span>`;
   b.title=(S.cols===1?'한 쪽 보기':'두 쪽 보기')+' (눌러서 바꾸기)';
   b.setAttribute('aria-label',b.title);
 }
@@ -1412,13 +1418,9 @@ function bindChrome(){
   /* 머리말 높이는 브랜드가 두 줄이라 폭에 따라 달라진다 — 바뀔 때마다 다시 잰다 */
   addEventListener('resize',sbHeight);
   sbHeight();
-  $('#btnLib').addEventListener('click',()=>openLib(true));
-  $('#btnMark').addEventListener('click',toggleMark);
-  $('#btnToc').addEventListener('click',openToc);
-  /* 한 쪽 ↔ 두 쪽. 단 수가 바뀌면 쪽 나눔이 통째로 달라지므로 다시 잰다.
-     좁은 화면에서는 애초에 두 쪽이 안 되므로 단추를 감춘다. */
-  $('#btnCols').addEventListener('click',()=>{
-    S.cols=S.cols===1?2:1; save(); paintCols(); pgRelayout(); });
+  /* 책마다의 일(책갈피·한 쪽/두 쪽·장 넘김)은 본문 위 도구 줄로 옮겼다.
+     그 줄은 장을 열 때마다 다시 그려지므로 render() 안에서 묶는다.
+     서재 고르기와 장 목록은 옆단(폰에서는 ☰ 서랍)에 있다 — 영어 원서 서재와 같다. */
   addEventListener('resize',paintCols);
   const sb=$('#btnSet'), sm=$('#setmenu');
   sb.addEventListener('click',e=>{ e.stopPropagation(); sm.classList.toggle('show');

@@ -223,6 +223,10 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
    그게 남아 있으면 쪽을 다 채워놓고도 창이 세로로 또 스크롤된다 */
 .reader.paged .chap-nav,.reader.paged .readtip{display:none}
 /* 제목 묶음이 본문 안으로 들어오므로, 단 중간에서 쪼개지지 않게 한다 */
+/* 얹힌 도구 줄이 장 제목을 가리지 않게 첫 쪽만 그만큼 내려 앉힌다.
+   줄 높이는 화면 폭에 따라 달라지므로 조판할 때 재서 --tbh 로 넘긴다.
+   쪽마다 드는 값이 아니라 장의 첫 쪽에만 드는 값이다. */
+.body.paged .chaphead{padding-top:var(--tbh,0px)}
 .body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:1.1em}
 .body.paged .chaphead h1{font-size:clamp(24px,3.4vw,34px);margin:7px 0 9px}
 /* 제목 묶음과 첫 문단 사이가 9px + 11px 이라 문단 사이(1.35em≈25px)보다 좁았다 —
@@ -1268,8 +1272,8 @@ function renderMain(){
   $('#main').innerHTML=`<div class="reader${pgOn()?' paged':''}">
     ${(pgOn()&&!isImg)?'':head}
     <div class="toolbar">
-      <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전</button>
-      <button id="btnNext" ${next?'':'disabled'}>다음 ›</button>
+      <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전 장</button>
+      <button id="btnNext" ${next?'':'disabled'}>다음 장 ›</button>
       <span class="sep"></span>
       <button id="btnPlay"><span>🔊</span><span class="pl">듣기</span></button>
       <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span class="hide-sm">문장 해석</span></button>
@@ -1458,6 +1462,9 @@ function pgLayout(keepEl){
     h=next; setH(h);
   }
   paintCols();                                         // 폭이 정해진 뒤에 단추를 맞춘다
+  /* 얹힌 도구 줄 높이 — 장 제목이 그 아래로 내려앉게 넘긴다 */
+  const tb=document.querySelector('.reader.paged .toolbar');
+  document.documentElement.style.setProperty('--tbh', (tb? tb.offsetHeight+6 : 0)+'px');
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
   if(!img) pgAvoidSplit();                             // 쪽에 걸친 문장을 다음 쪽으로
 
