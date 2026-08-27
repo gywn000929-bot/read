@@ -129,11 +129,19 @@ html[data-theme="dark"]{
    붙는 높이(--hh)는 숫자를 박지 않고 JS 가 머리말을 재서 넣는다.
    브랜드가 두 줄이라 화면 폭에 따라 높이가 달라진다. */
 .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto}
+/* 넓은 화면에서 옆단 접기. 읽는 동안에는 서재도 장 목록도 볼 일이 없는데
+   300px 을 계속 먹는다. 좁은 화면은 이미 서랍이라 접을 것이 없다. */
+@media(min-width:961px){
+  body.sbhide .wrap{grid-template-columns:minmax(0,1fr)}
+  body.sbhide aside{display:none}
+}
 aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
   overflow-y:auto;max-height:calc(100dvh - var(--hh,64px));position:sticky;top:var(--hh,64px)}
 #overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55}
+/* ☰ 는 좁은 화면에서는 서랍을 열고, 넓은 화면에서는 옆단을 접었다 편다 —
+   둘 다 '옆단을 보이고 감추는' 같은 일이라 단추도 하나로 둔다. */
 .iconbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);
-  border-radius:10px;display:none;align-items:center;justify-content:center;font-size:18px;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;
   flex:none;cursor:pointer}
 .iconbtn:hover{border-color:var(--accent)}
 .bookswitch{margin-bottom:14px}
@@ -176,7 +184,9 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
 /* 읽는 화면에서 위 껍데기가 세로를 너무 먹었다 — 폰에서 사이트 탭과 머리말이
    화면 위쪽을 계속 차지했고, 쪽 모드는 창이 아예 스크롤되지 않아 늘 그대로였다. */
 @media(max-width:960px){
-  .wrap{grid-template-columns:1fr}
+  /* minmax(0,…) 없이 1fr 만 두면 칸이 내용의 최소 폭 밑으로 못 줄어든다 —
+     본문에 인라인 width 가 박혀 있어, 넓은 창을 좁히면 본문이 창 밖으로 삐져나갔다 */
+  .wrap{grid-template-columns:minmax(0,1fr)}
   .iconbtn{display:flex}
   /* 서랍은 top:0 에서 시작하는데 머리말이 그 위를 덮는다(z 60 대 56).
      비켜 두지 않으면 서랍 맨 위 — 서재를 오가는 탭 — 이 머리말 뒤에 통째로
@@ -531,6 +541,7 @@ function renderThemePickers(){
 const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem', para:'gap',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
+  sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
   bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
   /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
   del:{b:{},m:{}}, lastT:0, cloudAt:0 };
@@ -640,6 +651,21 @@ function sbHeight(){
   if(h) document.documentElement.style.setProperty('--hh', Math.round(h.getBoundingClientRect().height)+'px');
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
+/* 넓은 화면에서만 접는다. 좁은 화면에서 이 표를 붙이면 서랍이 통째로 사라진다.
+   접었다 펴면 본문 폭이 300px 달라지므로 쪽을 다시 나눠야 한다. */
+const sbWide=()=>innerWidth>960;
+function paintSb(){
+  const on=sbWide()&&!!S.sbhide;
+  const was=document.body.classList.contains('sbhide');
+  document.body.classList.toggle('sbhide',on);
+  const b=$('#menuBtn');
+  if(b){
+    const t=sbWide()? (on?'옆단 펴기':'옆단 접기') : '메뉴';
+    b.title=t; b.setAttribute('aria-label',t);
+    b.setAttribute('aria-expanded', sbWide()? String(!on) : 'false');
+  }
+  if(on!==was) requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
 
 
 /* ---- 자동 동기화 ---- 영어 원서 서재와 같은 방식. 로그인이 없고, 같은 데이터베이스에서
@@ -1412,8 +1438,14 @@ function applyTheme(){
 function bindChrome(){
   /* 좁은 화면에서 옆단은 ☰ 로 여는 서랍이 된다 */
   const mb=$('#menuBtn'), ov=$('#overlay');
-  if(mb) mb.addEventListener('click',()=>document.body.classList.toggle('drawer'));
+  if(mb) mb.addEventListener('click',()=>{
+    if(sbWide()){ S.sbhide=!S.sbhide; save(); paintSb(); }
+    else document.body.classList.toggle('drawer');
+  });
   if(ov) ov.addEventListener('click',closeDrawer);
+  /* 폭이 960px 을 넘나들면 ☰ 가 하는 일이 바뀐다 — 그때마다 다시 칠한다 */
+  addEventListener('resize',paintSb);
+  paintSb();
   addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
   /* 머리말 높이는 브랜드가 두 줄이라 폭에 따라 달라진다 — 바뀔 때마다 다시 잰다 */
   addEventListener('resize',sbHeight);

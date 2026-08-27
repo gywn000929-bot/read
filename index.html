@@ -107,8 +107,11 @@ a{color:var(--accent);text-decoration:none}
 header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
   padding:12px clamp(14px,4vw,28px);position:sticky;top:0;z-index:60;
   display:flex;align-items:center;gap:14px}
+/* ☰ 는 좁은 화면에서는 서랍을 열고, 넓은 화면에서는 옆단을 접었다 편다 —
+   둘 다 '옆단을 보이고 감추는' 같은 일이라 단추도 하나로 둔다. */
 .iconbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);
-  border-radius:10px;display:none;align-items:center;justify-content:center;font-size:18px;flex:none}
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;
+  cursor:pointer}
 .iconbtn:hover{border-color:var(--accent)}
 .brand{display:flex;flex-direction:column;line-height:1.05;min-width:0}
 .brand .k{font-size:9.5px;letter-spacing:2.5px;color:var(--faint);text-transform:uppercase;font-weight:600}
@@ -127,6 +130,12 @@ header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
 /* Layout */
 .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto;
   min-height:calc(100vh - 65px);min-height:calc(100dvh - 65px)}
+/* 넓은 화면에서 옆단 접기. 읽는 동안에는 서재도 장 목록도 볼 일이 없는데
+   300px 을 계속 먹는다. 좁은 화면은 이미 서랍이라 접을 것이 없다. */
+@media(min-width:961px){
+  body.sbhide .wrap{grid-template-columns:minmax(0,1fr)}
+  body.sbhide aside{display:none}
+}
 aside{border-right:1px solid var(--line);background:var(--surface);
   padding:16px;overflow-y:auto;max-height:calc(100vh - 65px);max-height:calc(100dvh - 65px);
   position:sticky;top:65px}
@@ -571,7 +580,9 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 @media(max-width:960px){
-  .wrap{grid-template-columns:1fr}
+  /* minmax(0,…) 없이 1fr 만 두면 칸이 내용의 최소 폭 밑으로 못 줄어든다 —
+     본문에 인라인 width 가 박혀 있어, 넓은 창을 좁히면 본문이 창 밖으로 삐져나갔다 */
+  .wrap{grid-template-columns:minmax(0,1fr)}
   .iconbtn{display:flex}
   aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100dvh;
     transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow);
@@ -762,6 +773,7 @@ function renderThemePickers(){
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
+  sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
   /* 37rem 은 한 쪽 모드에서 한 줄 72자 — 권하는 최대(75자)의 끝이라 눈이 줄을
      되짚기 쉽다. 31rem 이면 60자. 두 쪽 모드는 단이 이미 더 좁아 영향이 없고
      (442px < 496px), 이미 쓰던 사람은 저장해 둔 값을 그대로 쓴다. */
@@ -1913,8 +1925,14 @@ function applyTheme(){ renderThemePickers();
 function bindChrome(){
   $('#navRead').addEventListener('click',()=>{ S.view='read'; save(); setNav(); renderMain(); });
   $('#navVocab').addEventListener('click',()=>{ S.view='vocab'; save(); setNav(); renderMain(); });
-  $('#menuBtn').addEventListener('click',()=>document.body.classList.toggle('drawer'));
+  $('#menuBtn').addEventListener('click',()=>{
+    if(sbWide()){ S.sbhide=!S.sbhide; save(); paintSb(); }
+    else document.body.classList.toggle('drawer');
+  });
   $('#overlay').addEventListener('click',closeDrawer);
+  /* 폭이 960px 을 넘나들면 ☰ 가 하는 일이 바뀐다 — 그때마다 다시 칠한다 */
+  addEventListener('resize',paintSb);
+  paintSb();
   const setBtn=$('#setBtn'), setmenu=$('#setmenu');
   setBtn.addEventListener('click',e=>{ e.stopPropagation(); setmenu.classList.toggle('show'); fitMenu(setmenu); });
   addEventListener('resize',()=>{ fitMenu(setmenu); fitMenu($('#thememenu')); });
@@ -1956,6 +1974,21 @@ function bindChrome(){
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
+/* 넓은 화면에서만 접는다. 좁은 화면에서 이 표를 붙이면 서랍이 통째로 사라진다.
+   접었다 펴면 본문 폭이 300px 달라지므로 쪽을 다시 나눠야 한다. */
+const sbWide=()=>innerWidth>960;
+function paintSb(){
+  const on=sbWide()&&!!S.sbhide;
+  const was=document.body.classList.contains('sbhide');
+  document.body.classList.toggle('sbhide',on);
+  const b=$('#menuBtn');
+  if(b){
+    const t=sbWide()? (on?'옆단 펴기':'옆단 접기') : '메뉴';
+    b.title=t; b.setAttribute('aria-label',t);
+    b.setAttribute('aria-expanded', sbWide()? String(!on) : 'false');
+  }
+  if(on!==was) requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
 /* 읽는 동안 위 껍데기를 접는다. 폰에서, 스크롤 모드에서만 —
    쪽 모드는 창이 스크롤되지 않아 접을 신호가 없고, 접어 봐야 자리가 비어 있을 뿐이다.
    서랍이나 단어 팝업이 떠 있으면 건드리지 않는다 — 그때는 머리말이 기준점이다. */
