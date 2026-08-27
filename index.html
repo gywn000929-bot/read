@@ -67,6 +67,10 @@ html[data-theme="dark"]{
   src:url('fonts/GowunBatang.woff2') format('woff2')}
 @font-face{font-family:'Pretendard';font-display:swap;font-weight:400;
   src:url('fonts/Pretendard.woff2') format('woff2')}
+/* 옆단이 프리텐다드로 통일되면서 굵게가 늘 쓰인다 — 진짜 굵은 벌을 준다.
+   합성 굵기는 한글에서 획이 뭉개진다. */
+@font-face{font-family:'Pretendard';font-display:swap;font-weight:700;
+  src:url('fonts/Pretendard-Bold.woff2') format('woff2')}
 /* 사이트 탭 — 영어 원서 서재와 한국 문학 서재를 오간다.
    일부러 고정(sticky)하지 않았다. 아래 리더 머리말이 이미 top:0 에 붙어 있어서
    같이 붙이면 겹치고, 읽는 화면에서 세로를 두 줄이나 잡아먹는다. */
@@ -110,7 +114,9 @@ header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
 /* Layout */
 .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto;
   min-height:calc(100vh - 65px);min-height:calc(100dvh - 65px)}
-aside{border-right:1px solid var(--line);background:var(--surface);
+/* 옆단은 프리텐다드 한 벌로 통일한다 — 책 제목은 세리프, 나머지는 시스템 고딕이라
+   한 상자 안에서 글꼴이 두세 개 섞여 보였다. */
+aside{font-family:var(--pretendard);border-right:1px solid var(--line);background:var(--surface);
   padding:16px;overflow-y:auto;max-height:calc(100vh - 65px);max-height:calc(100dvh - 65px);
   position:sticky;top:65px}
 main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
@@ -119,7 +125,7 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 /* Sidebar */
 .side-h{font-family:var(--serif);font-size:15px;font-weight:700;margin:2px 0 12px;color:var(--sub)}
 .bookcard{background:var(--accent-soft);border-radius:12px;padding:13px 14px;margin-bottom:14px}
-.bookcard .bt{font-family:var(--serif);font-size:18px;font-weight:800;line-height:1.15}
+.bookcard .bt{font-family:inherit;font-size:18px;font-weight:800;line-height:1.15}
 .bookcard .ba{font-size:12px;color:var(--sub);margin-top:2px}
 .progbar{height:6px;border-radius:6px;background:var(--line);margin-top:10px;overflow:hidden}
 .progbar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
@@ -132,13 +138,13 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
   background:transparent;color:var(--sub);font-weight:500;transition:.15s}
 .sectfilter button:hover{border-color:var(--accent);color:var(--ink)}
 .sectfilter button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.part-h{font-family:var(--serif);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
+.part-h{font-family:inherit;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
   color:var(--accent);margin:16px 4px 6px;border-bottom:1px solid var(--line);padding-bottom:5px}
 .artitem{padding:11px 10px;border-radius:11px;cursor:pointer;transition:.12s;position:relative;
   display:flex;align-items:center;gap:10px}
 .artitem:hover{background:var(--line2)}
 .artitem.sel{background:var(--accent-soft)}
-.artitem .h{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.3;flex:1;min-width:0}
+.artitem .h{font-family:inherit;font-size:15px;font-weight:600;line-height:1.3;flex:1;min-width:0}
 .artitem .m{font-size:11px;color:var(--faint)}
 .readdot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;border:1px solid var(--line)}
 .artitem.done .readdot{background:var(--good);border-color:var(--good)}
