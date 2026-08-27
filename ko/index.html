@@ -278,6 +278,21 @@ html.paged main{max-width:min(1180px,100%);width:100%}
 .body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid}
 .body.paged .pgbrk{display:block;height:0;margin:0;-webkit-column-break-before:always;break-before:column}
 html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
+/* 쪽 모드에서 쪽 바를 흐름에서 빼서 쪽 위에 얹는다. 이 서재는 늘 쪽 모드라
+   창이 스크롤되지 않고, 흐름에 두면 그 높이가 끝까지 자리를 지킨다.
+   얹으면 쪽 높이가 달라지지 않으므로 여닫아도 조판을 다시 하지 않는다. */
+.reader.paged{position:relative}
+.reader.paged .pgfoot{position:absolute;left:0;right:0;bottom:0;z-index:22;margin:0;
+  opacity:0;pointer-events:none;transform:translateY(6px);
+  transition:opacity .18s ease,transform .18s ease;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:6px 10px;box-shadow:var(--shadow)}
+body.chrome-show .reader.paged .pgfoot{opacity:1;transform:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){ .reader.paged .pgfoot{transition:none} }
+/* 도구가 숨어도 어디쯤인지는 늘 보인다 */
+.pgcap{text-align:center;font-size:11.5px;color:var(--faint);padding-top:8px;
+  font-variant-numeric:tabular-nums}
+body.chrome-show .pgcap{visibility:hidden}
 .pgfoot{margin-top:13px}
 .pagebar{display:flex;align-items:center;justify-content:center;gap:11px;
   padding-top:11px;border-top:1px solid var(--line)}
@@ -507,6 +522,7 @@ function renderThemePickers(){
     const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
 }
 const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem', para:'gap',
+  chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
   /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
@@ -1041,6 +1057,7 @@ function render(){
           ${head}${paras}
         </div>
       </div>
+      <div class="pgcap" id="pgCap"></div>
       <div class="pgfoot" id="pgFoot">
       <div class="pagebar" id="pageBar">
         <button id="pPrev" aria-label="이전">‹</button>
@@ -1057,6 +1074,7 @@ function render(){
   const nt=m.querySelector('.note');
   if(nt) nt.addEventListener('toggle',()=>requestAnimationFrame(()=>pgRelayout()));
   bindSwipe();
+  setChrome(true);        // 장을 열면 보인 채로 — 넘기기 시작하면 물러난다
   pgKey=S.bookId+':'+S.chapter;
   pgPage=S.pagePos[pgKey]||0;
   renderSidebar();
@@ -1070,7 +1088,8 @@ function pgRelayout(){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body) return;
   body.querySelectorAll('.pgbrk').forEach(x=>x.remove());
-  const bar=$('#pgFoot')||$('#pageBar'), mn=$('#main');
+  /* 쪽 바는 쪽 위에 얹혀 있어 흐름을 차지하지 않는다 — 아래에 남는 것은 캡션뿐 */
+  const bar=$('#pgCap')||$('#pgFoot'), mn=$('#main');
   const barH=bar? bar.offsetHeight+(parseFloat(getComputedStyle(bar).marginTop)||0):0;
   const padB=mn? (parseFloat(getComputedStyle(mn).paddingBottom)||0):0;
   const vh=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
@@ -1155,9 +1174,10 @@ function pgApply(smooth){
   if(!vp||!body) return;
   body.scrollTo({left:pgPage*pgStep(vp),behavior:smooth?'smooth':'auto'});
   if(pgKey){ S.pagePos[pgKey]=pgPage; save(); }
-  const n=$('#pgNum');
-  if(n){ const m=minLeft();
-    n.textContent=`${pgPage+1} / ${pgTotal}` + (m>0? ` · ${m}분 남음` : ' · 곧 끝나요'); }
+  const m=minLeft();
+  const label=`${pgPage+1} / ${pgTotal}` + (m>0? ` · ${m}분 남음` : ' · 곧 끝나요');
+  const n=$('#pgNum'); if(n) n.textContent=label;
+  const cap=$('#pgCap'); if(cap) cap.textContent=label;
   const bi=$('#bookDone');
   if(bi) bi.textContent=(totalChaps()>1? `${S.chapter}장 · ` : '') + `책 ${bookDone()}%`;
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
@@ -1166,7 +1186,16 @@ function pgApply(smooth){
   if(x) x.disabled = pgPage>=pgTotal-1 && S.chapter>=curBook.chapters[totalChaps()-1].n;
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
 }
-function pgGo(i){ pgPage=Math.min(Math.max(0,i),pgTotal-1); pgApply(true); }
+/* 쪽 바는 쪽 위에 얹혀 있다. 장을 열면 보이고, 한 번 넘기면 읽기 시작한 것으로
+   보고 물러난다. 가운데를 톡 치면 다시 나온다. 처음 물러날 때 한 번만 알려 준다. */
+function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
+function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
+function chromeAfterTurn(){
+  if(!document.body.classList.contains('chrome-show')) return;
+  setChrome(false);
+  if(!S.chromeHinted){ S.chromeHinted=true; save(); toast('가운데를 톡 치면 도구가 다시 나와요'); }
+}
+function pgGo(i){ chromeAfterTurn(); pgPage=Math.min(Math.max(0,i),pgTotal-1); pgApply(true); }
 function pgNext(){
   if(pgPage<pgTotal-1) return pgGo(pgPage+1);
   const i=curBook.chapters.findIndex(c=>c.n===S.chapter);
@@ -1191,7 +1220,9 @@ function bindSwipe(){
   vp.addEventListener('click',e=>{
     if(e.target.closest('.note')) return;
     const r=vp.getBoundingClientRect(), x=e.clientX-r.left;
-    if(x<r.width*.18) pgPrev(); else if(x>r.width*.82) pgNext();
+    if(x<r.width*.18) pgPrev();
+    else if(x>r.width*.82) pgNext();
+    else toggleChrome();          // 가운데는 비어 있던 자리다 — 도구를 여닫는다
   });
 }
 

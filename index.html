@@ -227,6 +227,27 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .body.paged .chaphead h1{font-size:clamp(24px,3.4vw,34px);margin:7px 0 9px}
 .body.paged .chaphead .byline{padding-bottom:11px;font-family:var(--pretendard)}
 .reader.paged .toolbar{margin:0 0 12px}
+/* 쪽 모드에서는 툴바와 쪽 바를 흐름에서 빼서 쪽 위에 얹는다.
+   쪽 모드는 창이 스크롤되지 않으니, 흐름에 두면 그 118px 이 끝까지 자리를 지킨다 —
+   375×667 에서 껍데기가 176px, 화면의 26% 였고 한 쪽이 14줄뿐이었다.
+   얹어 두면 쪽 높이를 다시 잴 일도 없다(겹쳐 뜨므로 조판이 그대로다). */
+.reader.paged{position:relative}
+.reader.paged .toolbar,.reader.paged .pagebar{
+  position:absolute;left:0;right:0;z-index:22;margin:0;
+  opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.reader.paged .toolbar{top:0;transform:translateY(-6px);box-shadow:var(--shadow)}
+.reader.paged .pagebar{bottom:0;transform:translateY(6px);box-shadow:var(--shadow);
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+body.chrome-show .reader.paged .toolbar,
+body.chrome-show .reader.paged .pagebar{opacity:1;transform:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){
+  .reader.paged .toolbar,.reader.paged .pagebar{transition:none}
+}
+/* 도구가 숨어도 어디쯤인지는 늘 보인다 — 본문이 이미 비워 둔 아래 여백에 앉힌다 */
+.pgcap{display:none;text-align:center;font-size:11.5px;color:var(--faint);
+  padding-top:8px;font-variant-numeric:tabular-nums}
+.reader.paged .pgcap{display:block}
+body.chrome-show .reader.paged .pgcap{visibility:hidden}
 /* 위아래 여백은 쪽에 넘긴다 — 좌우는 읽기 편한 폭을 위해 그대로 둔다 */
 html.paged main{padding-top:12px;padding-bottom:12px}
 .pagebar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;
@@ -727,6 +748,7 @@ function renderThemePickers(){
     const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
 }
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
+  chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
   wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
@@ -1250,6 +1272,7 @@ function renderMain(){
     <div class="pageview" id="pageView">
       <div lang="en" class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''} ${S.para==='indent'?'indent':''} ${S.just==='on'?'just':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
     </div>
+    ${pgOn()?`<div class="pgcap" id="pgCap"></div>`:''}
     ${pgOn()?`<div class="pagebar" id="pageBar">
       <button id="pgPrevBtn" aria-label="이전 페이지">‹</button>
       <span class="pgtrack"><i id="pgFill"></i></span>
@@ -1286,6 +1309,9 @@ function renderMain(){
     if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>pgLayout()).catch(()=>{});
   }
   bindReaderInteractions();
+  /* 장을 열면 도구는 보인 채로 시작한다 — 넘기기 시작하면 그때 물러난다.
+     스크롤 모드에서는 얹혀 있지 않으니 이 표시가 아무 일도 하지 않는다. */
+  setChrome(true);
 }
 function toggleRead(n){
   const k=readKey(S.bookId,n);
@@ -1301,7 +1327,9 @@ function bindReaderInteractions(){
     if(!pgOn()) return;
     // 글자를 누른 게 아니면 좌우 가장자리는 페이지 넘김으로 쓴다
     const r=vp.getBoundingClientRect(), x=e.clientX-r.left;
-    if(x<r.width*.16) pgPrev(); else if(x>r.width*.84) pgNext();
+    if(x<r.width*.16) pgPrev();
+    else if(x>r.width*.84) pgNext();
+    else toggleChrome();          // 가운데는 비어 있던 자리다 — 도구를 여닫는다
   });
   let sx=0,sy=0,st=0;
   vp.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
@@ -1376,7 +1404,9 @@ function pgLayout(keepEl){
 
   /* 쪽 아래로 남는 것: 페이지 바(윗여백 포함)와 main 의 아래 안쪽 여백.
      이걸 정확히 빼야 창이 세로로 더 스크롤되지 않는다 */
-  const bar=$('#pageBar'), mn=$('#main');
+  /* 툴바·쪽 바는 쪽 위에 얹혀 있어 흐름을 차지하지 않는다.
+     아래에 남는 것은 쪽 캡션 한 줄뿐이다. */
+  const bar=$('#pgCap'), mn=$('#main');
   const barH=bar? bar.offsetHeight+(parseFloat(getComputedStyle(bar).marginTop)||0) : 0;
   const padB=mn? (parseFloat(getComputedStyle(mn).paddingBottom)||0) : 0;
   /* visualViewport 는 아이폰 사파리에서 툴바를 뺀 '실제로 보이는' 높이를 준다.
@@ -1517,9 +1547,10 @@ function pgApply(smooth){
   if(!vp||!body||!pgOn()) return;
   body.scrollTo({left:pgPage*pgStep(vp),behavior:smooth?'smooth':'auto'});
   if(pgKey) S.pagePos[pgKey]=pgPage;                 // 읽던 쪽을 기억한다
-  const n=$('#pgNum');
-  if(n){ const left=minLeft(chapWords(chap(S.chapter))*(1-chapDone()));
-    n.textContent=`${pgPage+1} / ${pgTotal} · ${minText(left)}`; }
+  const left=minLeft(chapWords(chap(S.chapter))*(1-chapDone()));
+  const label=`${pgPage+1} / ${pgTotal} · ${minText(left)}`;
+  const n=$('#pgNum'); if(n) n.textContent=label;
+  const cap=$('#pgCap'); if(cap) cap.textContent=label;
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
 }
@@ -1532,10 +1563,21 @@ function pgPageOf(el){
 }
 function pgGo(i){
   if(!$('#readBody')) return;
+  chromeAfterTurn();                                 // 읽기 시작하면 도구는 물러난다
   noteTurn();                                        // 넘긴 간격으로 읽는 속도를 맞춘다
   pgPage=Math.min(Math.max(0,i),pgTotal-1);
   pgApply(true);
   save();                                            // 읽던 쪽을 남기고 다른 기기에도 보낸다
+}
+/* 쪽 모드에서 툴바·쪽 바는 쪽 위에 얹혀 있다. 처음에는 보이고, 한 번 넘기면
+   읽기 시작한 것으로 보고 물러난다. 가운데를 톡 치면 다시 나온다.
+   처음 물러날 때 한 번만 그 사실을 알려 준다 — 안 그러면 도구가 사라진 걸로 보인다. */
+function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
+function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
+function chromeAfterTurn(){
+  if(!pgOn()||!document.body.classList.contains('chrome-show')) return;
+  setChrome(false);
+  if(!S.chromeHinted){ S.chromeHinted=true; save(); toast('가운데를 톡 치면 도구가 다시 나와요'); }
 }
 function pgNext(){
   if(!pgOn()) return;
