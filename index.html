@@ -225,6 +225,9 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 /* 제목 묶음이 본문 안으로 들어오므로, 단 중간에서 쪼개지지 않게 한다 */
 .body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:1.1em}
 .body.paged .chaphead h1{font-size:clamp(24px,3.4vw,34px);margin:7px 0 9px}
+/* 제목 묶음과 첫 문단 사이가 9px + 11px 이라 문단 사이(1.35em≈25px)보다 좁았다 —
+   제목이 본문에 붙어 보인다. 문단 사이보다는 넓어야 한 덩어리로 안 읽힌다. */
+.body.paged .chaphead{margin-bottom:1.6em}
 .body.paged .chaphead .byline{padding-bottom:11px;font-family:var(--pretendard)}
 .reader.paged .toolbar{margin:0 0 12px}
 /* 쪽 모드에서는 툴바와 쪽 바를 흐름에서 빼서 쪽 위에 얹는다.
@@ -320,8 +323,13 @@ html.paged .wrap{min-height:0}
 #pop .pw{font-family:var(--serif);font-size:23px;font-weight:800}
 #pop .phon{color:var(--faint);font-size:13px;font-style:italic}
 #pop .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 뜻과 영영 정의는 통신이 끝난 뒤에 채워진다. 자리를 비워 두면 그때 카드가
+   40~90px 자라고, 맨 아래 저장 단추가 그만큼 내려간다 — 누르려던 자리가 옮겨간다.
+   그래서 도착하기 전에 들어갈 만큼의 높이를 미리 잡아 둔다. */
 #pop .ko{background:var(--accent-soft);border-radius:10px;padding:9px 12px;font-size:15px;
-  margin:10px 0;color:var(--accent);font-weight:600;line-height:1.5}
+  margin:10px 0;color:var(--accent);font-weight:600;line-height:1.5;
+  min-height:calc(1.5em + 18px)}
+#pop #popDef{min-height:74px}
 #pop .pos{color:var(--accent);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-top:10px}
 #pop .def{font-size:14px;margin:3px 0;line-height:1.55}
 #pop .ex{font-size:13px;color:var(--sub);font-style:italic;margin:2px 0 4px}
@@ -750,7 +758,10 @@ function renderThemePickers(){
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
-  lh:1.75, measure:'37rem', para:'gap', just:'off',   // 읽기 조판
+  /* 37rem 은 한 쪽 모드에서 한 줄 72자 — 권하는 최대(75자)의 끝이라 눈이 줄을
+     되짚기 쉽다. 31rem 이면 60자. 두 쪽 모드는 단이 이미 더 좁아 영향이 없고
+     (442px < 496px), 이미 쓰던 사람은 저장해 둔 값을 그대로 쓴다. */
+  lh:1.75, measure:'31rem', para:'gap', just:'off',   // 읽기 조판
   wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
 
   bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
@@ -1660,12 +1671,27 @@ async function showWordPop(el){
   // stash for save
   pop._data={base,raw,ko:ko||'',dict};
 }
+/* 카드를 어디에 세울지.
+   옆에는 세우지 못한다 — 두 쪽 모드에서 글줄 옆 490px 은 빈 자리가 아니라
+   두 번째 단(읽을 글)이고, 한 쪽 모드에서도 1280px 창에서 130px 뿐이다(카드는 340px).
+   그래서 위아래로 고른다. 아래로 열면 앞으로 읽을 6줄을 덮지만 위로 열면
+   이미 읽은 줄을 덮으므로, 자리가 되면 위를 고른다. */
 function positionPop(pop,el){
   if(window.innerWidth<=640){ pop.style.left=''; pop.style.top=''; return; }
-  const r=el.getBoundingClientRect(); const pw=340;
-  let left=r.left+window.scrollX; let top=r.bottom+window.scrollY+8;
+  const r=el.getBoundingClientRect(), pw=340;
+  let left=r.left+window.scrollX;
   if(left+pw>window.scrollX+window.innerWidth-12) left=window.scrollX+window.innerWidth-pw-12;
-  pop.style.left=Math.max(12,left)+'px'; pop.style.top=top+'px';
+  pop.style.left=Math.max(12,left)+'px';
+  /* 높이는 자리를 미리 잡아 둔 덕에 지금 재도 마지막 높이와 같다.
+     다만 아직 display:none 이라 그냥 재면 0 이 나온다 — 잠깐 안 보이게 펴서 잰다. */
+  const shown=pop.classList.contains('show');
+  if(!shown){ pop.style.visibility='hidden'; pop.classList.add('show'); }
+  const ph=pop.offsetHeight;
+  if(!shown){ pop.classList.remove('show'); pop.style.visibility=''; }
+  const hd=document.querySelector('header.masthead');
+  const top0=hd? hd.getBoundingClientRect().bottom+8 : 8;
+  const above=r.top-8-ph, below=r.bottom+8;
+  pop.style.top=((above>=top0? above : Math.min(below, innerHeight-ph-12))+window.scrollY)+'px';
 }
 function hidePop(){ const p=$('#pop'); p.classList.remove('show'); p._data=null; }
 function saveWord(base,raw){
