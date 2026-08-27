@@ -28,6 +28,15 @@
 }
 html[data-theme="white"]{ --bg:#fff; --line:#e8e8ec; --line2:#f3f3f5; --accent-soft:#eaf1f8;
   --cv-tint:rgba(10,61,98,.09) }
+/* 벚꽃 — 부드러운 분홍. 모서리도 함께 둥글려서 색만이 아니라 형태로도 다르게 둔다. */
+html[data-theme="sakura"]{
+  --bg:#ffeef4; --surface:#fffafc; --ink:#462936; --sub:#754c5e; --faint:#977284;
+  --line:#ffd3e3; --line2:#ffe4ee; --accent:#b8306a; --accent-soft:#ffdcea;
+  --mark:#ffd0e2; --shadow:0 10px 40px rgba(184,48,106,.15);
+  --cv-tint:rgba(184,48,106,.12); --on-accent:#fff6fa;
+}
+html[data-theme="sakura"] .bookcard,html[data-theme="sakura"] .cv{border-radius:18px}
+html[data-theme="sakura"] .tbtn,html[data-theme="sakura"] .opts button{border-radius:999px}
 /* 세피아 — 누렇게 익은 종이. 오래 봐도 눈이 덜 시린 밝은 테마다. */
 html[data-theme="sepia"]{
   --bg:#f3e7d3; --surface:#faf2e2; --ink:#3f3222; --sub:#6d5b44; --faint:#8b7a63;
@@ -426,6 +435,7 @@ html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
   <div class="sp"></div>
   <button class="tbtn" id="btnLib" title="서재">서재</button>
   <button class="tbtn" id="btnToc" title="목차">목차</button>
+  <button class="tbtn" id="btnCols" title="한 쪽 / 두 쪽 보기"></button>
   <button class="tbtn" id="btnMark" title="북마크">🔖</button>
   <div class="themewrap">
     <button class="tbtn" id="btnTheme" title="테마" aria-haspopup="true" aria-expanded="false"></button>
@@ -484,6 +494,7 @@ const THEMES=[
   {k:'beige',n:'베이지',c:'#faf9f6'},
   {k:'white',n:'화이트',c:'#ffffff'},
   {k:'sepia',n:'세피아',c:'#f3e7d3'},
+  {k:'sakura',n:'벚꽃',c:'#ffeef4'},
   {k:'ash',  n:'잿빛',  c:'#30343b'},
   {k:'dark', n:'블랙',  c:'#0f1216'},
 ];
@@ -496,6 +507,7 @@ function renderThemePickers(){
     const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
 }
 const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem', para:'gap',
+  cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
   /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
   del:{b:{},m:{}}, lastT:0, cloudAt:0 };
@@ -1065,7 +1077,9 @@ function pgRelayout(){
   const lh=parseFloat(getComputedStyle(body).lineHeight)||0;
   const snap=v=>lh>0? Math.max(lh*4,Math.floor(v/lh)*lh) : Math.max(240,v);
   const w=Math.round(vp.clientWidth);
-  const cols=w>=900?2:1;
+  /* 좁은 화면은 두 쪽이 들어갈 자리가 없어 늘 한 쪽이다.
+     자리가 되는 화면에서만 고를 수 있고, 그때 고른 값을 따른다. */
+  const cols=(w>=900&&S.cols!==1)?2:1;
   body.style.width=w+'px';
   body.style.columnGap=PG_GAP+'px';
   body.style.columnWidth=Math.floor((w-PG_GAP*(cols-1))/cols)+'px';
@@ -1317,8 +1331,21 @@ function fitMenu(el){
   const top=el.getBoundingClientRect().top;
   el.style.maxHeight=Math.max(220,innerHeight-top-12)+'px';
 }
+/* 두 쪽 단추의 모양과 보임새. 화면이 좁으면 두 쪽이 안 되므로 아예 감춘다. */
+function paintCols(){
+  const b=$('#btnCols'); if(!b) return;
+  /* 창 폭이 아니라 본문이 실제로 차지하는 폭을 본다 — 옆단이 자리를 먹으면
+     창은 넓어도 두 쪽이 안 들어간다. 쪽 나눔이 쓰는 값과 같은 값이어야 한다. */
+  const vp=$('#pageView');
+  const wide=(vp? vp.clientWidth : innerWidth)>=900;
+  b.style.display=wide? '' : 'none';
+  b.textContent=S.cols===1? '▯' : '▯▯';
+  b.title=(S.cols===1?'한 쪽 보기':'두 쪽 보기')+' (눌러서 바꾸기)';
+  b.setAttribute('aria-label',b.title);
+}
 function applyTheme(){
   renderThemePickers();
+  paintCols();
   const d=document.documentElement;
   d.setAttribute('data-theme',S.theme);
   const fmap={gothic:'var(--gothic)',myeongjo:'var(--myeongjo)',
@@ -1357,6 +1384,11 @@ function bindChrome(){
   $('#btnLib').addEventListener('click',()=>openLib(true));
   $('#btnMark').addEventListener('click',toggleMark);
   $('#btnToc').addEventListener('click',openToc);
+  /* 한 쪽 ↔ 두 쪽. 단 수가 바뀌면 쪽 나눔이 통째로 달라지므로 다시 잰다.
+     좁은 화면에서는 애초에 두 쪽이 안 되므로 단추를 감춘다. */
+  $('#btnCols').addEventListener('click',()=>{
+    S.cols=S.cols===1?2:1; save(); paintCols(); pgRelayout(); });
+  addEventListener('resize',paintCols);
   const sb=$('#btnSet'), sm=$('#setmenu');
   sb.addEventListener('click',e=>{ e.stopPropagation(); sm.classList.toggle('show');
     if(sm.classList.contains('show')) renderCloudBox(); fitMenu(sm); });
