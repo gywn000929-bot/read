@@ -170,6 +170,10 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
 .searchbox{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
   background:var(--bg);color:var(--ink);font-size:13px;margin-bottom:12px;font-family:var(--pretendard)}
 .searchbox:focus{border-color:var(--accent);outline:none}
+/* 옆단 장 목록의 묶음 머리글 — 영어 원서 서재와 같은 꼴 */
+.part-h{font-family:var(--pretendard);font-weight:700;font-size:11px;letter-spacing:1.2px;
+  color:var(--accent);margin:16px 4px 6px;border-bottom:1px solid var(--line);
+  padding-bottom:5px;word-break:keep-all}
 .artitem{padding:11px 10px;border-radius:11px;cursor:pointer;transition:.12s;
   display:flex;align-items:center;gap:10px}
 .artitem:hover{background:var(--line2)}
@@ -1022,10 +1026,16 @@ function renderSidebar(){
       <span class="mkt">${esc(m.text||'저장한 자리')}</span>
       <button class="mkx" data-sbmx="${esc(m.id)}" aria-label="책갈피 빼기">✕</button></div>`).join('')+`</div>`;
   html+=`<input class="searchbox" id="sbSearch" placeholder="🔎 장 제목·내용 찾기…" value="${esc(sbQ)}">`;
-  let items='';
+  let items='', curPart=null;
   b.chapters.forEach(c=>{
     if(q){ const hay=((c.title||'')+' '+(c.paras||[]).join(' ')).toLowerCase();
       if(!hay.includes(q)) return; }
+    /* '제1부 바다와 밤' 같은 묶음 이름. 그 이름만 있고 글은 없는 쪽은 파서가
+       장에서 빼고 여기 머리글로 올린다 — 눌러 봐야 제목 한 줄뿐인 장이었다.
+       책이 이름을 준 묶음만 적는다. 앞머리처럼 이름 없는 묶음은 건너뛴다. */
+    if(c.part!==curPart){ curPart=c.part;
+      const pn=(b.parts||{})[c.part];
+      if(pn) items+=`<div class="part-h">${esc(pn)}</div>`; }
     items+=`<div class="artitem ${c.n===S.chapter?'sel':''} ${S.read[S.bookId+':'+c.n]?'done':''}" data-sbch="${c.n}">
       <span class="readdot"></span>
       <span class="h"><span class="cn">${c.n}</span> ${esc(c.title||('제'+c.n+'장'))}</span>
