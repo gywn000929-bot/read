@@ -298,7 +298,7 @@ html.paged main{padding-top:12px;padding-bottom:12px}
    .wrap 의 min-height 가 문서를 그만큼 늘려 쪽 아래에 빈 공간이 생긴다. */
 html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 html.paged .wrap{min-height:0}
-/* 북마크 목록 */
+/* 책갈피 목록 */
 .marklist{margin:14px 0 4px;border-top:1px solid var(--line2);padding-top:12px}
 .marklist .mk{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer}
 .marklist .mk:hover{background:var(--line2)}
@@ -782,8 +782,8 @@ const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
 
   bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
   pagePos:{},          // 챕터별로 읽던 쪽 — 'bookId:chapter' → 쪽 번호
-  marks:[],            // 북마크 [{id,bookId,chapter,page,text,t}]
-  del:{w:{},b:{},m:{}} // 지운 것의 무덤(단어/책/북마크) — 없으면 동기화가 되살려 놓는다
+  marks:[],            // 책갈피 [{id,bookId,chapter,page,text,t}]
+  del:{w:{},b:{},m:{}} // 지운 것의 무덤(단어/책/책갈피) — 없으면 동기화가 되살려 놓는다
 };
 let S = load();
 let MANIFEST=[], curBook=null; const bookCache={};
@@ -1184,11 +1184,11 @@ function renderSidebar(){
     <div class="progtxt"><span>${esc(minText(minLeft(bookWords()*(1-bookDone()))))}</span><span>분당 ${wpm()}단어</span></div>
   </div>`;
   const bms=(S.marks||[]).filter(m=>m.bookId===S.bookId);
-  if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 북마크 ${bms.length}</div>`+
+  if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 책갈피 ${bms.length}</div>`+
     bms.map(m=>`<div class="mk" data-mk="${esc(m.id)}">
       <span class="mkc">${m.chapter}장${m.page?` · ${m.page+1}쪽`:''}</span>
       <span class="mkt">${esc(m.text||'저장한 자리')}</span>
-      <button class="mkx" data-mkx="${esc(m.id)}" aria-label="북마크 삭제">✕</button></div>`).join('')+`</div>`;
+      <button class="mkx" data-mkx="${esc(m.id)}" aria-label="책갈피 삭제">✕</button></div>`).join('')+`</div>`;
   html+=`<input class="searchbox" id="search" placeholder="🔎 챕터 내용 검색…" value="${esc(S._q||'')}">`;
   const parts=Object.keys(b.parts||{});
   html+=`<div class="sectfilter" id="sectfilter">
@@ -1222,7 +1222,7 @@ function renderSidebar(){
     e.stopPropagation();
     const id=x.dataset.mkx;
     S.marks=S.marks.filter(m=>m.id!==id); S.del.m[id]=Date.now();
-    save(); rtDrop('marks',id); toast('북마크를 뺐어요');
+    save(); rtDrop('marks',id); toast('책갈피를 뺐어요');
     renderSidebar(); const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt()); }));
   const bs=$('#bookSel'); if(bs) bs.addEventListener('click',()=>renderPicker(true));
   const bi=$('#btnImport'); if(bi) bi.addEventListener('click',()=>renderImport());
@@ -1295,7 +1295,7 @@ function renderMain(){
       <button id="btnVocab2" class="${S._showvocab?'on':''}"><span>✨</span><span class="hide-sm">단어 강조</span></button>
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
       ${pgOn()? `<button id="btnCols"><span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span></button>`:''}
-      <button id="btnMark"><span>🔖</span><span class="hide-sm">북마크</span></button>
+      <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
       <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
@@ -1372,7 +1372,7 @@ function bindReaderInteractions(){
   },{passive:true});
 }
 
-/* ============ 북마크 ============
+/* ============ 책갈피 ============
    지금 보고 있는 쪽을 저장해 두고 나중에 그 자리로 돌아간다.
    스크롤 모드에서는 쪽이 없으므로 챕터 단위로 잡힌다. */
 function markAt(){
@@ -1384,7 +1384,7 @@ function toggleMark(){
     S.marks=S.marks.filter(m=>m.id!==hit.id);
     S.del.m[hit.id]=Date.now();                       // 무덤을 남겨야 다시 안 생긴다
     save(); rtDrop('marks',hit.id);
-    toast('북마크를 뺐어요');
+    toast('책갈피를 뺐어요');
   }else{
     const body=$('#readBody');
     /* 지금 쪽 첫 문장을 미리보기로 — 목록에서 어디였는지 알아볼 수 있게 */
@@ -1398,8 +1398,8 @@ function toggleMark(){
     S.marks.unshift({id,bookId:S.bookId,chapter:S.chapter,page:pgOn()?pgPage:0,text,t:Date.now()});
     S.marks=S.marks.slice(0,300);
     delete S.del.m[id];
-    save(); toast('북마크에 넣었어요');
-    logEvent('🔖','북마크 — Chapter '+S.chapter+(pgOn()?' '+(pgPage+1)+'쪽':''));
+    save(); toast('책갈피에 넣었어요');
+    logEvent('🔖','책갈피 — Chapter '+S.chapter+(pgOn()?' '+(pgPage+1)+'쪽':''));
   }
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   renderSidebar();
@@ -2701,7 +2701,7 @@ async function renderImport(state){
       const id=b.dataset.del;
       await idbDel(id); metaDel(id);
       S.del.b[id]=Date.now();                    // 무덤을 남긴다 — 안 그러면 다시 받아온다
-      S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 북마크도 같이 정리
+      S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 책갈피도 같이 정리
       upForget(id);
       save(); rtDrop('books',id);
       MANIFEST=MANIFEST.filter(x=>x.id!==id);

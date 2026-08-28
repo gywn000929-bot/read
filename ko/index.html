@@ -1290,19 +1290,21 @@ function bindSwipe(){
   });
 }
 
-/* ============ 북마크 ============ */
+/* ============ 책갈피 ============ */
 const markAt=()=>(S.marks||[]).find(m=>m.bookId===S.bookId&&m.chapter===S.chapter&&m.page===pgPage);
 function toggleMark(){
   if(!curBook) return;
   const ex=markAt();
-  if(ex){ S.marks=S.marks.filter(m=>m!==ex); toast('북마크를 뺐어요'); }
+  if(ex){ S.marks=S.marks.filter(m=>m!==ex); toast('책갈피를 뺐어요'); }
   else{
     const el=$('#readBody .sent, #readBody p');
     S.marks.unshift({id:String(Date.now()),bookId:S.bookId,title:curBook.title,
       chapter:S.chapter,page:pgPage,text:(el?el.textContent:'').slice(0,50),t:Date.now()});
-    S.marks=S.marks.slice(0,200); toast('북마크에 넣었어요');
+    S.marks=S.marks.slice(0,200); toast('책갈피에 넣었어요');
   }
-  save(); pgApply(false);
+  /* 옆단 책갈피 목록도 같이 고쳐 그린다 — 그러지 않으면 넣어 놓고도 목록에는
+     다음에 장을 옮길 때까지 안 나타났다. 영어 원서 서재는 이미 이렇게 한다. */
+  save(); pgApply(false); renderSidebar();
 }
 
 /* ============ 서재 ============ */
@@ -1360,7 +1362,7 @@ function openLib(focus){
       <input id="libQ" type="search" placeholder="제목이나 작가로 찾기" value="${esc(S._q||'')}">
     </div>
     <div id="libBody">${libHTML()}</div>
-    ${(S.marks||[]).length? `<div class="marks"><div class="sh-h"><span class="nm">🔖 북마크</span>
+    ${(S.marks||[]).length? `<div class="marks"><div class="sh-h"><span class="nm">🔖 책갈피</span>
       <span class="ct">${S.marks.length}</span></div>`+
       S.marks.slice(0,12).map(k=>`<div class="mk" data-mk="${esc(k.id)}">
         <span class="mc">${esc(k.title).slice(0,10)} ${k.chapter}장 ${k.page+1}쪽</span>
