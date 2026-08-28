@@ -1199,7 +1199,11 @@ function renderSidebar(){
   b.chapters.forEach(c=>{
     if(pf && c.part!=pf) return;
     if(q){ const hay=(c.title? c.title+' ':'')+c.paras.join(' '); if(!hay.toLowerCase().includes(q)) return; }
-    if(c.part!==curPart){ curPart=c.part; if(parts.length>1) items+=`<div class="part-h">${esc((b.parts||{})[c.part]||('Part '+c.part))}</div>`; }
+    /* 책이 이름을 준 묶음만 머리글을 단다. 앞머리 장들처럼 이름 없는 묶음에
+       'Part 1' 이라고 적으면 책에 없는 이름을 지어내는 것이 된다. */
+    if(c.part!==curPart){ curPart=c.part;
+      const pn=(b.parts||{})[c.part];
+      if(pn&&parts.length) items+=`<div class="part-h">${esc(pn)}</div>`; }
     const label = c.title ? esc(c.title) : ('Chapter '+c.n);
     items+=`<div class="artitem ${c.n===S.chapter?'sel':''} ${isRead(c.n)?'done':''}" data-ch="${c.n}">
       <span class="readdot"></span>
@@ -1250,7 +1254,6 @@ function renderMain(){
   applyPagedChrome();
   if(S.view==='vocab'){ renderVocab(); return; }
   const b=book(), c=chap(S.chapter);
-  const partName=(b.parts||{})[c.part]||('Part '+c.part);
   const words=c.paras.join(' ').split(/\s+/).length;
   const isImg=b.kind==='image'&&Array.isArray(c.pages)&&c.pages.length;
   let body='';
