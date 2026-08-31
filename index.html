@@ -19,26 +19,86 @@
   --bg:#faf9f6; --surface:#ffffff; --ink:#16130f; --sub:#6a655d; --faint:#94908a;
   --line:#e7e3da; --line2:#efece5; --accent:#0a3d62; --accent-soft:#e8eef5;
   --mark:#f6ecc9; --mark-line:#d8b84a; --good:#2f8f57; --bad:#b23a2b;
-  --shadow:0 10px 40px rgba(20,16,10,.12); --radius:14px;
+  --shadow:0 10px 40px rgba(20,16,10,.12); --radius:14px; --on-accent:#fff;
   --serif:Georgia,"Times New Roman",'Nanum Myeongjo',serif;
+  --ridi:'RIDIBatang',Georgia,'Nanum Myeongjo',serif;
+  --barun:'NanumBarunGothic',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --bonmyeongjo:'Noto Serif KR',Georgia,'Nanum Myeongjo',serif;
+  --gowun:'Gowun Batang',Georgia,'Nanum Myeongjo',serif;
+  --pretendard:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --palatino:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
-  --measure:37rem; --fs:20px;
+  --measure:37rem; --fs:20px; --lh:1.75;
 }
 html[data-theme="white"]{
   --bg:#ffffff; --surface:#ffffff; --line:#e8e8ec; --line2:#f3f3f5;
   --accent-soft:#eaf1f8; --mark:#fdf0bf;
 }
+/* 벚꽃 — 부드러운 분홍. 모서리도 함께 둥글려서 색만이 아니라 형태로도 다르게 둔다. */
+html[data-theme="sakura"]{
+  --bg:#ffeef4; --surface:#fffafc; --ink:#462936; --sub:#754c5e; --faint:#977284;
+  --line:#ffd3e3; --line2:#ffe4ee; --accent:#b8306a; --accent-soft:#ffdcea;
+  --mark:#ffd0e2; --mark-line:#e88ab4; --good:#1f7a52; --bad:#ab2439;
+  --shadow:0 10px 40px rgba(184,48,106,.15); --on-accent:#fff6fa;
+}
+html[data-theme="sakura"] .bookcard,html[data-theme="sakura"] .pk-cv{border-radius:18px}
+html[data-theme="sakura"] .toolbar button,html[data-theme="sakura"] .set-opts button{border-radius:999px}
+/* 세피아 — 누렇게 익은 종이. 오래 봐도 눈이 덜 시린 밝은 테마다. */
+html[data-theme="sepia"]{
+  --bg:#f3e7d3; --surface:#faf2e2; --ink:#3f3222; --sub:#6d5b44; --faint:#8b7a63;
+  --line:#ddccb0; --line2:#ebdfc8; --accent:#8a5324; --accent-soft:#eddcc0;
+  --mark:#f0d59a; --mark-line:#c79a3e; --good:#1f6f43; --bad:#a8331f;
+  --shadow:0 10px 40px rgba(70,50,20,.16); --on-accent:#fff8ec;
+}
+/* 잿빛 — 블랙과 흰 바탕 사이. 밤에 읽되 새까만 화면이 부담스러울 때 쓴다. */
+html[data-theme="ash"]{
+  --bg:#30343b; --surface:#3a3f47; --ink:#e3e1dc; --sub:#a9aeb6; --faint:#848a93;
+  --line:#4b515b; --line2:#40454e; --accent:#93bdf5; --accent-soft:#414c5c;
+  --mark:#4b4224; --mark-line:#7d6c2c; --good:#4cba7a; --bad:#ff9b8f;
+  --shadow:0 14px 50px rgba(0,0,0,.45); --on-accent:#20242a;
+}
 html[data-theme="dark"]{
   --bg:#0f1216; --surface:#171b21; --ink:#e9e6df; --sub:#a2a8b0; --faint:#767c85;
   --line:#262b33; --line2:#1e232a; --accent:#7fb0ff; --accent-soft:#1c2836;
   --mark:#3d3413; --mark-line:#6f5d1e; --good:#4cba7a; --bad:#ff9b8f;
-  --shadow:0 14px 50px rgba(0,0,0,.55);
+  --shadow:0 14px 50px rgba(0,0,0,.55); --on-accent:#0f1216;
 }
+/* 한글 본문 글꼴. 선언만 해 두면 브라우저는 이 글꼴로 실제 글자를 그릴 때
+   비로소 파일을 받아온다 — 설정에서 고르지 않은 사람은 한 바이트도 안 받는다.
+   swap 이라 받아오는 동안에도 글은 곧바로 보인다. */
+@font-face{font-family:'RIDIBatang';font-display:swap;font-weight:400;
+  src:url('fonts/RIDIBatang.woff2') format('woff2')}
+@font-face{font-family:'NanumBarunGothic';font-display:swap;font-weight:400;
+  src:url('fonts/NanumBarunGothic.woff2') format('woff2')}
+@font-face{font-family:'Noto Serif KR';font-display:swap;font-weight:400;
+  src:url('fonts/NotoSerifKR.woff2') format('woff2')}
+@font-face{font-family:'Gowun Batang';font-display:swap;font-weight:400;
+  src:url('fonts/GowunBatang.woff2') format('woff2')}
+@font-face{font-family:'Pretendard';font-display:swap;font-weight:400;
+  src:url('fonts/Pretendard.woff2') format('woff2')}
+/* 옆단이 프리텐다드로 통일되면서 굵게가 늘 쓰인다 — 진짜 굵은 벌을 준다.
+   합성 굵기는 한글에서 획이 뭉개진다. */
+@font-face{font-family:'Pretendard';font-display:swap;font-weight:700;
+  src:url('fonts/Pretendard-Bold.woff2') format('woff2')}
+/* 사이트 탭 — 영어 원서 서재와 한국 문학 서재를 오간다.
+   일부러 고정(sticky)하지 않았다. 아래 리더 머리말이 이미 top:0 에 붙어 있어서
+   같이 붙이면 겹치고, 읽는 화면에서 세로를 두 줄이나 잡아먹는다. */
+.sitetabs{display:flex;gap:4px;background:var(--surface);
+  border-bottom:1px solid var(--line);padding:7px clamp(12px,4vw,26px) 0}
+.sitetabs a{text-decoration:none;color:var(--sub);font-size:13px;font-weight:600;
+  padding:9px 14px;border-radius:10px 10px 0 0;border:1px solid transparent;
+  border-bottom:none;display:flex;align-items:center;gap:6px;white-space:nowrap;
+  margin-bottom:-1px;transition:.15s}
+.sitetabs a:hover{color:var(--ink);background:var(--line2)}
+.sitetabs a.on{color:var(--accent);background:var(--bg);border-color:var(--line)}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+/* 앱 UI 는 프리텐다드 한 벌. 본문과 설정 미리보기만 설정에서 고른 글꼴을 쓴다
+   (.body·.set-prev p 가 --reading-font 로 따로 잡는다). 책 제목·단어 카드처럼
+   크게 보여 주는 글씨는 세리프 그대로 둔다 — 그건 짜임새지 UI 가 아니다. */
+body{background:var(--bg);color:var(--ink);font-family:var(--pretendard);line-height:1.6;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+button,input,select,textarea{font-family:inherit}
 button{font-family:inherit;cursor:pointer;color:inherit}
 a{color:var(--accent);text-decoration:none}
 ::selection{background:var(--mark)}
@@ -47,12 +107,15 @@ a{color:var(--accent);text-decoration:none}
 header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
   padding:12px clamp(14px,4vw,28px);position:sticky;top:0;z-index:60;
   display:flex;align-items:center;gap:14px}
+/* ☰ 는 좁은 화면에서는 서랍을 열고, 넓은 화면에서는 옆단을 접었다 편다 —
+   둘 다 '옆단을 보이고 감추는' 같은 일이라 단추도 하나로 둔다. */
 .iconbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);
-  border-radius:10px;display:none;align-items:center;justify-content:center;font-size:18px;flex:none}
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;
+  cursor:pointer}
 .iconbtn:hover{border-color:var(--accent)}
 .brand{display:flex;flex-direction:column;line-height:1.05;min-width:0}
 .brand .k{font-size:9.5px;letter-spacing:2.5px;color:var(--faint);text-transform:uppercase;font-weight:600}
-.brand .t{font-family:var(--serif);font-size:clamp(18px,3.4vw,25px);font-weight:700;letter-spacing:-.4px;
+.brand .t{font-family:inherit;font-size:clamp(18px,3.4vw,25px);font-weight:700;letter-spacing:-.4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spacer{flex:1}
 .nav{display:flex;gap:6px;align-items:center}
@@ -60,13 +123,19 @@ header.masthead{background:var(--surface);border-bottom:1px solid var(--line);
   padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:6px;
   white-space:nowrap;transition:.15s}
 .nav button:hover{background:var(--line2);color:var(--ink)}
-.nav button.active{background:var(--accent);color:#fff}
+.nav button.active{background:var(--accent);color:var(--on-accent)}
 .nav button.active .badge{background:rgba(255,255,255,.25);color:#fff}
 .badge{background:var(--line2);color:var(--sub);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600}
 
 /* Layout */
 .wrap{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1360px;margin:0 auto;
   min-height:calc(100vh - 65px);min-height:calc(100dvh - 65px)}
+/* 넓은 화면에서 옆단 접기. 읽는 동안에는 서재도 장 목록도 볼 일이 없는데
+   300px 을 계속 먹는다. 좁은 화면은 이미 서랍이라 접을 것이 없다. */
+@media(min-width:961px){
+  body.sbhide .wrap{grid-template-columns:minmax(0,1fr)}
+  body.sbhide aside{display:none}
+}
 aside{border-right:1px solid var(--line);background:var(--surface);
   padding:16px;overflow-y:auto;max-height:calc(100vh - 65px);max-height:calc(100dvh - 65px);
   position:sticky;top:65px}
@@ -74,28 +143,28 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 #overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55;backdrop-filter:blur(1px)}
 
 /* Sidebar */
-.side-h{font-family:var(--serif);font-size:15px;font-weight:700;margin:2px 0 12px;color:var(--sub)}
+.side-h{font-family:inherit;font-size:15px;font-weight:700;margin:2px 0 12px;color:var(--sub)}
 .bookcard{background:var(--accent-soft);border-radius:12px;padding:13px 14px;margin-bottom:14px}
-.bookcard .bt{font-family:var(--serif);font-size:18px;font-weight:800;line-height:1.15}
+.bookcard .bt{font-family:inherit;font-size:18px;font-weight:800;line-height:1.15}
 .bookcard .ba{font-size:12px;color:var(--sub);margin-top:2px}
 .progbar{height:6px;border-radius:6px;background:var(--line);margin-top:10px;overflow:hidden}
 .progbar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
 .progtxt{font-size:11px;color:var(--faint);margin-top:6px;display:flex;justify-content:space-between}
 .searchbox{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
-  background:var(--bg);color:var(--ink);font-size:14px;font-family:var(--sans);margin-bottom:12px;outline:none}
+  background:var(--bg);color:var(--ink);font-size:14px;font-family:var(--pretendard);margin-bottom:12px;outline:none}
 .searchbox:focus{border-color:var(--accent)}
 .sectfilter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
 .sectfilter button{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);
   background:transparent;color:var(--sub);font-weight:500;transition:.15s}
 .sectfilter button:hover{border-color:var(--accent);color:var(--ink)}
 .sectfilter button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.part-h{font-family:var(--serif);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
+.part-h{font-family:inherit;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;
   color:var(--accent);margin:16px 4px 6px;border-bottom:1px solid var(--line);padding-bottom:5px}
 .artitem{padding:11px 10px;border-radius:11px;cursor:pointer;transition:.12s;position:relative;
   display:flex;align-items:center;gap:10px}
 .artitem:hover{background:var(--line2)}
 .artitem.sel{background:var(--accent-soft)}
-.artitem .h{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.3;flex:1;min-width:0}
+.artitem .h{font-family:inherit;font-size:15px;font-weight:600;line-height:1.3;flex:1;min-width:0}
 .artitem .m{font-size:11px;color:var(--faint)}
 .readdot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;border:1px solid var(--line)}
 .artitem.done .readdot{background:var(--good);border-color:var(--good)}
@@ -110,13 +179,13 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
   padding-bottom:16px;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center}
 .reader .byline b{color:var(--ink);font-weight:600;letter-spacing:.3px}
 .readmark{border:1px solid var(--line);background:var(--surface);color:var(--accent);
-  border-radius:8px;padding:4px 11px;font-size:11.5px;font-weight:600;font-family:var(--sans);cursor:pointer}
+  border-radius:8px;padding:4px 11px;font-size:11.5px;font-weight:600;font-family:var(--pretendard);cursor:pointer}
 .readmark:hover{border-color:var(--accent);background:var(--accent-soft)}
 .readmark.done{background:var(--good);color:#fff;border-color:var(--good)}
 
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 26px;
   padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  position:sticky;top:65px;z-index:30;box-shadow:0 2px 10px rgba(20,16,10,.03)}
+  position:sticky;top:var(--mh,65px);z-index:30;box-shadow:0 2px 10px rgba(20,16,10,.03)}
 .toolbar button{border:1px solid transparent;background:transparent;color:var(--sub);
   padding:8px 11px;border-radius:9px;font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:5px;
   white-space:nowrap;flex:none}
@@ -126,9 +195,23 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 .toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
 .toolbar .grp{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--faint);padding:0 4px;white-space:nowrap;flex:none}
 
-.body{font-family:var(--reading-font,var(--serif));font-size:var(--fs);line-height:1.75;color:var(--ink)}
-.body p{margin:0 0 1.35em;max-width:var(--measure)}
+.body{font-family:var(--reading-font,var(--serif));font-size:var(--fs);line-height:var(--lh);color:var(--ink);
+  /* 이어붙은 글자·숫자를 제 모양으로 — 세리프 글꼴에서 특히 차이가 난다 */
+  font-kerning:normal;font-variant-ligatures:common-ligatures contextual;
+  /* 여는 따옴표를 판면 밖으로 살짝 걸어 왼쪽 줄을 가지런히 (사파리) */
+  hanging-punctuation:first;
+  /* 긴 낱말·주소가 판면을 뚫고 나가지 않게 */
+  overflow-wrap:break-word}
+.body p{margin:0 0 1.35em;max-width:var(--measure);
+  /* 마지막 줄에 한 낱말만 덩그러니 남는 것을 줄인다 */
+  text-wrap:pretty}
 .body p.drop:first-letter{font-size:3.1em;line-height:.86;float:left;font-weight:800;padding:2px 10px 0 0;color:var(--ink)}
+/* 문단 모양 — 여백으로 띄우거나(기본), 책처럼 첫 줄을 들여쓰거나 */
+.body.indent p{margin-bottom:.15em;text-indent:1.5em}
+.body.indent p.drop,.body.indent .chaphead + p,.body.indent p:first-child{text-indent:0}
+/* 양쪽 정렬 — 하이픈을 함께 켜야 낱말 사이가 벌어지지 않는다 */
+.body.just p{text-align:justify;text-justify:inter-word;
+  hyphens:auto;-webkit-hyphens:auto;-ms-hyphens:auto}
 .body .sent{transition:background .2s;border-radius:3px}
 .body .sent.speaking{background:var(--mark)}
 .body.transmode .sent{cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -142,15 +225,45 @@ main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
    넘친 단이 scrollWidth 에 잡히고 scrollLeft 로 넘길 수 있다.
    overflow:visible 이면 넘친 단이 scrollWidth 에 안 잡혀 늘 1쪽으로 계산된다. */
 .body.paged{column-fill:auto;-webkit-column-fill:auto;overflow:hidden;overscroll-behavior:contain}
-.body.paged p{max-width:none}
+/* 쪽 모드에서도 본문 폭 설정이 먹게 — 단이 넓어도 글줄은 읽기 좋은 길이로 잡고
+   남는 자리는 좌우로 나눠 가운데 세운다. 폰처럼 단이 이미 좁으면 아무 영향이 없다. */
+.body.paged p{max-width:var(--measure);margin-inline:auto}
 /* 페이지 모드에서는 아래 챕터 버튼·안내문을 접는다 —
    그게 남아 있으면 쪽을 다 채워놓고도 창이 세로로 또 스크롤된다 */
 .reader.paged .chap-nav,.reader.paged .readtip{display:none}
 /* 제목 묶음이 본문 안으로 들어오므로, 단 중간에서 쪼개지지 않게 한다 */
+/* 얹힌 도구 줄이 장 제목을 가리지 않게 첫 쪽만 그만큼 내려 앉힌다.
+   줄 높이는 화면 폭에 따라 달라지므로 조판할 때 재서 --tbh 로 넘긴다.
+   쪽마다 드는 값이 아니라 장의 첫 쪽에만 드는 값이다. */
+.body.paged .chaphead{padding-top:var(--tbh,0px)}
 .body.paged .chaphead{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:1.1em}
 .body.paged .chaphead h1{font-size:clamp(24px,3.4vw,34px);margin:7px 0 9px}
-.body.paged .chaphead .byline{padding-bottom:11px;font-family:var(--sans)}
+/* 제목 묶음과 첫 문단 사이가 9px + 11px 이라 문단 사이(1.35em≈25px)보다 좁았다 —
+   제목이 본문에 붙어 보인다. 문단 사이보다는 넓어야 한 덩어리로 안 읽힌다. */
+.body.paged .chaphead{margin-bottom:1.6em}
+.body.paged .chaphead .byline{padding-bottom:11px;font-family:var(--pretendard)}
 .reader.paged .toolbar{margin:0 0 12px}
+/* 쪽 모드에서는 툴바와 쪽 바를 흐름에서 빼서 쪽 위에 얹는다.
+   쪽 모드는 창이 스크롤되지 않으니, 흐름에 두면 그 118px 이 끝까지 자리를 지킨다 —
+   375×667 에서 껍데기가 176px, 화면의 26% 였고 한 쪽이 14줄뿐이었다.
+   얹어 두면 쪽 높이를 다시 잴 일도 없다(겹쳐 뜨므로 조판이 그대로다). */
+.reader.paged{position:relative}
+.reader.paged .toolbar,.reader.paged .pagebar{
+  position:absolute;left:0;right:0;z-index:22;margin:0;
+  opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.reader.paged .toolbar{top:0;transform:translateY(-6px);box-shadow:var(--shadow)}
+.reader.paged .pagebar{bottom:0;transform:translateY(6px);box-shadow:var(--shadow);
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+body.chrome-show .reader.paged .toolbar,
+body.chrome-show .reader.paged .pagebar{opacity:1;transform:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){
+  .reader.paged .toolbar,.reader.paged .pagebar{transition:none}
+}
+/* 도구가 숨어도 어디쯤인지는 늘 보인다 — 본문이 이미 비워 둔 아래 여백에 앉힌다 */
+.pgcap{display:none;text-align:center;font-size:11.5px;color:var(--faint);
+  padding-top:8px;font-variant-numeric:tabular-nums}
+.reader.paged .pgcap{display:block}
+body.chrome-show .reader.paged .pgcap{visibility:hidden}
 /* 위아래 여백은 쪽에 넘긴다 — 좌우는 읽기 편한 폭을 위해 그대로 둔다 */
 html.paged main{padding-top:12px;padding-bottom:12px}
 .pagebar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;
@@ -185,7 +298,7 @@ html.paged main{padding-top:12px;padding-bottom:12px}
    .wrap 의 min-height 가 문서를 그만큼 늘려 쪽 아래에 빈 공간이 생긴다. */
 html.paged,html.paged body{overflow:hidden;overscroll-behavior:none}
 html.paged .wrap{min-height:0}
-/* 북마크 목록 */
+/* 책갈피 목록 */
 .marklist{margin:14px 0 4px;border-top:1px solid var(--line2);padding-top:12px}
 .marklist .mk{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer}
 .marklist .mk:hover{background:var(--line2)}
@@ -200,7 +313,7 @@ html.paged .wrap{min-height:0}
 .w:hover{background:var(--mark)}
 .body.showvocab .w.vocab{box-shadow:inset 0 -2px 0 var(--mark-line)}
 .w.saved{background:var(--mark);box-shadow:inset 0 -2px 0 var(--mark-line)}
-.ko-inline{display:block;color:var(--accent);font-family:var(--sans);font-size:.72em;
+.ko-inline{display:block;color:var(--accent);font-family:var(--pretendard);font-size:.72em;
   margin:.5em 0 1.1em;padding:10px 36px 10px 14px;background:var(--accent-soft);border-radius:10px;
   line-height:1.6;cursor:pointer;position:relative}
 .ko-inline::after{content:"✕";position:absolute;top:8px;right:12px;font-size:13px;color:var(--faint);font-weight:600}
@@ -209,7 +322,7 @@ html.paged .wrap{min-height:0}
   font-size:13.5px;font-weight:600;color:var(--ink);flex:1;transition:.15s;max-width:48%}
 .chap-nav button:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .chap-nav button:disabled{opacity:.35;cursor:default}
-.readtip{font-family:var(--sans);font-size:12.5px;color:var(--faint);margin-top:22px}
+.readtip{font-family:var(--pretendard);font-size:12.5px;color:var(--faint);margin-top:22px}
 
 .empty{text-align:center;margin-top:14vh;color:var(--sub)}
 .empty .big{font-size:52px;opacity:.5}
@@ -223,13 +336,18 @@ html.paged .wrap{min-height:0}
 #pop .pw{font-family:var(--serif);font-size:23px;font-weight:800}
 #pop .phon{color:var(--faint);font-size:13px;font-style:italic}
 #pop .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 뜻과 영영 정의는 통신이 끝난 뒤에 채워진다. 자리를 비워 두면 그때 카드가
+   40~90px 자라고, 맨 아래 저장 단추가 그만큼 내려간다 — 누르려던 자리가 옮겨간다.
+   그래서 도착하기 전에 들어갈 만큼의 높이를 미리 잡아 둔다. */
 #pop .ko{background:var(--accent-soft);border-radius:10px;padding:9px 12px;font-size:15px;
-  margin:10px 0;color:var(--accent);font-weight:600;line-height:1.5}
+  margin:10px 0;color:var(--accent);font-weight:600;line-height:1.5;
+  min-height:calc(1.5em + 18px)}
+#pop #popDef{min-height:74px}
 #pop .pos{color:var(--accent);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-top:10px}
 #pop .def{font-size:14px;margin:3px 0;line-height:1.55}
 #pop .ex{font-size:13px;color:var(--sub);font-style:italic;margin:2px 0 4px}
 #pop .mini{font-size:12px;color:var(--faint)}
-#pop button.act{border:none;background:var(--accent);color:#fff;padding:9px 14px;border-radius:10px;
+#pop button.act{border:none;background:var(--accent);color:var(--on-accent);padding:9px 14px;border-radius:10px;
   font-size:13px;font-weight:600;width:100%;margin-top:12px}
 #pop button.act.saved{background:var(--good)}
 #pop button.spk{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 10px;font-size:13px}
@@ -248,7 +366,7 @@ html.paged .wrap{min-height:0}
 .bigbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 16px;
   border-radius:11px;font-size:13.5px;font-weight:500;transition:.15s}
 .bigbtn:hover{border-color:var(--accent)}
-.bigbtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bigbtn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .bigbtn.primary:hover{filter:brightness(1.08)}
 .bigbtn.danger{color:var(--bad)}
 .bigbtn.danger:hover{border-color:var(--bad)}
@@ -300,7 +418,7 @@ html.paged .wrap{min-height:0}
 .modal.show{display:flex}
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
   width:min(520px,100%);max-height:88vh;max-height:88dvh;overflow-y:auto;padding:22px;animation:pop .16s ease}
-.sheet h3{font-family:var(--serif);font-size:21px;font-weight:800;margin:0 0 5px}
+.sheet h3{font-family:inherit;font-size:21px;font-weight:800;margin:0 0 5px}
 .sheet .lead{color:var(--sub);font-size:13px;line-height:1.6;margin-bottom:16px}
 .impdrop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;
   color:var(--sub);font-size:13.5px;transition:.15s;cursor:pointer}
@@ -313,6 +431,56 @@ html.paged .wrap{min-height:0}
 .fld input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
 .fld input:focus{outline:none;border-color:var(--accent)}
+/* 책 고르개 — 레벨별 선반. 83권을 드롭다운에 넣으면 폰에서 고를 수가 없다. */
+.pk-sheet{width:min(560px,100%)}
+.pk-top{display:flex;align-items:baseline;gap:9px;margin-bottom:14px}
+.pk-top h3{margin:0}
+.pk-top .ct{font-size:12px;color:var(--faint)}
+.pk-top .x{margin-left:auto;border:1px solid var(--line);background:var(--surface);
+  width:34px;height:34px;border-radius:9px;font-size:15px;color:var(--sub);flex:none}
+.pk-find{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg);
+  border-radius:12px;padding:0 13px;height:46px;margin-bottom:16px}
+.pk-find input{flex:1;border:none;background:none;font:inherit;font-size:14px;color:var(--ink);
+  min-width:0;padding:0}
+.pk-find input:focus{outline:none}
+.pk-find svg{flex:none}
+.pk-now{border:1px solid var(--accent);border-radius:14px;padding:13px 14px;display:flex;
+  align-items:center;gap:12px;margin-bottom:18px;cursor:pointer;background:var(--surface)}
+.pk-now .mini{width:44px;height:58px;border-radius:7px;background:var(--accent-soft);
+  border:1px solid var(--line);flex:none}
+.pk-now .nt{font-family:inherit;font-size:14.5px;font-weight:700;line-height:1.3}
+.pk-now .ns{font-size:11px;color:var(--sub);margin-top:3px}
+.pk-now .bar{height:3px;background:var(--line2);border-radius:3px;margin-top:7px}
+.pk-now .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.pk-shelf{margin-bottom:18px}
+.pk-h{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.pk-h .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pk-h .nm{font-size:12.5px;font-weight:600;color:var(--ink)}
+.pk-h .ct{font-size:11px;color:var(--faint)}
+/* 옆 서재로 건너가는 줄 */
+.sitelink{display:block;margin-top:16px;padding-top:13px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--sub);text-decoration:none;text-align:center}
+.sitelink:hover{color:var(--accent)}
+/* 가로로 미는 선반 — 한 줄에 서재의 결이 다 보인다 */
+.pk-rail{display:flex;gap:9px;overflow-x:auto;padding:1px 2px 5px;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch}
+.pk-bk{flex:none;width:112px;cursor:pointer;scroll-snap-align:start;background:none;border:none;
+  padding:0;text-align:left;font:inherit}
+.pk-cv{height:150px;border-radius:10px;border:1px solid var(--line);padding:12px 11px;
+  display:flex;align-items:flex-end;box-sizing:border-box;background-color:var(--surface)}
+.pk-bk.on .pk-cv{border-color:var(--accent);border-width:2px}
+.pk-cv span{font-family:inherit;font-size:13px;font-weight:700;line-height:1.28;
+  color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical}
+.pk-bk .ba{font-size:11px;color:var(--sub);margin-top:7px;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-bk .bm{font-size:10px;color:var(--faint);margin-top:2px;font-variant-numeric:tabular-nums}
+.pk-none{color:var(--sub);font-size:13px;padding:20px 2px}
+.bw-now{width:100%;display:flex;align-items:center;gap:9px;border:1px solid var(--line);
+  background:var(--surface);border-radius:10px;padding:10px 12px;text-align:left;min-height:46px}
+.bw-now:hover{border-color:var(--accent)}
+.bw-now .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bw-now .t{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bw-now .c{font-size:11px;color:var(--faint);flex:none}
 .mrow{display:flex;gap:8px;margin-top:18px}
 .mrow .bigbtn{flex:1;text-align:center}
 .prog{margin-top:16px;font-size:13px;color:var(--sub)}
@@ -337,7 +505,7 @@ html.paged .wrap{min-height:0}
 .cloud button{border:1px solid var(--line);background:var(--surface);color:var(--ink);
   border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:600}
 .cloud button:hover{border-color:var(--accent);color:var(--accent)}
-.cloud button.go{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cloud button.go{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .cloud textarea{width:100%;margin-top:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   border-radius:10px;padding:9px 11px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   min-height:74px;resize:vertical}
@@ -345,24 +513,61 @@ html.paged .wrap{min-height:0}
 .cloud .hint{font-size:11.5px;color:var(--faint);line-height:1.6;margin-top:7px}
 
 /* Settings menu */
+/* 테마는 설정을 열지 않고 머리말에서 바로 고른다 — 읽다가 해가 지면 손이
+   제일 자주 가는 것이 테마여서, 설정 안에 두면 세 번을 눌러야 한다. */
+.themewrap{position:relative}
+#btnTheme .set-swatch{width:17px;height:17px;margin:0;vertical-align:-3px;
+  box-shadow:inset 0 0 0 1px rgba(128,128,128,.45)}
+.thememenu{position:absolute;right:0;top:calc(100% + 10px);width:174px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:6px;display:none;z-index:60}
+.thememenu.show{display:block;animation:pop .16s ease}
+.thememenu button{display:flex;align-items:center;gap:10px;width:100%;height:38px;
+  padding:0 10px;border:none;background:transparent;color:var(--sub);border-radius:9px;
+  font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.thememenu button:hover{background:var(--line2);color:var(--ink)}
+.thememenu button.on{background:var(--accent);color:var(--on-accent)}
+.thememenu .set-swatch{width:15px;height:15px;margin:0;flex:none}
 .setwrap{position:relative}
-.setmenu{position:absolute;right:0;top:calc(100% + 10px);width:264px;max-width:calc(100vw - 24px);
+.setmenu{position:absolute;right:0;top:calc(100% + 10px);width:322px;max-width:calc(100vw - 24px);
   background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
-  padding:16px;z-index:70;display:none}
+  padding:16px;z-index:70;display:none;
+  /* 테마·글꼴이 늘면서 판이 길어졌다. 낮은 화면에서도 잘리지 않게 안에서 굴린다. */
+  max-height:calc(100vh - 96px);overflow:auto;overscroll-behavior:contain}
 .setmenu.show{display:block;animation:pop .16s ease}
 .set-sec+.set-sec{margin-top:15px;padding-top:15px;border-top:1px solid var(--line2)}
 .set-h{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px}
-.set-opts{display:flex;gap:6px}
+.set-opts{display:flex;gap:6px;flex-wrap:wrap}
+.set-opts button{min-width:72px}
 .set-opts button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--sub);
   border-radius:10px;padding:9px 4px;font-size:12.5px;font-weight:600;transition:.12s}
 .set-opts button:hover{border-color:var(--accent);color:var(--ink)}
-.set-opts button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.set-opts button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .set-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--line);margin-right:5px;vertical-align:-1px}
 .set-size{display:flex;align-items:center;gap:9px}
 .set-size button{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 11px;font-size:14px;font-weight:700}
 .set-size button:hover{border-color:var(--accent)}
 .set-size input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 .set-size .fsval{font-size:12px;color:var(--faint);min-width:38px;text-align:right}
+/* 설정을 라벨만 보고는 고를 수 없다 — 바꾸는 즉시 결과가 보이도록 본문 견본을 위에 둔다.
+   본문과 같은 변수를 쓰므로 값이 바뀌면 이 문단이 그대로 따라 움직인다. */
+.set-prev{border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:13px;
+  background:var(--bg);overflow:hidden}
+.set-prev .pk{font-size:10px;color:var(--faint);letter-spacing:.5px;margin-bottom:7px;
+  font-family:var(--pretendard);text-transform:uppercase}
+.set-prev p{margin:0;font-family:var(--reading-font,var(--serif));
+  font-size:min(var(--fs),19px);line-height:var(--lh);color:var(--ink);
+  text-wrap:pretty;overflow-wrap:break-word;max-height:5.2em;overflow:hidden}
+.set-prev.indent p{text-indent:1.5em}
+.set-prev.just p{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
+/* 한 줄에 하나씩 — 라벨은 왼쪽에 고정폭, 조절은 오른쪽 */
+.set-row{display:flex;align-items:center;gap:9px;min-height:52px;border-top:1px solid var(--line2)}
+.set-row:first-of-type{border-top:none}
+.set-row .lb{font-size:12px;color:var(--sub);width:58px;flex:none}
+.set-row .set-opts{flex:1;gap:5px}
+.set-row .set-opts button{padding:0;height:44px;font-size:12px;font-weight:500;border-radius:9px}
+.set-row .set-size{flex:1;gap:8px}
+.set-row .set-size button{height:44px;width:44px;padding:0;flex:none}
 
 .log-item{display:flex;gap:10px;align-items:baseline;padding:9px 12px;border:1px solid var(--line);
   border-radius:10px;margin-bottom:6px;background:var(--surface);font-size:13.5px}
@@ -375,7 +580,9 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 @media(max-width:960px){
-  .wrap{grid-template-columns:1fr}
+  /* minmax(0,…) 없이 1fr 만 두면 칸이 내용의 최소 폭 밑으로 못 줄어든다 —
+     본문에 인라인 width 가 박혀 있어, 넓은 창을 좁히면 본문이 창 밖으로 삐져나갔다 */
+  .wrap{grid-template-columns:minmax(0,1fr)}
   .iconbtn{display:flex}
   aside{position:fixed;top:0;left:0;bottom:0;width:min(85vw,320px);z-index:56;max-height:100dvh;
     transform:translateX(-100%);transition:transform .25s ease;box-shadow:var(--shadow);
@@ -386,13 +593,37 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .nav button{padding:9px 10px}
   .stats{grid-template-columns:repeat(2,1fr)}
 }
+/* 읽는 화면에서 위 껍데기가 세로를 너무 먹었다 — 390×760 폰에서
+   사이트 탭 47 + 머리말 61 + 툴바 49 = 157px, 화면의 21% 였다.
+   게다가 쪽 모드는 창이 아예 스크롤되지 않아서 그 157px 이 늘 자리를 지켰다. */
+@media(max-width:960px){
+  /* 서재를 오가는 탭은 서랍 맨 위로 옮긴다 — 읽는 동안 쓸 일이 없는데 47px 을 먹었다 */
+  .sitetabs{display:none}
+  #sidebar .sblibs{display:flex;gap:6px;margin-bottom:14px}
+  .sblibs a{flex:1;text-decoration:none;text-align:center;padding:10px 8px;border-radius:10px;
+    border:1px solid var(--line);background:var(--surface);color:var(--sub);
+    font-size:12.5px;font-weight:600;white-space:nowrap}
+  .sblibs a.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  /* 머리말과 툴바의 키를 낮춘다 */
+  header.masthead{padding:7px 14px;gap:10px}
+  .iconbtn{width:36px;height:36px;font-size:17px}
+  .toolbar{margin:10px 0 18px}
+  .toolbar button{padding:6px 10px}
+  /* 스크롤 모드에서는 내려갈 때 접히고 올라올 때 펴진다.
+     transform 만 쓰므로 조판을 다시 하지 않는다 — 쪽 모드에서 이걸 하면
+     자리는 그대로 비어 있어 아무 소용이 없고, 조판만 매번 다시 돈다. */
+  header.masthead,.toolbar{transition:transform .2s ease}
+  body.chrome-off header.masthead{transform:translateY(-100%)}
+  body.chrome-off .toolbar{transform:translateY(calc(-1 * var(--mh,56px)))}
+  @media(prefers-reduced-motion:reduce){ header.masthead,.toolbar{transition:none} }
+}
 @media(max-width:640px){
   /* --fs 는 JS가 인라인으로 지정해 :root 재정의가 먹지 않으므로 .body 에서 비율로 줄인다 */
   .body{font-size:calc(var(--fs) * .92);line-height:1.7}
   header.masthead{gap:10px;padding:10px 14px}
   .brand .k{display:none}          /* 좁은 화면에서 두 줄로 깨지던 머리글 */
   main{padding:20px 15px 44px}
-  .toolbar{top:61px;gap:4px;padding:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .toolbar{gap:4px;padding:5px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar .grp.hide-sm{display:none}
   .body p.drop:first-letter{font-size:1em;float:none;padding:0;line-height:inherit;font-weight:inherit}
@@ -403,10 +634,12 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   .fcard{padding:38px 18px}
   .chap-nav button{max-width:none}
 }
+/* 폰에서는 위 사이트 탭 대신 서랍 맨 위에서 서재를 오간다 */
+.sblibs{display:none}
 .bookswitch{margin-bottom:14px}
 .bookswitch .bw-lbl{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.6px;margin:0 2px 6px}
 .bookswitch select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:11px;
-  background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:600;font-family:var(--sans);
+  background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:600;font-family:var(--pretendard);
   outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
@@ -416,6 +649,10 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 </style>
 </head>
 <body>
+<div class="sitetabs">
+  <a class="on" href="./">📖 영어 원서</a>
+  <a href="ko/">📚 한국 문학</a>
+</div>
 <header class="masthead">
   <button class="iconbtn" id="menuBtn" aria-label="메뉴">☰</button>
   <div class="brand">
@@ -426,32 +663,72 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
   <nav class="nav">
     <button id="navRead" class="active"><span>📖</span><span class="label">읽기</span></button>
     <button id="navVocab"><span>📓</span><span class="label">내 단어장</span><span class="badge" id="vcount">0</span></button>
+    <div class="themewrap">
+      <button id="btnTheme" title="테마" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="thememenu" id="thememenu"></div>
+    </div>
     <div class="setwrap">
       <button id="setBtn" title="설정">⚙️</button>
       <div class="setmenu" id="setmenu">
-        <div class="set-sec">
-          <div class="set-h">배경 테마</div>
-          <div class="set-opts" id="optTheme">
-            <button data-theme="beige"><span class="set-swatch" style="background:#faf9f6"></span>베이지</button>
-            <button data-theme="white"><span class="set-swatch" style="background:#fff"></span>화이트</button>
-            <button data-theme="dark"><span class="set-swatch" style="background:#0f1216"></span>블랙</button>
-          </div>
+        <!-- 바꾼 결과가 바로 보이는 견본 문단. 본문과 같은 변수를 쓴다. -->
+        <div class="set-prev" id="setPrev">
+          <div class="pk">미리보기</div>
+          <p>The lamp burned low, and the house had gone quiet. She counted the coins twice, then set them down and listened.</p>
         </div>
-        <div class="set-sec">
-          <div class="set-h">글꼴</div>
+        <div class="set-row">
+          <div class="lb">테마</div>
+          <div class="set-opts" id="optTheme"></div>
+        </div>
+        <div class="set-row">
+          <div class="lb">글꼴</div>
           <div class="set-opts" id="optFont">
             <button data-font="serif">세리프</button>
             <button data-font="sans">고딕</button>
             <button data-font="palatino">Palatino</button>
+            <button data-font="ridi">리디바탕</button>
+            <button data-font="bon">본명조</button>
+            <button data-font="gowun">고운바탕</button>
+            <button data-font="barun">바른고딕</button>
+            <button data-font="pretendard">프리텐다드</button>
           </div>
         </div>
-        <div class="set-sec">
-          <div class="set-h">글자 크기</div>
+        <div class="set-row">
+          <div class="lb">글자 크기</div>
           <div class="set-size">
-            <button id="fsMinus">A−</button>
-            <input type="range" id="fsRange" min="15" max="30" step="1">
-            <button id="fsPlus">A+</button>
+            <button id="fsMinus" aria-label="글자 작게">A−</button>
+            <input type="range" id="fsRange" min="15" max="34" step="1" aria-label="글자 크기">
+            <button id="fsPlus" aria-label="글자 크게">A+</button>
             <span class="fsval" id="fsVal">20px</span>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="lb">줄 간격</div>
+          <div class="set-opts" id="optLh">
+            <button data-lh="1.5">좁게</button>
+            <button data-lh="1.75">보통</button>
+            <button data-lh="2.05">넓게</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="lb">본문 폭</div>
+          <div class="set-opts" id="optMeasure">
+            <button data-measure="31rem">좁게</button>
+            <button data-measure="37rem">보통</button>
+            <button data-measure="44rem">넓게</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="lb">문단</div>
+          <div class="set-opts" id="optPara">
+            <button data-para="gap">여백</button>
+            <button data-para="indent">들여쓰기</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="lb">양쪽 정렬</div>
+          <div class="set-opts" id="optJust">
+            <button data-just="off">끄기</button>
+            <button data-just="on">켜기</button>
           </div>
         </div>
       </div>
@@ -468,16 +745,45 @@ h3{font-family:var(--serif);font-weight:700;margin:26px 0 10px}
 <div id="pop"></div>
 <div class="toast" id="toast"></div>
 <div class="modal" id="importModal"></div>
+<div class="modal" id="pickModal"></div>
 
+<script src="lib/bookparse.js"></script>
 <script>
 "use strict";
 /* ============ Data & State ============ */
 const LS_KEY = 'bookstudy_v1';
+/* 테마 한 벌. 머리말 고르개와 설정 줄이 같은 표를 본다 — 한 곳만 고치면 둘 다 바뀐다.
+   차례는 밝은 것에서 어두운 것으로. 하루가 흐르는 차례라 눈으로 짚기 쉽다. */
+const THEMES=[
+  {k:'beige',n:'베이지',c:'#faf9f6'},
+  {k:'white',n:'화이트',c:'#ffffff'},
+  {k:'sepia',n:'세피아',c:'#f3e7d3'},
+  {k:'sakura',n:'벚꽃',c:'#ffeef4'},
+  {k:'ash',  n:'잿빛',  c:'#30343b'},
+  {k:'dark', n:'블랙',  c:'#0f1216'},
+];
+/* 단추가 아직 없을 때만 그린다 — applyTheme 은 설정을 만질 때마다 도는데,
+   그때마다 새로 그리면 눌린 단추가 사라져 :active 표시가 깜빡인다. */
+function renderThemePickers(){
+  const html=THEMES.map(t=>
+    `<button data-theme="${t.k}"><span class="set-swatch" style="background:${t.c}"></span>${t.n}</button>`).join('');
+  ['#optTheme','#thememenu'].forEach(sel=>{
+    const el=$(sel); if(el&&!el.children.length) el.innerHTML=html; });
+}
 const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
+  chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
+  cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
+  sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
+  /* 37rem 은 한 쪽 모드에서 한 줄 72자 — 권하는 최대(75자)의 끝이라 눈이 줄을
+     되짚기 쉽다. 31rem 이면 60자. 두 쪽 모드는 단이 이미 더 좁아 영향이 없고
+     (442px < 496px), 이미 쓰던 사람은 저장해 둔 값을 그대로 쓴다. */
+  lh:1.75, measure:'31rem', para:'gap', just:'off',   // 읽기 조판
+  wpm:200,             // 읽는 속도(분당 단어) — 실제로 넘기는 속도를 보고 맞춰진다
+
   bookId:'holes', chapter:1, chapters:{}, words:{}, read:{}, quizHist:[], log:[],
   pagePos:{},          // 챕터별로 읽던 쪽 — 'bookId:chapter' → 쪽 번호
-  marks:[],            // 북마크 [{id,bookId,chapter,page,text,t}]
-  del:{w:{},b:{},m:{}} // 지운 것의 무덤(단어/책/북마크) — 없으면 동기화가 되살려 놓는다
+  marks:[],            // 책갈피 [{id,bookId,chapter,page,text,t}]
+  del:{w:{},b:{},m:{}} // 지운 것의 무덤(단어/책/책갈피) — 없으면 동기화가 되살려 놓는다
 };
 let S = load();
 let MANIFEST=[], curBook=null; const bookCache={};
@@ -564,7 +870,12 @@ async function loadBook(id){
     return bookCache[id];
   }
   const r=await fetch('books/'+id+'.json'); if(!r.ok) throw new Error('load fail');
-  const b=await r.json(); bookCache[id]=b; return b;
+  const b=await r.json(); bookCache[id]=b;
+  /* 저장소에 든 책도 손번역을 품고 있으면 번역 캐시에 올린다.
+     전에는 기기에 넣은 책만 읽어서, 책에 번역을 넣어 두어도 소용이 없었다. */
+  if(b.ko) Object.keys(b.ko).forEach(k=>{
+    const t=String(k).trim().toLowerCase(); if(t) trCache[t]=b.ko[k]; });
+  return b;
 }
 const book = () => curBook;
 const chap = (n) => curBook? curBook.chapters.find(c=>c.n===n) : null;
@@ -706,9 +1017,9 @@ function speakNext(){
 /* ============ Tokenizer ============ */
 /* 약어 뒤의 마침표는 문장 끝이 아니다 — Mrs. / Dr. / J. 같은 것들 */
 /* 여는 따옴표·괄호 바로 뒤에 와도 약어다 — “Ms. Calloway” 처럼 */
-const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[])';
-const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|e\\.g|i\\.e|a|p)\\.$','i');
-const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\.$');
+const RX_LEAD='(?:^|[\\s"\'\u2018\u201c(\\[_])';
+const RX_ABBR=new RegExp(RX_LEAD+'(?:mr|mrs|ms|dr|st|jr|sr|prof|vs|etc|inc|ltd|mem|mo|inst|e\\.g|i\\.e|a|p)\\._?$','i');
+const RX_INIT=new RegExp(RX_LEAD+'[A-Z]\\._?$');
 function splitSentences(p){
   // 문장부호는 남기고 자른다. 곡선 따옴표(” ’)도 문장에 붙여둔다 —
   // 안 그러면 닫는 따옴표만 남는 조각이 생긴다.
@@ -718,8 +1029,17 @@ function splitSentences(p){
   for(const raw of parts){
     const s=raw.trim(); if(!s) continue;
     const prev=out[out.length-1];
-    // 앞 조각이 약어로 끝났으면 문장이 아직 안 끝난 것이다
-    if(prev&&(RX_ABBR.test(prev)||RX_INIT.test(prev))) out[out.length-1]=prev+' '+s;
+    /* 이어지는 조각인지 — 셋 중 하나면 문장이 아직 안 끝난 것이다.
+       1) 앞이 약어로 끝났다 (Mrs. / J. / a.m.)
+       2) 이 조각에 글자가 하나도 없다 (닫는 따옴표만 남은 부스러기)
+       3) 이 조각이 소문자로 시작한다 — 영어는 문장을 대문자로 연다.
+          «“말이야!” 그가 말했다.» 처럼 대사 뒤에 붙는 말이 여기 걸린다.
+          전에는 이런 것이 통째로 다른 문장이 되어, 한 문장이 온점 앞에서 갈라졌다. */
+    const cont = prev && (
+      RX_ABBR.test(prev) || RX_INIT.test(prev) ||
+      !/[A-Za-z]/.test(s) ||
+      /^["'\u2018\u201c(\[]*[a-z]/.test(s));
+    if(cont) out[out.length-1]=prev+' '+s;
     else out.push(s);
   }
   return out.length?out:[p];
@@ -744,40 +1064,132 @@ const COMMON=new Set("the a an and or but so if then than that this these those 
 /* 책이 쉰 권 가까이 되니 한 줄로 늘어놓으면 찾기 어렵다 — 갈래로 묶는다 */
 /* 읽기 난이도 — 문장 길이와 긴 낱말 비율로 잰 값을 다섯 칸으로 나눠 둔다.
    책 목록을 이 순서로 묶어야 '어디서부터 읽을까'가 한눈에 보인다. */
-const LEVELS=[[1,'🟢 레벨 1 · 입문'],[2,'🟢 레벨 2 · 쉬움'],[3,'🟡 레벨 3 · 보통'],
-              [4,'🟠 레벨 4 · 어려움'],[5,'🔴 레벨 5 · 아주 어려움']];
-function bookOptions(){
-  const one=m=>`<option value="${m.id}" ${m.id===S.bookId?'selected':''}>${esc(m.title)}${m.author?' — '+esc(m.author):''}</option>`;
-  const grp=(label,list)=> list.length? `<optgroup label="${label}">${list.map(one).join('')}</optgroup>` : '';
+/* 레벨 — 이름과 색. 이모지 대신 색점을 쓴다: 🟢🟢 는 1·2단계가 같은 초록이라 구분이 안 됐다. */
+const LEVELS=[[1,'입문','#2f8f57'],[2,'쉬움','#5aa06a'],[3,'보통','#d8b84a'],
+              [4,'어려움','#d9843f'],[5,'아주 어려움','#b23a2b']];
+const lvOf=id=>LEVELS.find(l=>l[0]===id);
+const lvColor=m=>{ const l=lvOf(m&&m.level); return l? l[2] : 'var(--faint)'; };
+/* 겉장 색 — 레벨 색을 옅게 깔아 배경 위에 얹는다. 밝은 테마·어두운 테마 둘 다에서 성립한다. */
+function tint(hex){
+  const h=String(hex).replace('#',''); if(h.length!==6) return 'none';
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  return `linear-gradient(0deg, rgba(${r},${g},${b},.11), rgba(${r},${g},${b},.11))`;
+}
+const kWords=w=>w>=10000? Math.round(w/1000)+'천 단어' : (w||0).toLocaleString()+'단어';
+
+/* 서재 — 레벨별 가로 선반. 찾을 때는 선반 대신 결과만 죽 보여준다. */
+function pickerHTML(){
+  const q=(S._pq||'').trim().toLowerCase();
+  const card=m=>{
+    const c=lvColor(m);
+    return `<button class="pk-bk ${m.id===S.bookId?'on':''}" data-pick="${esc(m.id)}">
+      <div class="pk-cv" style="background-image:${tint(c)}"><span>${esc(m.title)}</span></div>
+      <div class="ba">${esc(m.author||'—')}</div>
+      <div class="bm">${kWords(m.words)}</div>
+    </button>`;
+  };
+  const rail=list=>`<div class="pk-rail">${list.map(card).join('')}</div>`;
   const byWords=(a,b)=>(a.words||0)-(b.words||0);
-  let html=grp('📂 내 책', MANIFEST.filter(m=>m.local));
-  LEVELS.forEach(([n,label])=>{
-    html+=grp(label, MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords));
+
+  if(q){
+    const hit=MANIFEST.filter(m=>(m.title||'').toLowerCase().includes(q)
+                              || (m.author||'').toLowerCase().includes(q)).sort(byWords);
+    return hit.length
+      ? `<div class="pk-shelf"><div class="pk-h"><span class="nm">찾은 책</span><span class="ct">${hit.length}권</span></div>${rail(hit)}</div>`
+      : `<div class="pk-none">'${esc(q)}' 로는 찾지 못했어요.</div>`;
+  }
+  const cur=MANIFEST.find(m=>m.id===S.bookId);
+  let html='';
+  if(cur && curBook){
+    const pct=Math.round(readCount()/Math.max(1,totalChaps())*100);
+    html+=`<button class="pk-now" data-pick="${esc(cur.id)}">
+      <div class="mini" style="background-image:${tint(lvColor(cur))}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="nt">${esc(cur.title)}</div>
+        <div class="ns">${S.chapter}장 · 읽은 챕터 ${readCount()}/${totalChaps()} · ${pct}%</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div></button>`;
+  }
+  const mine=MANIFEST.filter(m=>m.local);
+  if(mine.length) html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:var(--accent)"></span>
+      <span class="nm">내 책</span><span class="ct">${mine.length}권</span></div>${rail(mine)}</div>`;
+  LEVELS.forEach(([n,nm,col])=>{
+    const list=MANIFEST.filter(m=>!m.local&&m.level===n).sort(byWords);
+    if(!list.length) return;
+    html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:${col}"></span>
+      <span class="nm">레벨 ${n} · ${nm}</span><span class="ct">${list.length}권</span></div>${rail(list)}</div>`;
   });
-  return html + grp('📚 그 밖의 책', MANIFEST.filter(m=>!m.local&&!m.level));
+  const rest=MANIFEST.filter(m=>!m.local&&!m.level);
+  if(rest.length) html+=`<div class="pk-shelf"><div class="pk-h">
+      <span class="dot" style="background:var(--faint)"></span>
+      <span class="nm">그 밖의 책</span><span class="ct">${rest.length}권</span></div>${rail(rest)}</div>`;
+  return html;
+}
+function closePicker(){ $('#pickModal').classList.remove('show'); }
+function renderPicker(keepFocus){
+  const m=$('#pickModal');
+  m.innerHTML=`<div class="sheet pk-sheet">
+    <div class="pk-top">
+      <h3>서재</h3><span class="ct">${MANIFEST.length}권</span>
+      <button class="x" id="pkX" aria-label="닫기">✕</button>
+    </div>
+    <div class="pk-find">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" style="color:var(--faint)">
+        <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.7" y2="16.7"></line></svg>
+      <input id="pkQ" type="search" placeholder="제목이나 저자로 찾기" value="${esc(S._pq||'')}">
+    </div>
+    <div id="pkBody">${pickerHTML()}</div>
+    <a class="sitelink" href="ko/">한국 문학 서재 — 우리말 근대문학 읽기 →</a>
+  </div>`;
+  m.classList.add('show');
+  $('#pkX').addEventListener('click',closePicker);
+  m.addEventListener('click',e=>{ if(e.target===m) closePicker(); });
+  const q=$('#pkQ');
+  q.addEventListener('input',e=>{ S._pq=e.target.value; $('#pkBody').innerHTML=pickerHTML(); bindPicks(); });
+  if(keepFocus) q.focus();
+  bindPicks();
+}
+function bindPicks(){
+  $$('#pickModal [data-pick]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.pick; closePicker();
+    if(id!==S.bookId) switchBook(id);
+  }));
 }
 function renderSidebar(){
   if(!curBook){ renderFirstRun(); return; }   // 서재가 비면 첫 화면이 사이드바까지 그린다
   const b=book();
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
-  let html=`<div class="bookswitch">
+  const curM=MANIFEST.find(m=>m.id===S.bookId)||{};
+  let html=`<div class="sblibs">
+    <a class="on" href="./">📖 영어 원서</a>
+    <a href="ko/">📚 한국 문학</a>
+  </div>
+  <div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
-    <select id="bookSel" aria-label="책 선택">${bookOptions()}</select>
-    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
+    <button class="bw-now" id="bookSel" aria-label="책 고르기">
+      <span class="dot" style="background:${lvColor(curM)}"></span>
+      <span class="t">${esc(curM.title||b.title)}</span>
+      <span class="c">바꾸기</span>
+    </button>
+    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT · EPUB)</button>
   </div>
   <div class="bookcard">
     <div class="bt">${esc(b.title)}</div>
     <div class="ba">${esc(b.author)}</div>
-    <div class="progbar"><i style="width:${Math.round(readCount()/totalChaps()*100)}%"></i></div>
-    <div class="progtxt"><span>읽은 챕터 ${readCount()} / ${totalChaps()}</span><span>${Math.round(readCount()/totalChaps()*100)}%</span></div>
+    <div class="progbar"><i style="width:${Math.round(bookDone()*100)}%"></i></div>
+    <div class="progtxt"><span>읽은 챕터 ${readCount()} / ${totalChaps()}</span><span>책의 ${Math.round(bookDone()*100)}%</span></div>
+    <div class="progtxt"><span>${esc(minText(minLeft(bookWords()*(1-bookDone()))))}</span><span>분당 ${wpm()}단어</span></div>
   </div>`;
   const bms=(S.marks||[]).filter(m=>m.bookId===S.bookId);
-  if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 북마크 ${bms.length}</div>`+
+  if(bms.length) html+=`<div class="marklist"><div class="set-h">🔖 책갈피 ${bms.length}</div>`+
     bms.map(m=>`<div class="mk" data-mk="${esc(m.id)}">
       <span class="mkc">${m.chapter}장${m.page?` · ${m.page+1}쪽`:''}</span>
       <span class="mkt">${esc(m.text||'저장한 자리')}</span>
-      <button class="mkx" data-mkx="${esc(m.id)}" aria-label="북마크 삭제">✕</button></div>`).join('')+`</div>`;
+      <button class="mkx" data-mkx="${esc(m.id)}" aria-label="책갈피 삭제">✕</button></div>`).join('')+`</div>`;
   html+=`<input class="searchbox" id="search" placeholder="🔎 챕터 내용 검색…" value="${esc(S._q||'')}">`;
   const parts=Object.keys(b.parts||{});
   html+=`<div class="sectfilter" id="sectfilter">
@@ -788,7 +1200,11 @@ function renderSidebar(){
   b.chapters.forEach(c=>{
     if(pf && c.part!=pf) return;
     if(q){ const hay=(c.title? c.title+' ':'')+c.paras.join(' '); if(!hay.toLowerCase().includes(q)) return; }
-    if(c.part!==curPart){ curPart=c.part; if(parts.length>1) items+=`<div class="part-h">${esc((b.parts||{})[c.part]||('Part '+c.part))}</div>`; }
+    /* 책이 이름을 준 묶음만 머리글을 단다. 앞머리 장들처럼 이름 없는 묶음에
+       'Part 1' 이라고 적으면 책에 없는 이름을 지어내는 것이 된다. */
+    if(c.part!==curPart){ curPart=c.part;
+      const pn=(b.parts||{})[c.part];
+      if(pn&&parts.length) items+=`<div class="part-h">${esc(pn)}</div>`; }
     const label = c.title ? esc(c.title) : ('Chapter '+c.n);
     items+=`<div class="artitem ${c.n===S.chapter?'sel':''} ${isRead(c.n)?'done':''}" data-ch="${c.n}">
       <span class="readdot"></span>
@@ -807,9 +1223,9 @@ function renderSidebar(){
     e.stopPropagation();
     const id=x.dataset.mkx;
     S.marks=S.marks.filter(m=>m.id!==id); S.del.m[id]=Date.now();
-    save(); rtDrop('marks',id); toast('북마크를 뺐어요');
+    save(); rtDrop('marks',id); toast('책갈피를 뺐어요');
     renderSidebar(); const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt()); }));
-  const bs=$('#bookSel'); if(bs) bs.addEventListener('change',e=>switchBook(e.target.value));
+  const bs=$('#bookSel'); if(bs) bs.addEventListener('click',()=>renderPicker(true));
   const bi=$('#btnImport'); if(bi) bi.addEventListener('click',()=>renderImport());
 }
 async function switchBook(id){
@@ -840,7 +1256,6 @@ function renderMain(){
   if(S.view==='vocab'){ renderVocab(); return; }
   if(!curBook){ renderFirstRun(); return; }   // 서재가 비어 있으면 읽기 탭도 첫 화면으로
   const b=book(), c=chap(S.chapter);
-  const partName=(b.parts||{})[c.part]||('Part '+c.part);
   const words=c.paras.join(' ').split(/\s+/).length;
   const isImg=b.kind==='image'&&Array.isArray(c.pages)&&c.pages.length;
   let body='';
@@ -874,20 +1289,22 @@ function renderMain(){
   $('#main').innerHTML=`<div class="reader${pgOn()?' paged':''}">
     ${(pgOn()&&!isImg)?'':head}
     <div class="toolbar">
-      <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전</button>
-      <button id="btnNext" ${next?'':'disabled'}>다음 ›</button>
+      <button id="btnPrev" ${prev?'':'disabled'}>‹ 이전 장</button>
+      <button id="btnNext" ${next?'':'disabled'}>다음 장 ›</button>
       <span class="sep"></span>
       <button id="btnPlay"><span>🔊</span><span class="pl">듣기</span></button>
       <button id="btnTrans" class="${S._trans?'on':''}"><span>🌐</span><span class="hide-sm">문장 해석</span></button>
       <button id="btnVocab2" class="${S._showvocab?'on':''}"><span>✨</span><span class="hide-sm">단어 강조</span></button>
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
-      <button id="btnMark"><span>🔖</span><span class="hide-sm">북마크</span></button>
+      ${pgOn()? `<button id="btnCols"><span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span></button>`:''}
+      <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
       <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
     <div class="pageview" id="pageView">
-      <div class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
+      <div lang="en" class="body ${pgOn()?'paged':''} ${isImg?'imgbook':''} ${S._trans?'transmode':''} ${S._showvocab?'showvocab':''} ${S.para==='indent'?'indent':''} ${S.just==='on'?'just':''}" id="readBody">${(pgOn()&&!isImg)?head:''}${body}</div>
     </div>
+    ${pgOn()?`<div class="pgcap" id="pgCap"></div>`:''}
     ${pgOn()?`<div class="pagebar" id="pageBar">
       <button id="pgPrevBtn" aria-label="이전 페이지">‹</button>
       <span class="pgtrack"><i id="pgFill"></i></span>
@@ -910,6 +1327,11 @@ function renderMain(){
   $('#btnTrans').addEventListener('click',()=>{ S._trans=!S._trans; renderMain(); });
   $('#btnVocab2').addEventListener('click',()=>{ S._showvocab=!S._showvocab; renderMain(); });
   $('#btnPage').addEventListener('click',()=>{ S.paged=!pgOn(); save(); renderMain(); });
+  /* 한 쪽 ↔ 두 쪽. 단 수가 바뀌면 쪽 나눔이 통째로 달라지므로 다시 잰다.
+     좁은 화면에서는 애초에 두 쪽이 안 되므로 단추도 나오지 않는다. */
+  const bc=$('#btnCols');
+  if(bc) bc.addEventListener('click',()=>{ S.cols=S.cols===1?2:1; save(); renderMain(); });
+  paintCols();
   $('#btnMark').addEventListener('click',toggleMark);
   if(pgOn()){
     $('#pgPrevBtn').addEventListener('click',pgPrev);
@@ -919,6 +1341,9 @@ function renderMain(){
     if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>pgLayout()).catch(()=>{});
   }
   bindReaderInteractions();
+  /* 장을 열면 도구는 보인 채로 시작한다 — 넘기기 시작하면 그때 물러난다.
+     스크롤 모드에서는 얹혀 있지 않으니 이 표시가 아무 일도 하지 않는다. */
+  setChrome(true);
 }
 function toggleRead(n){
   const k=readKey(S.bookId,n);
@@ -934,7 +1359,9 @@ function bindReaderInteractions(){
     if(!pgOn()) return;
     // 글자를 누른 게 아니면 좌우 가장자리는 페이지 넘김으로 쓴다
     const r=vp.getBoundingClientRect(), x=e.clientX-r.left;
-    if(x<r.width*.16) pgPrev(); else if(x>r.width*.84) pgNext();
+    if(x<r.width*.16) pgPrev();
+    else if(x>r.width*.84) pgNext();
+    else toggleChrome();          // 가운데는 비어 있던 자리다 — 도구를 여닫는다
   });
   let sx=0,sy=0,st=0;
   vp.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); },{passive:true});
@@ -947,7 +1374,7 @@ function bindReaderInteractions(){
   },{passive:true});
 }
 
-/* ============ 북마크 ============
+/* ============ 책갈피 ============
    지금 보고 있는 쪽을 저장해 두고 나중에 그 자리로 돌아간다.
    스크롤 모드에서는 쪽이 없으므로 챕터 단위로 잡힌다. */
 function markAt(){
@@ -959,7 +1386,7 @@ function toggleMark(){
     S.marks=S.marks.filter(m=>m.id!==hit.id);
     S.del.m[hit.id]=Date.now();                       // 무덤을 남겨야 다시 안 생긴다
     save(); rtDrop('marks',hit.id);
-    toast('북마크를 뺐어요');
+    toast('책갈피를 뺐어요');
   }else{
     const body=$('#readBody');
     /* 지금 쪽 첫 문장을 미리보기로 — 목록에서 어디였는지 알아볼 수 있게 */
@@ -973,8 +1400,8 @@ function toggleMark(){
     S.marks.unshift({id,bookId:S.bookId,chapter:S.chapter,page:pgOn()?pgPage:0,text,t:Date.now()});
     S.marks=S.marks.slice(0,300);
     delete S.del.m[id];
-    save(); toast('북마크에 넣었어요');
-    logEvent('🔖','북마크 — Chapter '+S.chapter+(pgOn()?' '+(pgPage+1)+'쪽':''));
+    save(); toast('책갈피에 넣었어요');
+    logEvent('🔖','책갈피 — Chapter '+S.chapter+(pgOn()?' '+(pgPage+1)+'쪽':''));
   }
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   renderSidebar();
@@ -993,6 +1420,14 @@ let pgPage=0, pgTotal=1, pgWantLast=false, pgKey='', pgTimer=null;
 const pgOn=()=>S.paged!==false;
 const pgStep=vp=>vp.clientWidth+PG_GAP;
 
+/* 두 쪽 단추의 보임새. 창 폭이 아니라 본문이 실제로 차지하는 폭을 본다 —
+   옆단이 자리를 먹으면 창은 넓어도 두 쪽이 안 들어간다.
+   쪽 나눔이 쓰는 값과 같은 값이어야 단추와 결과가 어긋나지 않는다. */
+function paintCols(){
+  const b=$('#btnCols'), vp=$('#pageView');
+  if(!b) return;
+  b.style.display=(vp && vp.clientWidth>=900)? '' : 'none';
+}
 function pgLayout(keepEl){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body) return;
@@ -1001,7 +1436,9 @@ function pgLayout(keepEl){
 
   /* 쪽 아래로 남는 것: 페이지 바(윗여백 포함)와 main 의 아래 안쪽 여백.
      이걸 정확히 빼야 창이 세로로 더 스크롤되지 않는다 */
-  const bar=$('#pageBar'), mn=$('#main');
+  /* 툴바·쪽 바는 쪽 위에 얹혀 있어 흐름을 차지하지 않는다.
+     아래에 남는 것은 쪽 캡션 한 줄뿐이다. */
+  const bar=$('#pgCap'), mn=$('#main');
   const barH=bar? bar.offsetHeight+(parseFloat(getComputedStyle(bar).marginTop)||0) : 0;
   const padB=mn? (parseFloat(getComputedStyle(mn).paddingBottom)||0) : 0;
   /* visualViewport 는 아이폰 사파리에서 툴바를 뺀 '실제로 보이는' 높이를 준다.
@@ -1012,7 +1449,9 @@ function pgLayout(keepEl){
   const snap=v=>lh>0? Math.max(lh*4,Math.floor(v/lh)*lh) : Math.max(240,v);
   const setH=v=>{ vp.style.height=v+'px'; body.style.height=v+'px'; };
   const w=Math.round(vp.clientWidth);
-  const cols=w>=900?2:1;                               // 넓은 화면은 책처럼 두 쪽씩
+  /* 좁은 화면은 두 쪽이 들어갈 자리가 없어 늘 한 쪽이다.
+     자리가 되는 화면에서만 고를 수 있고, 그때 고른 값을 따른다. */
+  const cols=(w>=900&&S.cols!==1)?2:1;
 
   const img=body.classList.contains('imgbook');
   if(img){
@@ -1039,6 +1478,10 @@ function pgLayout(keepEl){
     if(next>=h) break;
     h=next; setH(h);
   }
+  paintCols();                                         // 폭이 정해진 뒤에 단추를 맞춘다
+  /* 얹힌 도구 줄 높이 — 장 제목이 그 아래로 내려앉게 넘긴다 */
+  const tb=document.querySelector('.reader.paged .toolbar');
+  document.documentElement.style.setProperty('--tbh', (tb? tb.offsetHeight+6 : 0)+'px');
   body.scrollLeft=0;                                   // 재는 동안은 첫 쪽에서
   if(!img) pgAvoidSplit();                             // 쪽에 걸친 문장을 다음 쪽으로
 
@@ -1060,7 +1503,12 @@ function pgAvoidSplit(){
   /* 한 문장씩 밀면 밀 때마다 조판이 통째로 다시 돌아, 쪽이 많은 장에서는 몇 초씩 걸린다.
      한 바퀴에 걸린 문장을 모두 찾아 한꺼번에 밀고, 몇 바퀴만 반복한다.
      바퀴마다 표식을 지우고 새로 재므로 앞 바퀴가 잘못 민 것도 스스로 바로잡힌다. */
-  for(let round=0; round<4; round++){
+  /* 한 바퀴 더 돌 때마다 조판이 다시 도니 무한정 돌 수는 없다.
+     다만 4바퀴로는 좁은 화면에서 다 못 밀어냈다 — 밀린 문장이 다음 쪽 경계를
+     또 넘기면 그 다음 바퀴에서야 잡히기 때문이다. 여덟 바퀴면 실측상 남지 않는다.
+     한 쪽보다 긴 문장은 앞에 표식이 붙은 채로 다시 걸리는데, 그런 것은
+     위의 pgbrk 검사에서 건너뛰므로 여기서 영영 돌지 않는다. */
+  for(let round=0; round<8; round++){
     const sents=[...body.querySelectorAll('.sent')];
     const bx=body.getBoundingClientRect().left, sl=body.scrollLeft;
     const pageOf=x=>Math.floor((x-bx+sl)/step);
@@ -1078,16 +1526,66 @@ function pgAvoidSplit(){
       const brk=document.createElement('span'); brk.className='pgbrk';
       s.parentNode.insertBefore(brk,s); moved++;
     }
-    if(hits.length<=2) break;                    // 한둘 남았다고 조판을 또 돌릴 것은 아니다
+    /* 예전엔 한둘 남으면 여기서 그만뒀다. 그런데 그 한둘을 민 결과가
+       또 경계를 넘는지 아무도 다시 재지 않아, 밀어낸 자리에 새 걸침이 남았다.
+       이제는 걸린 것이 없을 때까지(또는 여덟 바퀴까지) 재고 민다. */
   }
   return moved;
+}
+/* ===== 읽는 시간과 책 전체 위치 =====
+   챕터별 단어 수는 한 번 세어 두고 책이 바뀔 때만 다시 센다 —
+   10만 단어짜리 책을 쪽 넘길 때마다 다시 세면 화면이 멎는다. */
+let _cw={id:null,map:null,total:0};
+function chapWords(c){
+  const b=book(); if(!b) return 0;
+  if(_cw.id!==b.id){
+    const map={}; let tot=0;
+    b.chapters.forEach(x=>{ const w=(x.paras||[]).join(' ').split(/\s+/).filter(Boolean).length;
+      map[x.n]=w; tot+=w; });
+    _cw={id:b.id,map,total:tot};
+  }
+  return c? (_cw.map[c.n]||0) : 0;   // 장이 없어도 캐시는 채워 둔다 — bookWords 가 이걸 쓴다
+}
+const bookWords=()=>{ chapWords(chap(S.chapter)); return _cw.total||0; };
+/* 지금 챕터에서 얼마나 왔나 — 쪽 모드는 쪽으로, 스크롤 모드는 0 으로 본다 */
+const chapDone=()=> (pgOn()&&pgTotal>0)? Math.min(1,(pgPage+1)/pgTotal) : 0;
+/* 책을 통틀어 지금 어디쯤인가 (0~1) */
+function bookDone(){
+  const b=book(); if(!b) return 0;
+  const total=bookWords(); if(!total) return 0;
+  let before=0;
+  b.chapters.forEach(x=>{ if(x.n<S.chapter) before+=(_cw.map[x.n]||0); });
+  return Math.min(1,(before+chapWords(chap(S.chapter))*chapDone())/total);
+}
+const WPM_MIN=70, WPM_MAX=600;
+const wpm=()=>Math.min(WPM_MAX,Math.max(WPM_MIN,+S.wpm||200));
+function minLeft(words){ return Math.max(0,Math.round(words/wpm())); }
+const minText=m=> m<1? '1분 미만' : m<60? m+'분 남음'
+  : Math.floor(m/60)+'시간 '+(m%60? (m%60)+'분':'')+' 남음';
+/* 쪽을 넘긴 간격으로 읽는 속도를 조금씩 맞춘다.
+   너무 빠르거나(훑어보기) 너무 느린(자리를 뜬) 것은 버리고, 천천히 옮겨간다. */
+let pgSeenAt=0;
+function noteTurn(){
+  const now=Date.now();
+  if(pgSeenAt){
+    const secs=(now-pgSeenAt)/1000;
+    const perPage=chapWords(chap(S.chapter))/Math.max(1,pgTotal);
+    if(perPage>20 && secs>=5 && secs<=600){
+      const w=perPage/(secs/60);
+      if(w>=WPM_MIN&&w<=WPM_MAX) S.wpm=Math.round(wpm()*0.8+w*0.2);
+    }
+  }
+  pgSeenAt=now;
 }
 function pgApply(smooth){
   const vp=$('#pageView'), body=$('#readBody');
   if(!vp||!body||!pgOn()) return;
   body.scrollTo({left:pgPage*pgStep(vp),behavior:smooth?'smooth':'auto'});
   if(pgKey) S.pagePos[pgKey]=pgPage;                 // 읽던 쪽을 기억한다
-  const n=$('#pgNum'); if(n) n.textContent=`${pgPage+1} / ${pgTotal}`;
+  const left=minLeft(chapWords(chap(S.chapter))*(1-chapDone()));
+  const label=`${pgPage+1} / ${pgTotal} · ${minText(left)}`;
+  const n=$('#pgNum'); if(n) n.textContent=label;
+  const cap=$('#pgCap'); if(cap) cap.textContent=label;
   const bm=$('#btnMark'); if(bm) bm.classList.toggle('on',!!markAt());
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
 }
@@ -1100,9 +1598,21 @@ function pgPageOf(el){
 }
 function pgGo(i){
   if(!$('#readBody')) return;
+  chromeAfterTurn();                                 // 읽기 시작하면 도구는 물러난다
+  noteTurn();                                        // 넘긴 간격으로 읽는 속도를 맞춘다
   pgPage=Math.min(Math.max(0,i),pgTotal-1);
   pgApply(true);
   save();                                            // 읽던 쪽을 남기고 다른 기기에도 보낸다
+}
+/* 쪽 모드에서 툴바·쪽 바는 쪽 위에 얹혀 있다. 처음에는 보이고, 한 번 넘기면
+   읽기 시작한 것으로 보고 물러난다. 가운데를 톡 치면 다시 나온다.
+   처음 물러날 때 한 번만 그 사실을 알려 준다 — 안 그러면 도구가 사라진 걸로 보인다. */
+function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
+function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
+function chromeAfterTurn(){
+  if(!pgOn()||!document.body.classList.contains('chrome-show')) return;
+  setChrome(false);
+  if(!S.chromeHinted){ S.chromeHinted=true; save(); toast('가운데를 톡 치면 도구가 다시 나와요'); }
 }
 function pgNext(){
   if(!pgOn()) return;
@@ -1142,7 +1652,7 @@ async function toggleSentTrans(sent){
     return;
   }
   sent.classList.add('ko-open');
-  const div=document.createElement('span'); div.className='ko-inline'; div.textContent='해석 중…';
+  const div=document.createElement('span'); div.className='ko-inline'; div.lang='ko'; div.textContent='해석 중…';
   sent.parentNode.insertBefore(div, sent.nextSibling); sent._ko=div;
   div.addEventListener('click',()=>toggleSentTrans(sent));
   pgRelayout();
@@ -1185,12 +1695,27 @@ async function showWordPop(el){
   // stash for save
   pop._data={base,raw,ko:ko||'',dict};
 }
+/* 카드를 어디에 세울지.
+   옆에는 세우지 못한다 — 두 쪽 모드에서 글줄 옆 490px 은 빈 자리가 아니라
+   두 번째 단(읽을 글)이고, 한 쪽 모드에서도 1280px 창에서 130px 뿐이다(카드는 340px).
+   그래서 위아래로 고른다. 아래로 열면 앞으로 읽을 6줄을 덮지만 위로 열면
+   이미 읽은 줄을 덮으므로, 자리가 되면 위를 고른다. */
 function positionPop(pop,el){
   if(window.innerWidth<=640){ pop.style.left=''; pop.style.top=''; return; }
-  const r=el.getBoundingClientRect(); const pw=340;
-  let left=r.left+window.scrollX; let top=r.bottom+window.scrollY+8;
+  const r=el.getBoundingClientRect(), pw=340;
+  let left=r.left+window.scrollX;
   if(left+pw>window.scrollX+window.innerWidth-12) left=window.scrollX+window.innerWidth-pw-12;
-  pop.style.left=Math.max(12,left)+'px'; pop.style.top=top+'px';
+  pop.style.left=Math.max(12,left)+'px';
+  /* 높이는 자리를 미리 잡아 둔 덕에 지금 재도 마지막 높이와 같다.
+     다만 아직 display:none 이라 그냥 재면 0 이 나온다 — 잠깐 안 보이게 펴서 잰다. */
+  const shown=pop.classList.contains('show');
+  if(!shown){ pop.style.visibility='hidden'; pop.classList.add('show'); }
+  const ph=pop.offsetHeight;
+  if(!shown){ pop.classList.remove('show'); pop.style.visibility=''; }
+  const hd=document.querySelector('header.masthead');
+  const top0=hd? hd.getBoundingClientRect().bottom+8 : 8;
+  const above=r.top-8-ph, below=r.bottom+8;
+  pop.style.top=((above>=top0? above : Math.min(below, innerHeight-ph-12))+window.scrollY)+'px';
 }
 function hidePop(){ const p=$('#pop'); p.classList.remove('show'); p._data=null; }
 function saveWord(base,raw){
@@ -1362,33 +1887,87 @@ function setNav(){
   $('#vcount').textContent=Object.keys(S.words).length;
   $('#brandTitle').textContent=curBook?curBook.title:'Book Study';
 }
-function applyTheme(){ document.documentElement.setAttribute('data-theme',S.theme);
-  const fmap={serif:'var(--serif)',sans:'var(--sans)',palatino:'var(--palatino)'};
+/* 열 때 판 높이를 화면에 맞춘다. max-height 를 CSS 상수로 두면 사이트 탭과
+   머리말 높이가 화면 폭마다 달라져서 몇십 픽셀씩 아래로 삐져나간다. */
+function fitMenu(el){
+  if(!el||!el.classList.contains('show')) return;
+  el.style.maxHeight='';
+  const top=el.getBoundingClientRect().top;
+  el.style.maxHeight=Math.max(220,innerHeight-top-12)+'px';
+}
+function applyTheme(){ renderThemePickers();
+  document.documentElement.setAttribute('data-theme',S.theme);
+  const fmap={serif:'var(--serif)',sans:'var(--sans)',palatino:'var(--palatino)',
+    ridi:'var(--ridi)',barun:'var(--barun)',bon:'var(--bonmyeongjo)',
+    gowun:'var(--gowun)',pretendard:'var(--pretendard)'};
   document.documentElement.style.setProperty('--reading-font',fmap[S.font]||'var(--serif)');
   document.documentElement.style.setProperty('--fs',S.fs+'px');
-  if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 글자 크기가 바뀌면 쪽 수가 달라진다
-  $$('#optTheme button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
+  document.documentElement.style.setProperty('--lh',S.lh);
+  document.documentElement.style.setProperty('--measure',S.measure);
+  /* 문단 모양·양쪽 정렬은 본문에 붙는 표식으로 — 다시 그리지 않고 바로 바뀐다 */
+  const bd=$('#readBody');
+  if(bd){ bd.classList.toggle('indent',S.para==='indent');
+          bd.classList.toggle('just',S.just==='on'); }
+  const pv=$('#setPrev');                       // 견본 문단도 같이 따라간다
+  if(pv){ pv.classList.toggle('indent',S.para==='indent');
+          pv.classList.toggle('just',S.just==='on'); }
+  if(typeof pgRelayout==='function') requestAnimationFrame(()=>pgRelayout());  // 조판이 바뀌면 쪽 수가 달라진다
+  $$('#optTheme button, #thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.theme===S.theme));
+  /* 휴대폰 주소창도 같이 물들여야 테마가 화면 끝까지 이어진다 */
+  const th=THEMES.find(t=>t.k===S.theme)||THEMES[0];
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=th.c);
+  const tbtn=$('#btnTheme');
+  if(tbtn){ tbtn.title='테마: '+th.n+' (눌러서 바꾸기)';
+    tbtn.setAttribute('aria-label',tbtn.title);
+    tbtn.innerHTML=`<span class="set-swatch" style="background:${th.c}"></span>`; }
   $$('#optFont button').forEach(b=>b.classList.toggle('on',b.dataset.font===S.font));
+  $$('#optLh button').forEach(b=>b.classList.toggle('on',+b.dataset.lh===+S.lh));
+  $$('#optMeasure button').forEach(b=>b.classList.toggle('on',b.dataset.measure===S.measure));
+  $$('#optPara button').forEach(b=>b.classList.toggle('on',b.dataset.para===S.para));
+  $$('#optJust button').forEach(b=>b.classList.toggle('on',b.dataset.just===S.just));
   const r=$('#fsRange'); if(r){ r.value=S.fs; $('#fsVal').textContent=S.fs+'px'; }
 }
 function bindChrome(){
   $('#navRead').addEventListener('click',()=>{ S.view='read'; save(); setNav(); renderMain(); });
   $('#navVocab').addEventListener('click',()=>{ S.view='vocab'; save(); setNav(); renderMain(); });
-  $('#menuBtn').addEventListener('click',()=>document.body.classList.toggle('drawer'));
+  $('#menuBtn').addEventListener('click',()=>{
+    if(sbWide()){ S.sbhide=!S.sbhide; save(); paintSb(); }
+    else document.body.classList.toggle('drawer');
+  });
   $('#overlay').addEventListener('click',closeDrawer);
+  /* 폭이 960px 을 넘나들면 ☰ 가 하는 일이 바뀐다 — 그때마다 다시 칠한다 */
+  addEventListener('resize',paintSb);
+  paintSb();
   const setBtn=$('#setBtn'), setmenu=$('#setmenu');
-  setBtn.addEventListener('click',e=>{ e.stopPropagation(); setmenu.classList.toggle('show'); });
+  setBtn.addEventListener('click',e=>{ e.stopPropagation(); setmenu.classList.toggle('show'); fitMenu(setmenu); });
+  addEventListener('resize',()=>{ fitMenu(setmenu); fitMenu($('#thememenu')); });
   document.addEventListener('click',e=>{ if(!setmenu.contains(e.target)&&e.target!==setBtn) setmenu.classList.remove('show'); });
-  $$('#optTheme button').forEach(b=>b.addEventListener('click',()=>{ S.theme=b.dataset.theme; save(); applyTheme(); }));
+  /* 머리말 ◐ 와 설정 속 테마 줄은 같은 단추 묶음이다. 단추를 다시 그려도
+     끊기지 않게 상자에 한 번만 걸어 둔다. */
+  const tbtn=$('#btnTheme'), tmenu=$('#thememenu');
+  const shutTheme=()=>{ tmenu.classList.remove('show'); tbtn.setAttribute('aria-expanded','false'); };
+  tbtn.addEventListener('click',e=>{ e.stopPropagation();
+    const on=!tmenu.classList.contains('show');
+    tmenu.classList.toggle('show',on); tbtn.setAttribute('aria-expanded',String(on)); fitMenu(tmenu); });
+  document.addEventListener('click',e=>{ if(!tmenu.contains(e.target)&&e.target!==tbtn) shutTheme(); });
+  addEventListener('keydown',e=>{ if(e.key==='Escape') shutTheme(); });
+  [$('#optTheme'),tmenu].forEach(box=>box&&box.addEventListener('click',e=>{
+    const b=e.target.closest('[data-theme]'); if(!b) return;
+    S.theme=b.dataset.theme; save(); applyTheme(); shutTheme(); }));
   $$('#optFont button').forEach(b=>b.addEventListener('click',()=>{ S.font=b.dataset.font; save(); applyTheme(); }));
   $('#fsRange').addEventListener('input',e=>{ S.fs=+e.target.value; save(); applyTheme(); });
   $('#fsMinus').addEventListener('click',()=>{ S.fs=Math.max(15,S.fs-1); save(); applyTheme(); });
-  $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(30,S.fs+1); save(); applyTheme(); });
+  $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(34,S.fs+1); save(); applyTheme(); });
+  $$('#optLh button').forEach(b=>b.addEventListener('click',()=>{ S.lh=+b.dataset.lh; save(); applyTheme(); }));
+  $$('#optMeasure button').forEach(b=>b.addEventListener('click',()=>{ S.measure=b.dataset.measure; save(); applyTheme(); }));
+  $$('#optPara button').forEach(b=>b.addEventListener('click',()=>{ S.para=b.dataset.para; save(); applyTheme(); }));
+  $$('#optJust button').forEach(b=>b.addEventListener('click',()=>{ S.just=b.dataset.just; save(); applyTheme(); }));
   document.addEventListener('click',e=>{ const p=$('#pop'); if(p.classList.contains('show') && !p.contains(e.target) && !e.target.closest('.w')) hidePop(); });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){ hidePop(); stopTTS(); }
     if(S.view==='read' && document.activeElement.tagName!=='INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey){
-      const b=book(); const idx=b.chapters.findIndex(x=>x.n===S.chapter);
+      const b=book(); if(!b) return;            // 서재가 비면 넘길 챕터도 없다
+      const idx=b.chapters.findIndex(x=>x.n===S.chapter);
       const fwd=e.key==='ArrowRight'||e.key==='PageDown', back=e.key==='ArrowLeft'||e.key==='PageUp';
       if(!fwd&&!back) return;
       /* 페이지 모드에서는 방향키가 쪽을 넘긴다 — 끝에 닿으면 pgNext/pgPrev 가 챕터를 넘긴다 */
@@ -1401,6 +1980,44 @@ function bindChrome(){
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
+/* 넓은 화면에서만 접는다. 좁은 화면에서 이 표를 붙이면 서랍이 통째로 사라진다.
+   접었다 펴면 본문 폭이 300px 달라지므로 쪽을 다시 나눠야 한다. */
+const sbWide=()=>innerWidth>960;
+function paintSb(){
+  const on=sbWide()&&!!S.sbhide;
+  const was=document.body.classList.contains('sbhide');
+  document.body.classList.toggle('sbhide',on);
+  const b=$('#menuBtn');
+  if(b){
+    const t=sbWide()? (on?'옆단 펴기':'옆단 접기') : '메뉴';
+    b.title=t; b.setAttribute('aria-label',t);
+    b.setAttribute('aria-expanded', sbWide()? String(!on) : 'false');
+  }
+  if(on!==was) requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
+/* 읽는 동안 위 껍데기를 접는다. 폰에서, 스크롤 모드에서만 —
+   쪽 모드는 창이 스크롤되지 않아 접을 신호가 없고, 접어 봐야 자리가 비어 있을 뿐이다.
+   서랍이나 단어 팝업이 떠 있으면 건드리지 않는다 — 그때는 머리말이 기준점이다. */
+let _chY=0,_chTick=false;
+function chromeOnScroll(){
+  _chTick=false;
+  const off=s=>document.body.classList.toggle('chrome-off',s);
+  if(innerWidth>960||pgOn()) return off(false);
+  const y=Math.max(0,window.scrollY);
+  const pop=$('#pop');
+  if(document.body.classList.contains('drawer')||(pop&&pop.classList.contains('show'))){
+    off(false); _chY=y; return;
+  }
+  const dy=y-_chY;
+  if(Math.abs(dy)<6) return;              // 손떨림은 무시하고 쌓아 둔다
+  if(dy>0&&y>160) off(true); else if(dy<0) off(false);
+  _chY=y;
+}
+addEventListener('scroll',()=>{
+  if(!_chTick){ _chTick=true; requestAnimationFrame(chromeOnScroll); }
+},{passive:true});
+addEventListener('resize',()=>{ if(innerWidth>960) document.body.classList.remove('chrome-off'); });
+
 function setMastheadVar(){
   const m=document.querySelector('header.masthead');
   if(m) document.documentElement.style.setProperty('--mh', m.offsetHeight+'px');
@@ -1411,7 +2028,6 @@ window.addEventListener('orientationchange', ()=>setTimeout(setMastheadVar,200))
 /* ============ Local library (내 기기의 책) ============
    사용자가 고른 파일은 브라우저 IndexedDB 에만 저장됩니다.
    서버로 올라가거나 저장소(repo)에 커밋되지 않습니다. */
-const LP='local:';
 const IDB_NAME='bookstudy_local', IDB_STORE='books';
 function idb(){
   return new Promise((res,rej)=>{
@@ -1493,71 +2109,7 @@ function ensurePdfjs(){
   return _pdfjs;
 }
 
-/* ---- 텍스트 → 책 구조 변환 ---- */
-const RX_CHAP=/^chapter\s+([0-9]+|[a-z]+(?:[\s-][a-z]+)?)\b\.?\s*(.*)$/i;
-const RX_PART=/^(?:part|book)\s+([0-9]+|[ivxlcdm]+)\b\.?\s*(.*)$/i;
-const RX_HEAD=/^(prologue|epilogue|preface|foreword|afterword|introduction|author'?s note)\b/i;
-const RX_NUM=/^([0-9]{1,3})$/;
-/* Stave One(크리스마스 캐럴) · Adventure I.(셜록) · Letter 1(프랑켄슈타인) 같은 것들 */
-const RX_SECT=/^(stave|adventure|letter|canto|chapter)\s+([0-9]+|[ivxlcdm]+|[a-z]+(?:[\s-][a-z]+)?)\b\.?\s*(.*)$/i;
-/* 홀로 선 대문자 로마 숫자 = 장 번호 (암흑의 핵심, 위대한 개츠비, 변신 …).
-   소문자는 받지 않는다 — 본문에 낱말로 섞여 들어올 수 있어서. */
-const RX_ROMAN=/^([IVXLCDM]{1,7})\.?$/;
-/* "CHAPTER   PAGE" · "CONTENTS" — 장 제목이 아니라 목차표의 머리다.
-   이 줄로 열린 장에는 목차가 통째로 담기므로 나중에 버린다. */
-const RX_TOCH=/^(chapter\s+page|contents|table of contents)$/i;
-/* "_THE FIRST CHAPTER_" — 차례를 말로 적고 순서를 뒤집은 제목 (돌리틀 선생 이야기) */
-const RX_ORD=/^_?the\s+([a-z]+(?:[\s-][a-z]+)?)\s+chapter_?$/i;
-/* "01 My Early Home" — 번호와 제목이 한 줄에 붙은 형태 (검정 말 이야기).
-   문장 부호가 없고 제목이 대문자로 시작할 때만 받되, 번호가 지금까지 센
-   장 수의 바로 다음일 때만 인정한다. 출판사 광고 목록("6 AN OLD-FASHIONED
-   THANKSGIVING")이나 체스 기보("10. W.Q. to Q.R.'s 6th")가 장으로 잡히던 것을
-   이 차례 검사 하나가 걸러낸다. */
-const RX_NUMT=/^(\d{1,3})[.\s]\s*([A-Z][^.!?]{2,58})$/;
-/* "I. Granny Fox Gives Reddy a Scare" — 로마 숫자와 제목이 한 줄에.
-   RX_ROMAN 은 숫자만 홀로 선 줄만 받으므로 이런 장은 통째로 안 나뉘었다.
-   여기도 차례가 맞을 때만 인정한다. */
-const RX_ROMANT=/^([IVXLCDM]{1,7})\.\s+(\S[^.!?]{2,58})$/;
-const RX_BREAK=/^[*#•·—–\-\s]{2,}$/;
-const RVAL={i:1,v:5,x:10,l:50,c:100,d:500,m:1000};
-/* 제대로 된 로마 숫자 셈 — 예전엔 15까지 적어둔 표라 XVI 부터는 0 이 나왔고,
-   그 바람에 16장부터 제목이 "Chapter XVI" 처럼 숫자로 안 바뀌었다 */
-function rnum(s){
-  s=String(s).toLowerCase().replace(/\.$/,'');
-  if(/^\d+$/.test(s)) return +s;
-  if(!/^[ivxlcdm]+$/.test(s)||s.length>15) return 0;
-  let n=0;
-  for(let i=0;i<s.length;i++){
-    const v=RVAL[s[i]], nx=RVAL[s[i+1]]||0;
-    n += (nx>v) ? -v : v;
-  }
-  return n;
-}
-/* 영어 숫자말 → 숫자 ("TWENTY-ONE" → 21). 많은 소설이 장 제목을 이렇게 씁니다. */
-/* 차례를 말로 적은 것 → 숫자 ("FIRST" → 1) */
-const OWORD={first:1,second:2,third:3,fourth:4,fifth:5,sixth:6,seventh:7,eighth:8,
-  ninth:9,tenth:10,eleventh:11,twelfth:12,thirteenth:13,fourteenth:14,fifteenth:15,
-  sixteenth:16,seventeenth:17,eighteenth:18,nineteenth:19,twentieth:20,thirtieth:30};
-function onum(s){
-  const ps=String(s).toLowerCase().trim().split(/[\s-]+/).filter(Boolean);
-  if(ps.length===1) return OWORD[ps[0]]||0;
-  if(ps.length===2 && NWORD[ps[0]] && OWORD[ps[1]]) return NWORD[ps[0]]+OWORD[ps[1]];
-  return 0;
-}
-const NWORD={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
-  eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,
-  eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,
-  eighty:80,ninety:90,hundred:100};
-function wnum(s){
-  const ps=String(s).toLowerCase().trim().split(/[\s\-]+/).filter(Boolean);
-  if(!ps.length||ps.length>3||!ps.every(w=>NWORD[w]!==undefined)) return 0;
-  return ps.reduce((a,w)=>a+NWORD[w],0);
-}
-function cleanName(f){
-  return f.replace(/\.[a-z0-9]+$/i,'')
-    .replace(/\([^)]*(z-lib|1lib|library|libgen|anna)[^)]*\)/ig,'')
-    .replace(/[_]+/g,' ').replace(/\s{2,}/g,' ').replace(/[\s\-–—]+$/,'').trim();
-}
+/* 파싱 뭉치는 lib/bookparse.js 로 옮겼다 */
 
 async function pdfLines(file,prog){
   const lib=await ensurePdfjs();
@@ -1585,93 +2137,7 @@ async function pdfLines(file,prog){
   }
   return {lines,pages:pdf.numPages,hasFont:true};
 }
-function txtLines(text){
-  const lines=[];
-  /* 구텐베르크 평문에는 삽화·판권 덩어리가 본문 사이에 섞여 있다.
-     [Illustration: … [_Copyright 1894 by George Allen._]]
-     대괄호가 다시 닫힐 때까지 통째로 건너뛴다 — 산문은 줄 첫머리를 '[' 로 열지 않는다. */
-  let depth=0;
-  text.split(/\r?\n/).forEach(raw=>{
-    const s=raw.replace(/\s+/g,' ').trim();
-    if(depth===0 && /^\[/.test(s)) depth=1, depth+=(s.match(/\[/g)||[]).length-1;
-    else if(depth>0) depth+=(s.match(/\[/g)||[]).length;
-    if(depth>0){
-      depth-=(s.match(/\]/g)||[]).length;
-      if(depth<0) depth=0;
-      /* 오만과 편견은 장 제목이 삽화 덩어리의 마지막 줄이다:
-           [Illustration: ·PRIDE AND PREJUDICE·   …   Chapter I.]
-         덩어리를 통째로 버리면 1장이 통째로 사라지므로 제목 줄은 건져낸다. */
-      const bare=s.replace(/^[\[\s_]+|[\]\s_]+$/g,'');
-      if(bare && bare.length<60 && HEADISH.test(bare))
-        lines.push({s:bare, x0:0, x1:bare.length, h:0, yp:0, p:1});
-      else
-        lines.push({s:'', x0:0, x1:0, h:0, yp:0, p:1});   // 문단 구분은 남긴다
-      return;
-    }
-    lines.push({s, x0:/^\s/.test(raw)?20:0, x1:s.length, h:0, yp:0, p:1});
-  });
-  return {lines,pages:1,hasFont:false};
-}
 
-/* 쪽번호·반복 머리말 제거 — 같은 높이(y)에 같은 모양으로 반복되는 줄만 지운다.
-   위치를 함께 보므로 본문 한가운데 있는 장 번호는 살아남는다. */
-function stripFurniture(lines,pages){
-  if(pages<4) return lines;
-  const key=l=>Math.round(l.yp*40)+'|'+l.s.replace(/\d+/g,'#').toLowerCase();
-  const cnt={};
-  lines.forEach(l=>{ if(l.s.length<70) cnt[key(l)]=(cnt[key(l)]||0)+1; });
-  const th=Math.max(4,pages*0.25);
-  return lines.filter(l=>l.s.length>=70||cnt[key(l)]<=th);
-}
-/* 목차(Contents) 쪽은 통째로 버린다 — 제목 같은 줄이 몰려 있는 쪽 */
-/* 목차 쪽 버리기 — 한 쪽에 제목꼴 줄이 잔뜩 모여 있으면 그 쪽이 목차다.
-   쪽이 없는 TXT 는 파일 전체가 p=1 이라 이 셈이 성립하지 않는다.
-   (그대로 두면 장이 6개만 넘어도 책 전체를 목차로 보고 통째로 버렸다) */
-/* 목차 줄 찾기 — "I. 제목" · "01 제목" 처럼 번호와 제목이 붙은 형태까지 알아본다.
-   이걸 못 보면 목차가 통째로 남아, 목차 항목이 장 제목으로 잡히고
-   진짜 장 번호가 하나씩 밀린다. */
-const HEADISH=/^(chapter|part|book|stave|adventure|letter|canto)\s+[0-9a-z]+|^(prologue|epilogue|contents)\b|^[IVXLCDM]{1,7}\.?$|^[IVXLCDM]{1,7}\.\s+\S|^\d{1,3}[.\s]\s*[A-Z]/i;
-function dropTOC(lines,pages){
-  if(pages>=4){                       // PDF — 제목꼴 줄이 잔뜩 있는 '쪽'이 목차다
-    const per={};
-    lines.forEach(l=>{ if(l.s.length<40&&HEADISH.test(l.s)) per[l.p]=(per[l.p]||0)+1; });
-    const toc=new Set(Object.keys(per).filter(p=>per[p]>=6).map(Number));
-    return toc.size? lines.filter(l=>!toc.has(l.p)) : lines;
-  }
-  /* TXT — 쪽이 없으니 '촘촘히 몰린 구간'으로 찾는다.
-     목차에서는 제목줄이 서로 몇 줄 안에 붙어 있고, 본문에서는 수백 줄씩 떨어져 있다.
-     목차 줄인지 본문 제목인지는 '뒤에 무엇이 오는가'로 가른다 —
-     목차 줄 뒤에는 또 제목이 오고, 본문 제목 뒤에는 산문이 온다.
-     (글자가 같은 줄을 지우는 방식도 해봤지만, Emma·두 도시 이야기처럼
-      권마다 1장이 다시 나오는 책에서 진짜 1장 본문이 통째로 날아갔다) */
-  const tocish=i=>{
-    let seen=0;
-    for(let k=i+1;k<lines.length&&seen<3;k++){
-      const t=lines[k].s; if(!t) continue;
-      seen++; if(HEADISH.test(t)) return true;
-    }
-    return false;
-  };
-  const idx=[];
-  lines.forEach((l,i)=>{ if(l.s&&l.s.length<120&&HEADISH.test(l.s)&&tocish(i)) idx.push(i); });
-  if(idx.length<6) return lines;
-  const gap=i=>{ let n=0; for(let k=idx[i]+1;k<idx[i+1];k++) if(lines[k].s) n++; return n; };
-  const cut=new Set();
-  const flush=run=>{ if(run.length>=6) for(let k=run[0];k<=run[run.length-1];k++) cut.add(k); };
-  let run=[idx[0]];
-  for(let i=0;i<idx.length-1;i++){
-    if(gap(i)<=3) run.push(idx[i+1]);
-    else { flush(run); run=[idx[i+1]]; }
-  }
-  flush(run);
-  return cut.size? lines.filter((_,i)=>!cut.has(i)) : lines;
-}
-function titleCase(s){
-  s=String(s).replace(/^[\s\[\](){}.,;:*_-]+|[\s\[\](){}*_-]+$/g,'') || String(s);
-  return s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase())
-    .replace(/\b(i{1,3}|iv|vi{0,3}|ix|xi{0,3})\b/gi,m=>m.toUpperCase())   // Part Ii → Part II
-    .replace(/\bMc([a-z])/g,(m,c)=>'Mc'+c.toUpperCase());                 // Mcfadden → McFadden
-}
 /* 첫 몇 쪽에서 가장 큰 글씨 = 제목, 그 다음 = 지은이 (사용자가 고칠 수 있음) */
 /* ---- 쪽 자체가 그림인 PDF ----
    Wimpy Kid 처럼 손글씨와 그림이 한 장에 같이 그려진 책은 쪽 전체가 이미지이고,
@@ -1808,86 +2274,6 @@ function guessMeta(inp){
   return {title:titleCase(t.s), author:a?titleCase(a.s):''};
 }
 
-const clean=t=>String(t||'').replace(/^[\s\[\](){}.,;:*_-]+|[\s\[\](){}.,;:*_-]+$/g,'');
-function linesToBook(inp,meta){
-  let lines=stripFurniture(inp.lines,inp.pages);
-  lines=dropTOC(lines,inp.pages);
-  const med=a=>a.length? a.slice().sort((x,y)=>x-y)[Math.floor(a.length/2)] : 0;
-  // 본문 글자 크기 = 긴 줄들의 중앙값. 이보다 확실히 크면 제목 줄로 본다.
-  const bodyH=inp.hasFont? (med(lines.filter(l=>l.s.length>60).map(l=>l.h))||med(lines.map(l=>l.h))) : 0;
-  const big=l=> inp.hasFont ? (bodyH>0 && l.h>=bodyH*1.15 && l.s.length<=44) : (l.s.length<60);
-  const txt=lines.filter(l=>l.s);
-  const xs=txt.map(l=>l.x0).sort((a,b)=>a-b);
-  const rs=txt.map(l=>l.x1).sort((a,b)=>a-b);
-  const mL=xs.length? xs[Math.floor(xs.length*0.2)] : 0;
-  const mR=rs.length? rs[Math.floor(rs.length*0.8)] : 1e9;
-  const chapters=[]; const partName={}; let part=1, cur=null, prev=null, numbered=0;
-  const open=(title)=>{ cur={n:chapters.length+1,title,part,paras:[]}; chapters.push(cur); prev=null;
-    if(/^Chapter\s/i.test(title)) numbered++; };
-  lines.forEach(l=>{
-    const s=l.s;
-    if(!s){ prev=null; return; }              // 빈 줄(txt) → 문단 구분
-    if(big(l)){
-      let m;
-      if((m=s.match(RX_PART))){ part=rnum(m[1])||wnum(m[1])||part+1; partName[part]=titleCase(s); return; }
-      if(RX_TOCH.test(s)){ open('__toc__'); return; }   // 목차표 — 아래에서 버린다
-      if(RX_HEAD.test(s)){ open(titleCase(s)); return; }
-      if((m=s.match(RX_ORD))){ const n=onum(m[1]); if(n){ open('Chapter '+n); return; } }
-      if((m=s.match(RX_CHAP))){ const n=rnum(m[1])||wnum(m[1]);
-        const sub=clean(m[2]);
-        open('Chapter '+(n||m[1])+(sub?' · '+sub:'')); return; }
-      const wn=wnum(s); if(wn){ open('Chapter '+wn); return; }       // "ONE", "TWENTY-TWO"
-      if(RX_NUM.test(s)){ open('Chapter '+s); return; }              // "1", "2"
-      if((m=s.match(RX_NUMT)) && +m[1]===numbered+1){
-        open('Chapter '+(+m[1])+' · '+clean(m[2])); return; }
-      if((m=s.match(RX_ROMANT)) && rnum(m[1])===numbered+1){
-        open('Chapter '+rnum(m[1])+' · '+clean(m[2])); return; }
-      if((m=s.match(RX_ROMAN))){ const n=rnum(m[1]); if(n){ open('Chapter '+n); return; } }
-      if((m=s.match(RX_SECT))){                                      // Stave One / Adventure I.
-        const n=rnum(m[2])||wnum(m[2]); const sub=clean(m[3]);
-        open(titleCase(m[1])+' '+(n||m[2])+(sub?' · '+sub:'')); return; }
-      if(inp.hasFont){ open(titleCase(s)); return; }                 // 그 밖의 큰 글씨 = 제목
-    }
-    if(!cur) open('Opening');
-    const last=cur.paras[cur.paras.length-1];
-    const brk = !last || RX_BREAK.test(s) ||
-      (inp.hasFont ? (l.x0>mL+5 || (prev && prev.x1<mR-30)) : !prev);
-    if(brk) cur.paras.push(s);
-    else if(/[A-Za-z]-$/.test(last)) cur.paras[cur.paras.length-1]=last.slice(0,-1)+s;
-    else cur.paras[cur.paras.length-1]=last+' '+s;
-    prev=l;
-  });
-  // 목차 항목·속표지처럼 본문이 거의 없는 장은 버린다
-  const meaty=c=>c.paras.join(' ').split(/\s+/).filter(Boolean).length>=40;
-  /* 목차표로 열린 장은 버린다 — 다만 그것밖에 없으면 그게 본문이다.
-     장 제목이 하나도 없는 책(단편 모음 등)은 'Contents' 한 줄에 책 전체가 담긴다. */
-  let kept=chapters.filter(c=>c.title!=='__toc__' && meaty(c));
-  if(kept.length<2) kept=chapters.filter(meaty).map(c=>
-    c.title==='__toc__'? Object.assign({},c,{title:'Opening'}) : c);
-  if(!kept.length) throw new Error('본문을 찾지 못했어요');
-  // 첫 구조적 제목(Prologue/Chapter/Part) 앞의 속표지·판권 페이지는 버린다
-  const firstReal=kept.findIndex(c=>/^(prologue|chapter\s|part\s)/i.test(c.title));
-  const body=firstReal>0? kept.slice(firstReal) : kept;
-  // 파트 번호를 1..n 으로 정리
-  const used=[...new Set(body.map(c=>c.part))].sort((a,b)=>a-b);
-  const parts={};
-  body.forEach((c,i)=>{
-    const np=used.indexOf(c.part)+1;
-    if(used.length>1) parts[np]=partName[c.part]||('Part '+np);
-    c.part=used.length>1?np:1; c.n=i+1;
-  });
-  const words=body.reduce((a,c)=>a+c.paras.join(' ').split(/\s+/).filter(Boolean).length,0);
-  return {id:meta.id,title:meta.title,author:meta.author,lang:'en',local:true,words,parts,chapters:body};
-}
-/* 파일 내용(SHA-256)으로 id 를 만든다.
-   같은 책을 다시 넣어도 같은 id 가 나오므로 읽던 진도·단어가 그대로 이어진다.
-   (crypto.subtle 은 https/localhost 에서만 동작 — 아니면 시간값으로 대체) */
-async function fileId(file){
-  try{
-    const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
-    return LP+[...new Uint8Array(h)].slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }catch(e){ return LP+Date.now().toString(36); }
-}
 /* 저장공간이 부족할 때 브라우저가 내 책을 임의로 지우지 않도록 요청 */
 async function requestPersist(){
   try{
@@ -2262,11 +2648,11 @@ async function renderImport(state){
       </div>`;
   } else {
     body=`<h3>내 책 열기</h3>
-      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b> 파일을 고르면 장(chapter)으로 나눠
+      <p class="lead">가지고 있는 <b>PDF</b>·<b>TXT</b>·<b>EPUB</b> 파일을 고르면 장(chapter)으로 나눠
         읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
       <div class="impdrop" id="impDrop"><span class="di">📂</span>파일을 끌어다 놓거나 눌러서 고르기
-        <span class="ds">PDF · TXT · 백업 파일(.json)</span></div>
-      <input type="file" id="impFile" accept=".pdf,.txt,.json,application/pdf,text/plain,application/json" class="hide">
+        <span class="ds">PDF · TXT · EPUB · 백업 파일(.json)</span></div>
+      <input type="file" id="impFile" accept=".pdf,.txt,.epub,.json,application/pdf,text/plain,application/epub+zip,application/json" class="hide">
       ${list.length?`<div class="locallist"><div class="set-h">내 기기에 있는 책</div>
         ${list.map(b=>`<div class="li"><span class="t">${esc(b.title)}${b.ko?` <span class="m">🈯${b.ko}</span>`:''}</span>
           <span class="m">${b.broken?'⚠️ 글자가 깨짐':b.chapters+'장'}</span>
@@ -2319,7 +2705,7 @@ async function renderImport(state){
       const id=b.dataset.del;
       await idbDel(id); metaDel(id);
       S.del.b[id]=Date.now();                    // 무덤을 남긴다 — 안 그러면 다시 받아온다
-      S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 북마크도 같이 정리
+      S.marks=S.marks.filter(m=>m.bookId!==id);  // 그 책의 책갈피도 같이 정리
       upForget(id);
       save(); rtDrop('books',id);
       MANIFEST=MANIFEST.filter(x=>x.id!==id);
@@ -2378,6 +2764,18 @@ async function importFile(file){
         const g=guessMeta(inp);
         bk=linesToBook(inp,{id,title:g.title||name,author:g.author||''});
       }
+    } else if(/\.epub$/i.test(file.name)||file.type==='application/epub+zip'){
+      const ep=await epubLines(file,setP); setP(1,1);
+      const em={id,title:ep.title||name,author:ep.author||''};
+      bk=linesToBook(ep.inp,em);
+      /* 글에서 장을 못 찾아 통째로 한 장이 됐으면, EPUB 이 원래 나눠 둔 쪽을 장으로
+         쓴다. 본문에 제목 태그가 없는 책은 이 길밖에 없다 — 그냥 두면 수백 문단이
+         한 장에 뭉쳐 쪽 넘김도 목차도 쓸모가 없어진다. */
+      if(bk.chapters.length<=1&&(ep.docs||[]).filter(d=>d.lines.length).length>1){
+        const alt=docsToBook(ep.docs,em);
+        if(alt.chapters.length>1) bk=alt;
+      }
+      if(!bk.chapters.length) throw new Error('본문을 읽지 못했어요');
     } else {
       bk=linesToBook(txtLines(await file.text()),{id,title:name,author:''});
     }
@@ -2440,11 +2838,11 @@ function renderFirstRun(){
   curBook=null;
   $('#sidebar').innerHTML=`<div class="bookswitch">
     <div class="bw-lbl">📚 책 선택 · Book</div>
-    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT)</button>
+    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT · EPUB)</button>
   </div>
   <div class="emptymini">아직 책이 없어요.</div>`;
   $('#main').innerHTML=`<div class="empty"><div class="big">📂</div>
-    <p><b>내 PDF·TXT 파일을 열어 시작하세요.</b><br>
+    <p><b>내 PDF·TXT·EPUB 파일을 열어 시작하세요.</b><br>
       장(chapter)을 자동으로 나눠 읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
     <div class="mrow" style="max-width:280px;margin:18px auto 0">
       <button class="bigbtn primary" id="btnImport2">📂 내 책 열기</button>
@@ -2473,7 +2871,7 @@ function bootStuck(why){
   on('bootReset',()=>{ try{ localStorage.removeItem(MET_KEY); }catch(e){}
     S.bookId='holes'; S.chapter=1; save(); location.reload(); });
 }
-const BUILD='0824-0330';
+const BUILD='0825-0330';
 async function init(){
   applyTheme(); bindChrome(); setMastheadVar();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
