@@ -142,6 +142,19 @@ aside{border-right:1px solid var(--line);background:var(--surface);
 main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 #overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55;backdrop-filter:blur(1px)}
 
+/* ── 몰입 읽기(책만 전체화면) ─────────────────────────────
+   사이트 탭·머리말·옆단을 통째로 치우고 책만 남긴다. 창을 작게 줄여도
+   글이 차지하는 몫은 그대로라, 좁은 창에서도 읽히는 줄 수가 크게 는다.
+   브라우저 전체화면과는 따로 논다 — 앱 안에서 전체화면이 거절돼도 여기는 걸린다. */
+body.solo .sitetabs,
+body.solo header.masthead,
+body.solo aside,
+body.solo #overlay{display:none}
+/* 머리말이 사라졌으니 그 몫으로 빼 두던 65px 도 돌려받는다 */
+body.solo .wrap{grid-template-columns:minmax(0,1fr);
+  min-height:100vh;min-height:100dvh}
+body.solo main{padding:8px clamp(10px,3vw,28px) 10px}
+
 /* Sidebar */
 .side-h{font-family:inherit;font-size:15px;font-weight:700;margin:2px 0 12px;color:var(--sub)}
 .bookcard{background:var(--accent-soft);border-radius:12px;padding:13px 14px;margin-bottom:14px}
@@ -774,6 +787,7 @@ const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
+  solo:false,          // 책만 남기는 몰입 읽기
   /* 37rem 은 한 쪽 모드에서 한 줄 72자 — 권하는 최대(75자)의 끝이라 눈이 줄을
      되짚기 쉽다. 31rem 이면 60자. 두 쪽 모드는 단이 이미 더 좁아 영향이 없고
      (442px < 496px), 이미 쓰던 사람은 저장해 둔 값을 그대로 쓴다. */
@@ -1298,6 +1312,7 @@ function renderMain(){
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
       ${pgOn()? `<button id="btnCols"><span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span></button>`:''}
       <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
+      <button id="btnSolo" class="${S.solo?'on':''}" title="${S.solo?'전체화면 끄기':'전체화면'} (F)"><span>⛶</span><span class="hide-sm">${S.solo?'전체화면 끄기':'전체화면'}</span></button>
       <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
@@ -1333,6 +1348,7 @@ function renderMain(){
   if(bc) bc.addEventListener('click',()=>{ S.cols=S.cols===1?2:1; save(); renderMain(); });
   paintCols();
   $('#btnMark').addEventListener('click',toggleMark);
+  $('#btnSolo').addEventListener('click',()=>toggleSolo());
   if(pgOn()){
     $('#pgPrevBtn').addEventListener('click',pgPrev);
     $('#pgNextBtn').addEventListener('click',pgNext);
@@ -1607,6 +1623,34 @@ function pgGo(i){
 /* 쪽 모드에서 툴바·쪽 바는 쪽 위에 얹혀 있다. 처음에는 보이고, 한 번 넘기면
    읽기 시작한 것으로 보고 물러난다. 가운데를 톡 치면 다시 나온다.
    처음 물러날 때 한 번만 그 사실을 알려 준다 — 안 그러면 도구가 사라진 걸로 보인다. */
+/* ── 몰입 읽기 ────────────────────────────────────────────
+   껍데기를 치우는 일과 브라우저 전체화면을 거는 일을 나눠 둔다.
+   앱 안(웹뷰)에서는 전체화면 요청이 조용히 거절되는데, 그때도 화면은 정리돼야 한다. */
+function applySolo(){
+  document.body.classList.toggle('solo',!!S.solo);
+  const b=$('#btnSolo');
+  if(b){
+    b.classList.toggle('on',!!S.solo);
+    const t=S.solo?'전체화면 끄기':'전체화면';
+    b.title=t+' (F)';
+    const lb=b.querySelector('.hide-sm'); if(lb) lb.textContent=t;
+  }
+  setMastheadVar();                 // 머리말이 사라지면 --mh 도 0 이 돼야 한다
+  requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
+function toggleSolo(on){
+  S.solo = (on===undefined)? !S.solo : !!on;
+  save(); applySolo();
+  try{
+    if(S.solo){
+      const el=document.documentElement;
+      if(el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(()=>{});
+    }else if(document.fullscreenElement && document.exitFullscreen){
+      document.exitFullscreen().catch(()=>{});
+    }
+  }catch(e){}
+  if(S.solo){ setChrome(true); toast('책만 남겼어요 — F 를 누르거나 도구 줄에서 되돌립니다'); }
+}
 function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
 function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
 function chromeAfterTurn(){
@@ -1965,6 +2009,10 @@ function bindChrome(){
   document.addEventListener('click',e=>{ const p=$('#pop'); if(p.classList.contains('show') && !p.contains(e.target) && !e.target.closest('.w')) hidePop(); });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){ hidePop(); stopTTS(); }
+    const typing=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+    if((e.key==='f'||e.key==='F') && !typing && !e.metaKey && !e.ctrlKey && !e.altKey){
+      e.preventDefault(); toggleSolo(); return;
+    }
     if(S.view==='read' && document.activeElement.tagName!=='INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey){
       const b=book(); if(!b) return;            // 서재가 비면 넘길 챕터도 없다
       const idx=b.chapters.findIndex(x=>x.n===S.chapter);
@@ -1977,6 +2025,10 @@ function bindChrome(){
     }
   });
   window.addEventListener('scroll',()=>{ const p=$('#pop'); if(p.classList.contains('show')&&window.innerWidth>640) hidePop(); },{passive:true});
+  /* F11·Esc 로 전체화면을 빠져나오면 껍데기도 함께 되돌린다 */
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement && S.solo) toggleSolo(false);
+  });
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
@@ -2873,7 +2925,7 @@ function bootStuck(why){
 }
 const BUILD='0825-0330';
 async function init(){
-  applyTheme(); bindChrome(); setMastheadVar();
+  applyTheme(); bindChrome(); setMastheadVar(); applySolo();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
   $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…'
     +'<br><small style="color:var(--faint);font-size:11px">'+BUILD+'</small></p></div>';
