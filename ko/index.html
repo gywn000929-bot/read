@@ -342,7 +342,19 @@ body.chrome-show .pgcap{visibility:hidden}
 .bookdone{text-align:center;font-size:11px;color:var(--faint);margin-top:6px;
   line-height:15px;min-height:15px;font-variant-numeric:tabular-nums}  /* 빈 채로 높이를 재면 글자가 채워진 뒤 아래가 밀린다 — 자리를 미리 잡아 둔다 */
 
+/* ── 몰입 읽기(책만 전체화면) ─────────────────────────────
+   사이트 탭·머리말·옆단을 통째로 치우고 책만 남긴다. 창을 작게 줄여도
+   글이 차지하는 몫은 그대로라, 좁은 창에서도 읽히는 줄 수가 크게 는다.
+   브라우저 전체화면과는 따로 논다 — 앱 안에서 전체화면이 거절돼도 여기는 걸린다. */
+body.solo .sitetabs,
+body.solo header.top,
+body.solo aside,
+body.solo #overlay{display:none}
+body.solo .wrap{grid-template-columns:minmax(0,1fr)}
+body.solo main{padding:8px clamp(8px,2.5vw,18px) 10px}
+
 /* ── 작품 해설 ───────────────────────────────────────────── */
+body.nonote .note{display:none}
 .note{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;
   padding:14px 16px;margin:0 0 20px;background:var(--surface);max-width:var(--measure)}
 /* 해설은 쪽 바깥에 있어서, 첫 장에서는 모든 쪽마다 자리를 지킨다.
@@ -502,6 +514,9 @@ body.chrome-show .pgcap{visibility:hidden}
       <div class="row"><div class="lb">문단</div><div class="opts" id="optPara">
         <button data-para="gap">여백</button><button data-para="indent">들여쓰기</button>
       </div></div>
+      <div class="row"><div class="lb">작품 해설</div><div class="opts" id="optNote">
+        <button data-note="show">보임</button><button data-note="hide">숨김</button>
+      </div></div>
       <div class="cloud" id="cloudBox"></div>
     </div>
   </div>
@@ -546,6 +561,8 @@ const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
+  hidenote:false,      // 장 첫머리의 작품 해설을 감출지
+  solo:false,          // 책만 남기는 몰입 읽기
   bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
   /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
   del:{b:{},m:{}}, lastT:0, cloudAt:0 };
@@ -1102,6 +1119,7 @@ function render(){
         <span class="sep"></span>
         <button id="btnCols" title="한 쪽 / 두 쪽 보기"></button>
         <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
+        <button id="btnSolo"><span>⛶</span><span class="hide-sm"></span></button>
       </div>
       ${S.chapter===curBook.chapters[0].n? note : ''}
       <div class="pageview" id="pageView">
@@ -1128,6 +1146,7 @@ function render(){
   if(bp&&prevCh) bp.addEventListener('click',()=>gotoCh(prevCh.n));
   if(bn&&nextCh) bn.addEventListener('click',()=>gotoCh(nextCh.n));
   $('#btnMark').addEventListener('click',toggleMark);
+  $('#btnSolo').addEventListener('click',()=>toggleSolo());
   $('#btnCols').addEventListener('click',()=>{
     S.cols=S.cols===1?2:1; save(); paintCols(); pgRelayout(); });
   paintCols();
@@ -1252,6 +1271,34 @@ function pgApply(smooth){
 }
 /* 쪽 바는 쪽 위에 얹혀 있다. 장을 열면 보이고, 한 번 넘기면 읽기 시작한 것으로
    보고 물러난다. 가운데를 톡 치면 다시 나온다. 처음 물러날 때 한 번만 알려 준다. */
+/* ── 몰입 읽기 ────────────────────────────────────────────
+   껍데기를 치우는 일과 브라우저 전체화면을 거는 일을 나눠 둔다.
+   앱 안(웹뷰)에서는 전체화면 요청이 조용히 거절되는데, 그때도 화면은 정리돼야 한다. */
+function applySolo(){
+  document.body.classList.toggle('solo',!!S.solo);
+  const b=$('#btnSolo');
+  if(b){
+    b.classList.toggle('on',!!S.solo);
+    const t=S.solo?'전체화면 끄기':'전체화면';
+    b.title=t+' (F)';
+    const lb=b.querySelector('.hide-sm'); if(lb) lb.textContent=t;
+  }
+  sbHeight();                       // 머리말이 사라지면 --hh 도 0 이 돼야 한다
+  requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
+function toggleSolo(on){
+  S.solo = (on===undefined)? !S.solo : !!on;
+  save(); applySolo();
+  try{
+    if(S.solo){
+      const el=document.documentElement;
+      if(el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(()=>{});
+    }else if(document.fullscreenElement && document.exitFullscreen){
+      document.exitFullscreen().catch(()=>{});
+    }
+  }catch(e){}
+  if(S.solo){ setChrome(true); toast('책만 남겼어요 — F 를 누르거나 도구 줄에서 되돌립니다'); }
+}
 function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
 function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
 function chromeAfterTurn(){
@@ -1444,6 +1491,8 @@ function applyTheme(){
   $$('#optLh button').forEach(b=>b.classList.toggle('on',+b.dataset.lh===+S.lh));
   $$('#optMeasure button').forEach(b=>b.classList.toggle('on',b.dataset.measure===S.measure));
   $$('#optPara button').forEach(b=>b.classList.toggle('on',b.dataset.para===S.para));
+  document.body.classList.toggle('nonote',!!S.hidenote);
+  $$('#optNote button').forEach(b=>b.classList.toggle('on',(b.dataset.note==='hide')===!!S.hidenote));
   const r=$('#fsRange'); if(r){ r.value=S.fs; $('#fsVal').textContent=S.fs+'px'; }
   requestAnimationFrame(()=>pgRelayout());
 }
@@ -1487,6 +1536,8 @@ function bindChrome(){
   $$('#optLh button').forEach(b=>b.addEventListener('click',()=>{ S.lh=+b.dataset.lh; save(); applyTheme(); }));
   $$('#optMeasure button').forEach(b=>b.addEventListener('click',()=>{ S.measure=b.dataset.measure; save(); applyTheme(); }));
   $$('#optPara button').forEach(b=>b.addEventListener('click',()=>{ S.para=b.dataset.para; save(); applyTheme(); }));
+  $$('#optNote button').forEach(b=>b.addEventListener('click',()=>{
+    S.hidenote=b.dataset.note==='hide'; save(); applyTheme(); }));   // 해설은 CSS 로 감춘다 — 다시 그리지 않으니 읽던 쪽 그대로다
   $('#fsRange').addEventListener('input',e=>{ S.fs=+e.target.value; save(); applyTheme(); });
   $('#fsMinus').addEventListener('click',()=>{ S.fs=Math.max(15,S.fs-1); save(); applyTheme(); });
   $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(32,S.fs+1); save(); applyTheme(); });
@@ -1494,6 +1545,11 @@ function bindChrome(){
     if(e.target.tagName==='INPUT') return;
     if(e.key==='ArrowRight'||e.key==='PageDown'){ e.preventDefault(); pgNext(); }
     if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); pgPrev(); }
+    if(e.key==='f'||e.key==='F'){ e.preventDefault(); toggleSolo(); }
+  });
+  /* F11·Esc 로 전체화면을 빠져나오면 껍데기도 함께 되돌린다 */
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement && S.solo) toggleSolo(false);
   });
   let rt=null;
   addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>pgRelayout(),180); });
@@ -1501,7 +1557,7 @@ function bindChrome(){
 
 const BUILD='0825-ko-01';
 async function init(){
-  bindChrome(); applyTheme();
+  bindChrome(); applyTheme(); applySolo();
   try{ await loadManifest(); }
   catch(e){ $('#main').innerHTML='<div class="empty">책 목록을 불러오지 못했어요.</div>'; return; }
   const first=(MANIFEST.find(m=>m.id===S.bookId)||MANIFEST[0]);
