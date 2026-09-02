@@ -142,6 +142,19 @@ aside{border-right:1px solid var(--line);background:var(--surface);
 main{min-width:0;padding:clamp(20px,4vw,48px) clamp(18px,5vw,64px)}
 #overlay{display:none;position:fixed;inset:0;background:rgba(20,16,10,.42);z-index:55;backdrop-filter:blur(1px)}
 
+/* ── 몰입 읽기(책만 전체화면) ─────────────────────────────
+   사이트 탭·머리말·옆단을 통째로 치우고 책만 남긴다. 창을 작게 줄여도
+   글이 차지하는 몫은 그대로라, 좁은 창에서도 읽히는 줄 수가 크게 는다.
+   브라우저 전체화면과는 따로 논다 — 앱 안에서 전체화면이 거절돼도 여기는 걸린다. */
+body.solo .sitetabs,
+body.solo header.masthead,
+body.solo aside,
+body.solo #overlay{display:none}
+/* 머리말이 사라졌으니 그 몫으로 빼 두던 65px 도 돌려받는다 */
+body.solo .wrap{grid-template-columns:minmax(0,1fr);
+  min-height:100vh;min-height:100dvh}
+body.solo main{padding:8px clamp(10px,3vw,28px) 10px}
+
 /* Sidebar */
 .side-h{font-family:inherit;font-size:15px;font-weight:700;margin:2px 0 12px;color:var(--sub)}
 .bookcard{background:var(--accent-soft);border-radius:12px;padding:13px 14px;margin-bottom:14px}
@@ -774,6 +787,7 @@ const defaults = { theme:'beige', font:'serif', fs:20, view:'read',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
+  solo:false,          // 책만 남기는 몰입 읽기
   /* 37rem 은 한 쪽 모드에서 한 줄 72자 — 권하는 최대(75자)의 끝이라 눈이 줄을
      되짚기 쉽다. 31rem 이면 60자. 두 쪽 모드는 단이 이미 더 좁아 영향이 없고
      (442px < 496px), 이미 쓰던 사람은 저장해 둔 값을 그대로 쓴다. */
@@ -878,11 +892,11 @@ async function loadBook(id){
   return b;
 }
 const book = () => curBook;
-const chap = (n) => curBook.chapters.find(c=>c.n===n);
-const totalChaps = () => curBook.chapters.length;
+const chap = (n) => curBook? curBook.chapters.find(c=>c.n===n) : null;
+const totalChaps = () => curBook? curBook.chapters.length : 0;
 const readKey = (bid,n) => bid+':'+n;
 const isRead = (n) => !!S.read[readKey(S.bookId,n)];
-const readCount = () => book().chapters.filter(c=>isRead(c.n)).length;
+const readCount = () => book()? book().chapters.filter(c=>isRead(c.n)).length : 0;
 const wordList = () => Object.values(S.words).sort((a,b)=>b.t-a.t);
 
 /* ============ Utils ============ */
@@ -1159,6 +1173,7 @@ function bindPicks(){
   }));
 }
 function renderSidebar(){
+  if(!curBook){ renderFirstRun(); return; }   // 서재가 비면 첫 화면이 사이드바까지 그린다
   const b=book();
   const q=(S._q||'').trim().toLowerCase();
   const pf=S._part||0;
@@ -1253,6 +1268,7 @@ function applyPagedChrome(){
 function renderMain(){
   applyPagedChrome();
   if(S.view==='vocab'){ renderVocab(); return; }
+  if(!curBook){ renderFirstRun(); return; }   // 서재가 비어 있으면 읽기 탭도 첫 화면으로
   const b=book(), c=chap(S.chapter);
   const words=c.paras.join(' ').split(/\s+/).length;
   const isImg=b.kind==='image'&&Array.isArray(c.pages)&&c.pages.length;
@@ -1296,6 +1312,7 @@ function renderMain(){
       <button id="btnPage" class="${pgOn()?'on':''}"><span>${pgOn()?'📄':'📜'}</span><span class="hide-sm">${pgOn()?'페이지':'스크롤'}</span></button>
       ${pgOn()? `<button id="btnCols"><span>${S.cols===1?'▯':'▯▯'}</span><span class="hide-sm">${S.cols===1?'한 쪽':'두 쪽'}</span></button>`:''}
       <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
+      <button id="btnSolo" class="${S.solo?'on':''}" title="${S.solo?'전체화면 끄기':'전체화면'} (F)"><span>⛶</span><span class="hide-sm">${S.solo?'전체화면 끄기':'전체화면'}</span></button>
       <button class="readmark ${isRead(c.n)?'done':''}" id="readMark">${isRead(c.n)?'✓ 읽음':'읽음 표시'}</button>
       <span class="grp hide-sm">👆 단어를 탭하면 뜻·저장</span>
     </div>
@@ -1331,6 +1348,7 @@ function renderMain(){
   if(bc) bc.addEventListener('click',()=>{ S.cols=S.cols===1?2:1; save(); renderMain(); });
   paintCols();
   $('#btnMark').addEventListener('click',toggleMark);
+  $('#btnSolo').addEventListener('click',()=>toggleSolo());
   if(pgOn()){
     $('#pgPrevBtn').addEventListener('click',pgPrev);
     $('#pgNextBtn').addEventListener('click',pgNext);
@@ -1605,6 +1623,34 @@ function pgGo(i){
 /* 쪽 모드에서 툴바·쪽 바는 쪽 위에 얹혀 있다. 처음에는 보이고, 한 번 넘기면
    읽기 시작한 것으로 보고 물러난다. 가운데를 톡 치면 다시 나온다.
    처음 물러날 때 한 번만 그 사실을 알려 준다 — 안 그러면 도구가 사라진 걸로 보인다. */
+/* ── 몰입 읽기 ────────────────────────────────────────────
+   껍데기를 치우는 일과 브라우저 전체화면을 거는 일을 나눠 둔다.
+   앱 안(웹뷰)에서는 전체화면 요청이 조용히 거절되는데, 그때도 화면은 정리돼야 한다. */
+function applySolo(){
+  document.body.classList.toggle('solo',!!S.solo);
+  const b=$('#btnSolo');
+  if(b){
+    b.classList.toggle('on',!!S.solo);
+    const t=S.solo?'전체화면 끄기':'전체화면';
+    b.title=t+' (F)';
+    const lb=b.querySelector('.hide-sm'); if(lb) lb.textContent=t;
+  }
+  setMastheadVar();                 // 머리말이 사라지면 --mh 도 0 이 돼야 한다
+  requestAnimationFrame(()=>{ paintCols(); pgRelayout(); });
+}
+function toggleSolo(on){
+  S.solo = (on===undefined)? !S.solo : !!on;
+  save(); applySolo();
+  try{
+    if(S.solo){
+      const el=document.documentElement;
+      if(el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(()=>{});
+    }else if(document.fullscreenElement && document.exitFullscreen){
+      document.exitFullscreen().catch(()=>{});
+    }
+  }catch(e){}
+  if(S.solo){ setChrome(true); toast('책만 남겼어요 — F 를 누르거나 도구 줄에서 되돌립니다'); }
+}
 function setChrome(on){ document.body.classList.toggle('chrome-show',on); }
 function toggleChrome(){ setChrome(!document.body.classList.contains('chrome-show')); }
 function chromeAfterTurn(){
@@ -1787,7 +1833,7 @@ function exportCSV(){
   wordList().forEach(w=>{ const def=(w.dict&&w.dict.meanings&&w.dict.meanings[0])?w.dict.meanings[0].def:''; rows.push([w.w,w.ko,def,w.src,w.when]); });
   const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=book().title+'_wordbook.csv'; a.click(); URL.revokeObjectURL(url);
+  const a=document.createElement('a'); a.href=url; a.download=(book()?book().title:'Book Study')+'_wordbook.csv'; a.click(); URL.revokeObjectURL(url);
   toast('CSV로 내보냈어요');
 }
 
@@ -1963,8 +2009,13 @@ function bindChrome(){
   document.addEventListener('click',e=>{ const p=$('#pop'); if(p.classList.contains('show') && !p.contains(e.target) && !e.target.closest('.w')) hidePop(); });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){ hidePop(); stopTTS(); }
+    const typing=/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+    if((e.key==='f'||e.key==='F') && !typing && !e.metaKey && !e.ctrlKey && !e.altKey){
+      e.preventDefault(); toggleSolo(); return;
+    }
     if(S.view==='read' && document.activeElement.tagName!=='INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey){
-      const b=book(); const idx=b.chapters.findIndex(x=>x.n===S.chapter);
+      const b=book(); if(!b) return;            // 서재가 비면 넘길 챕터도 없다
+      const idx=b.chapters.findIndex(x=>x.n===S.chapter);
       const fwd=e.key==='ArrowRight'||e.key==='PageDown', back=e.key==='ArrowLeft'||e.key==='PageUp';
       if(!fwd&&!back) return;
       /* 페이지 모드에서는 방향키가 쪽을 넘긴다 — 끝에 닿으면 pgNext/pgPrev 가 챕터를 넘긴다 */
@@ -1974,6 +2025,10 @@ function bindChrome(){
     }
   });
   window.addEventListener('scroll',()=>{ const p=$('#pop'); if(p.classList.contains('show')&&window.innerWidth>640) hidePop(); },{passive:true});
+  /* F11·Esc 로 전체화면을 빠져나오면 껍데기도 함께 되돌린다 */
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement && S.solo) toggleSolo(false);
+  });
   if(synth){ synth.onvoiceschanged=()=>{}; }
 }
 function closeDrawer(){ document.body.classList.remove('drawer'); }
@@ -2327,8 +2382,9 @@ async function restoreBackup(data,quiet){
     toast(`복원 완료 — 책 ${added}권 추가${dup?`, ${dup}권은 이미 있음`:''}`);
   }
   if(added) logEvent('📥','백업 불러오기 — 책 '+added+'권 추가');
-  if(MANIFEST.find(m=>m.id===S.bookId)){ setNav(); renderSidebar(); renderMain(); }
-  else if(MANIFEST.length) await switchBook(MANIFEST[0].id);
+  if(!MANIFEST.length){ renderFirstRun(); return; }              // 복원했지만 책이 하나도 없을 때
+  if(!curBook || !MANIFEST.find(m=>m.id===S.bookId)) await switchBook(MANIFEST[0].id);
+  else { setNav(); renderSidebar(); renderMain(); }
 }
 
 /* ---- 자동 동기화 (Firebase Realtime Database) ----
@@ -2706,7 +2762,10 @@ async function renderImport(state){
       save(); rtDrop('books',id);
       MANIFEST=MANIFEST.filter(x=>x.id!==id);
       toast('삭제했어요');
-      if(S.bookId===id){ closeImport(); await switchBook(MANIFEST[0].id); return; }
+      if(S.bookId===id){
+        closeImport();
+        if(!MANIFEST.length){ renderFirstRun(); return; }
+        await switchBook(MANIFEST[0].id); return; }
       renderImport();
     }));
   }
@@ -2825,6 +2884,26 @@ async function saveImported(){
   logEvent('📂','내 책 추가 — '+t); toast('서재에 넣었어요');
 }
 
+/* 서재가 비어 있을 때(웹 서버 없이 파일로 열었거나 books/ 가 없을 때).
+   예전에는 안내 문구만 띄우고 정작 파일을 열 버튼이 없어 막다른 길이었다. */
+function renderFirstRun(){
+  curBook=null;
+  $('#sidebar').innerHTML=`<div class="bookswitch">
+    <div class="bw-lbl">📚 책 선택 · Book</div>
+    <button class="bw-add" id="btnImport">＋ 내 책 열기 (PDF · TXT · EPUB)</button>
+  </div>
+  <div class="emptymini">아직 책이 없어요.</div>`;
+  $('#main').innerHTML=`<div class="empty"><div class="big">📂</div>
+    <p><b>내 PDF·TXT·EPUB 파일을 열어 시작하세요.</b><br>
+      장(chapter)을 자동으로 나눠 읽기·단어장·플래시카드·퀴즈를 그대로 쓸 수 있어요.</p>
+    <div class="mrow" style="max-width:280px;margin:18px auto 0">
+      <button class="bigbtn primary" id="btnImport2">📂 내 책 열기</button>
+    </div>
+    <p style="font-size:13px;margin-top:18px">🔒 파일은 이 브라우저 안에서만 처리되고 어디로도 전송되지 않습니다.</p></div>`;
+  $$('#btnImport,#btnImport2').forEach(b=>b.addEventListener('click',()=>renderImport()));
+  setNav();
+}
+
 /* ============ Init ============ */
 /* 무슨 일이 있어도 '불러오는 중…' 에 갇히지 않게 한다.
    어디서 막혔는지 보여주고, 손으로 빠져나올 수 있는 길을 준다. */
@@ -2846,7 +2925,7 @@ function bootStuck(why){
 }
 const BUILD='0825-0330';
 async function init(){
-  applyTheme(); bindChrome(); setMastheadVar();
+  applyTheme(); bindChrome(); setMastheadVar(); applySolo();
   /* 판 번호를 같이 적는다 — 이게 안 보이면 기기가 아직 옛 코드를 돌리고 있다는 뜻 */
   $('#main').innerHTML='<div class="empty"><div class="big">📖</div><p>불러오는 중…'
     +'<br><small style="color:var(--faint);font-size:11px">'+BUILD+'</small></p></div>';
@@ -2857,8 +2936,8 @@ async function init(){
   }catch(e){ MANIFEST=[]; }
   // 내 책 목록은 저장소가 느리면 기다리지 않는다 — 뒤에서 채워 넣는다
   MANIFEST=MANIFEST.concat(await withTimeout(localManifest(),5000,[]));
-  if(!MANIFEST.length){ clearTimeout(watchdog); booted=true;
-    $('#main').innerHTML='<div class="empty"><div class="big">⚠️</div><p>목록을 불러오지 못했어요.<br>GitHub Pages 등 웹 서버에서 열거나,<br>내 PDF·TXT·EPUB 파일을 열어주세요.</p></div>'; return; }
+  // 서재가 비면 막다른 안내 대신 파일을 열 수 있는 첫 화면을 그린다
+  if(!MANIFEST.length){ clearTimeout(watchdog); booted=true; renderFirstRun(); return; }
   /* 목록이 아직 안 왔어도 읽던 책이 내 책이면 그 한 권만 바로 가져온다 —
      목록을 못 기다렸다고 엉뚱한 책으로 열리면 안 된다 */
   if(!MANIFEST.find(m=>m.id===S.bookId)&&String(S.bookId).startsWith(LP)){
