@@ -224,8 +224,8 @@ aside{border-right:1px solid var(--line);background:var(--surface);padding:16px;
 *{box-sizing:border-box}
 html,body{margin:0}
 /* 앱 UI 는 프리텐다드 한 벌. 본문과 설정 미리보기만 설정에서 고른 글꼴을 쓴다
-   (.body·.prev p 가 --reading-font 로 따로 잡는다). 장 제목과 작품 해설은
-   읽는 자리에 있는 글이라 명조 그대로 둔다. */
+   (.body·.prev p 가 --reading-font 로 따로 잡는다). 장 제목은 읽는 자리에
+   있는 글이라 명조 그대로 둔다. 작품 해설도 이제 한 장이라 본문 글꼴을 따른다. */
 body{background:var(--bg);color:var(--ink);font-family:var(--pretendard);line-height:1.6;
   -webkit-font-smoothing:antialiased;overflow-x:hidden}
 button,input,select,textarea{font-family:inherit}
@@ -353,23 +353,13 @@ body.solo #overlay{display:none}
 body.solo .wrap{grid-template-columns:minmax(0,1fr)}
 body.solo main{padding:8px clamp(8px,2.5vw,18px) 10px}
 
-/* ── 작품 해설 ───────────────────────────────────────────── */
-body.nonote .note{display:none}
-.note{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;
-  padding:14px 16px;margin:0 0 20px;background:var(--surface);max-width:var(--measure)}
-/* 해설은 쪽 바깥에 있어서, 첫 장에서는 모든 쪽마다 자리를 지킨다.
-   390×760 폰에서 237px — 화면의 3분의 1이었다. 폰에서는 접어 두고 눌러서 편다. */
-.note summary{font-family:var(--myeongjo);font-size:14px;color:var(--accent);font-weight:700;
-  cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
-.note summary::-webkit-details-marker{display:none}
-.note summary::after{content:'⌄';margin-left:auto;color:var(--faint);font-size:15px;
-  line-height:1;transition:transform .2s}
-.note[open] summary::after{transform:rotate(180deg)}
-.note[open] summary{margin-bottom:7px}
-.note.none summary{color:var(--faint)}
-.note p{font-family:var(--pretendard);font-size:13.5px;line-height:1.75;color:var(--sub);margin:0;
-  max-width:none;text-indent:0}
-.note.none{border-left-color:var(--line);color:var(--faint)}
+/* ── 작품 해설 ─────────────────────────────────────────────
+   해설은 장 첫머리의 상자가 아니라 목차 맨 끝의 한 장이다. 종이책이 해설을
+   뒤에 싣는 것과 같다 — 읽는 자리를 비워 두고, 볼 사람은 목차에서 찾아간다.
+   본문과 같은 쪽 나눔·글꼴을 쓰므로 따로 꾸밀 것이 없고, 목차에서만 표시한다. */
+.artitem.noteitem{margin-top:9px;border-top:1px solid var(--line);border-radius:0 0 11px 11px;
+  padding-top:14px}
+.artitem.noteitem .h .cn{color:var(--faint)}
 
 /* ── 서재 ───────────────────────────────────────────────── */
 .modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
@@ -514,9 +504,6 @@ body.nonote .note{display:none}
       <div class="row"><div class="lb">문단</div><div class="opts" id="optPara">
         <button data-para="gap">여백</button><button data-para="indent">들여쓰기</button>
       </div></div>
-      <div class="row"><div class="lb">작품 해설</div><div class="opts" id="optNote">
-        <button data-note="show">보임</button><button data-note="hide">숨김</button>
-      </div></div>
       <div class="cloud" id="cloudBox"></div>
     </div>
   </div>
@@ -561,7 +548,6 @@ const defaults={ theme:'beige', font:'myeongjo', fs:19, lh:1.9, measure:'34rem',
   chromeHinted:false,  // 도구가 처음 물러날 때 한 번만 알려 준다
   cols:2,              // 넓은 화면에서 두 쪽씩 볼지 (2=두 쪽, 1=한 쪽)
   sbhide:false,        // 넓은 화면에서 옆단을 접어 두었는지
-  hidenote:false,      // 장 첫머리의 작품 해설을 감출지
   solo:false,          // 책만 남기는 몰입 읽기
   bookId:null, chapter:1, pagePos:{}, read:{}, marks:[], _q:'',
   /* 동기화 — 무덤(지운 것)이 없으면 다른 기기가 지운 것을 되살려 놓는다 */
@@ -650,16 +636,32 @@ async function loadBook(id){
   const b=await r.json(); cache[id]=b; return b;
 }
 const book=()=>curBook;
-const chap=n=>curBook.chapters.find(c=>c.n===n)||curBook.chapters[0];
+/* 작품 해설은 목차 맨 끝에 붙는 가짜 장 하나다. 진짜 장 번호와 부딪히지 않도록
+   아주 큰 수를 준다 — 그래야 '앞의 장을 다 읽었다'는 셈(bookDone)도 그대로 맞는다. */
+const NOTE_N=1e9;
+let _note=null;                      // 지금 책의 해설. 없는 책이면 null
+function buildNote(){
+  const t=curBook&&curBook.note? String(curBook.note).trim() : '';
+  if(!t) return null;
+  const paras=t.split(/\n\s*\n|\n/).map(x=>x.trim()).filter(Boolean);
+  /* 낱말 수는 여기서 한 번만 센다. 책 전체 분량(_cw.map)에는 넣지 않는다 —
+     해설은 본문이 아니라서, 넣으면 읽은 비율이 책마다 어긋난다. */
+  return {n:NOTE_N, title:'작품 해설', part:null, paras,
+    words:paras.reduce((a,x)=>a+x.split(/\s+/).filter(Boolean).length,0)};
+}
+const chap=n=>(n===NOTE_N&&_note)? _note
+  : (curBook.chapters.find(c=>c.n===n)||curBook.chapters[0]);
 const totalChaps=()=>curBook.chapters.length;
 const isVerse=()=>curBook && curBook.kind==='verse';
+const onNote=()=>S.chapter===NOTE_N&&!!_note;
 
 async function openBook(id, ch){
   try{ curBook=await loadBook(id); }
   catch(e){ toast('책을 불러오지 못했어요'); return; }
   S.bookId=id;
+  _note=buildNote();                 // 책이 바뀌면 해설도 새로 만든다
   S.chapter = ch || (chap(S.chapter)? S.chapter : curBook.chapters[0].n);
-  if(!curBook.chapters.find(c=>c.n===S.chapter)) S.chapter=curBook.chapters[0].n;
+  if(!onNote() && !curBook.chapters.find(c=>c.n===S.chapter)) S.chapter=curBook.chapters[0].n;
   save(); render();
 }
 
@@ -1058,6 +1060,12 @@ function renderSidebar(){
       <span class="h"><span class="cn">${c.n}</span> ${esc(c.title||('제'+c.n+'장'))}</span>
     </div>`;
   });
+  /* 해설은 늘 맨 끝. 종이책이 뒤에 싣는 자리 그대로다 */
+  if(_note && (!q || ('작품 해설 '+_note.paras.join(' ')).toLowerCase().includes(q)))
+    items+=`<div class="artitem noteitem ${onNote()?'sel':''} ${S.read[S.bookId+':'+NOTE_N]?'done':''}" data-sbch="${NOTE_N}">
+      <span class="readdot"></span>
+      <span class="h"><span class="cn">✦</span> 작품 해설</span>
+    </div>`;
   html+= items || '<div class="emptymini">찾는 장이 없습니다.</div>';
   sb.innerHTML=html;
 
@@ -1086,20 +1094,18 @@ function render(){
   document.documentElement.classList.toggle('paged', true);
   const m=$('#main');
   if(!curBook){ m.innerHTML='<div class="empty">서재에서 책을 골라주세요.</div>'; return; }
-  const b=book(), c=chap(S.chapter);
+  const b=book(), nt=onNote(), c=nt? _note : chap(S.chapter);
   $('#hTitle').textContent=b.title;
   const ci=b.chapters.findIndex(x=>x.n===S.chapter);
-  const prevCh=b.chapters[ci-1], nextCh=b.chapters[ci+1];
+  /* 해설은 마지막 장 다음에 온다 — 마지막 장에서 '다음'을 누르면 해설로 간다 */
+  const prevCh = nt? b.chapters[totalChaps()-1] : b.chapters[ci-1];
+  const nextCh = nt? null : (b.chapters[ci+1] || _note);
 
-  /* 넓은 화면은 펼친 채로 둔다 — 자리가 남으니 접을 이유가 없다 */
-  const note = `<details class="note${b.note?'':' none'}"${innerWidth>960?' open':''}>
-      <summary>작품 해설</summary>
-      <p>${b.note? esc(b.note) : '아직 해설을 붙이지 못했습니다.'}</p>
-    </details>`;
-
+  /* 시집이라도 해설은 산문이다 — 행을 그대로 두는 시 짜임을 씌우지 않는다 */
+  const verse=isVerse()&&!nt;
   const paras=(c.paras||[]).map((p,i)=>{
     if(/^###\s+/.test(p)) return `<p class="sect">${esc(p.replace(/^###\s+/,''))}</p>`;
-    if(isVerse()) return `<p>${esc(p)}</p>`;
+    if(verse) return `<p>${esc(p)}</p>`;
     const ss=splitSentences(p).map(s=>`<span class="sent">${esc(s)}</span>`).join(' ');
     return `<p>${ss}</p>`;
   }).join('');
@@ -1108,22 +1114,21 @@ function render(){
       <div class="kicker">${esc(b.title)}</div>
       <h1>${c.title? esc(c.title) : esc(b.title)}</h1>
       <div class="byline"><b>${esc(b.author||'')}</b>
-        ${totalChaps()>1?`<span>${c.n} / ${totalChaps()}장</span>`:''}
+        ${nt? '<span>목차 맨 끝</span>' : (totalChaps()>1?`<span>${c.n} / ${totalChaps()}장</span>`:'')}
         <span>${chapWords(c).toLocaleString()}낱말</span></div>
     </div>`;
 
   m.innerHTML=`<div class="reader paged">
       <div class="toolbar">
         <button id="btnPrevCh"${prevCh?'':' disabled'}>‹ 이전 장</button>
-        <button id="btnNextCh"${nextCh?'':' disabled'}>다음 장 ›</button>
+        <button id="btnNextCh"${nextCh?'':' disabled'}>${nextCh&&nextCh.n===NOTE_N?'작품 해설 ›':'다음 장 ›'}</button>
         <span class="sep"></span>
         <button id="btnCols" title="한 쪽 / 두 쪽 보기"></button>
         <button id="btnMark"><span>🔖</span><span class="hide-sm">책갈피</span></button>
         <button id="btnSolo"><span>⛶</span><span class="hide-sm"></span></button>
       </div>
-      ${S.chapter===curBook.chapters[0].n? note : ''}
       <div class="pageview" id="pageView">
-        <div class="body paged ${isVerse()?'verse':''} ${S.para==='indent'&&!isVerse()?'indent':''}" id="readBody">
+        <div class="body paged ${verse?'verse':''} ${S.para==='indent'&&!verse?'indent':''}" id="readBody">
           ${head}${paras}
         </div>
       </div>
@@ -1150,9 +1155,6 @@ function render(){
   $('#btnCols').addEventListener('click',()=>{
     S.cols=S.cols===1?2:1; save(); paintCols(); pgRelayout(); });
   paintCols();
-  /* 해설을 펴고 접으면 쪽 높이가 달라진다 — 그때마다 다시 잰다 */
-  const nt=m.querySelector('.note');
-  if(nt) nt.addEventListener('toggle',()=>requestAnimationFrame(()=>pgRelayout()));
   bindSwipe();
   setChrome(true);        // 장을 열면 보인 채로 — 넘기기 시작하면 물러난다
   pgKey=S.bookId+':'+S.chapter;
@@ -1237,6 +1239,7 @@ function chapWords(c){
   if(_cw.id!==S.bookId){ _cw={id:S.bookId,map:{}};
     (curBook.chapters||[]).forEach(x=>{ _cw.map[x.n]=(x.paras||[])
       .reduce((a,p)=>a+p.split(/\s+/).filter(Boolean).length,0); }); }
+  if(c&&c.n===NOTE_N) return _note? _note.words : 0;
   return c? (_cw.map[c.n]||0) : 0;
 }
 const bookWords=()=>Object.values(_cw.map).reduce((a,b)=>a+b,0);
@@ -1262,7 +1265,7 @@ function pgApply(smooth){
   const n=$('#pgNum'); if(n) n.textContent=label;
   const cap=$('#pgCap'); if(cap) cap.textContent=label;
   const bi=$('#bookDone');
-  if(bi) bi.textContent=(totalChaps()>1? `${S.chapter}장 · ` : '') + `책 ${bookDone()}%`;
+  if(bi) bi.textContent=(onNote()? '작품 해설 · ' : (totalChaps()>1? `${S.chapter}장 · ` : '')) + `책 ${bookDone()}%`;
   const f=$('#pgFill'); if(f) f.style.width=(pgTotal<2?100:(pgPage/(pgTotal-1))*100)+'%';
   const p=$('#pPrev'), x=$('#pNext');
   if(p) p.disabled = pgPage<=0 && S.chapter<=curBook.chapters[0].n;
@@ -1309,12 +1312,16 @@ function chromeAfterTurn(){
 function pgGo(i){ chromeAfterTurn(); pgPage=Math.min(Math.max(0,i),pgTotal-1); pgApply(true); }
 function pgNext(){
   if(pgPage<pgTotal-1) return pgGo(pgPage+1);
+  if(onNote()) return;                          // 해설이 책의 끝이다
   const i=curBook.chapters.findIndex(c=>c.n===S.chapter);
   if(i<totalChaps()-1){ S.read[S.bookId+':'+S.chapter]=1;
     S.chapter=curBook.chapters[i+1].n; pgPage=0; save(); render(); }
+  else if(_note){ S.read[S.bookId+':'+S.chapter]=1;
+    S.chapter=NOTE_N; pgPage=0; save(); render(); }
 }
 function pgPrev(){
   if(pgPage>0) return pgGo(pgPage-1);
+  if(onNote()){ S.chapter=curBook.chapters[totalChaps()-1].n; pgPage=1e9; save(); render(); return; }
   const i=curBook.chapters.findIndex(c=>c.n===S.chapter);
   if(i>0){ S.chapter=curBook.chapters[i-1].n; pgPage=1e9; save(); render(); }
 }
@@ -1329,7 +1336,6 @@ function bindSwipe(){
     dx<0? pgNext() : pgPrev();
   },{passive:true});
   vp.addEventListener('click',e=>{
-    if(e.target.closest('.note')) return;
     const r=vp.getBoundingClientRect(), x=e.clientX-r.left;
     if(x<r.width*.18) pgPrev();
     else if(x>r.width*.82) pgNext();
@@ -1376,7 +1382,7 @@ function libHTML(){
       <div class="mini"></div>
       <div style="flex:1;min-width:0">
         <div class="nt">${esc(cur.title)}</div>
-        <div class="ns">${esc(cur.author||'')} · ${S.chapter}장 · ${done}%</div>
+        <div class="ns">${esc(cur.author||'')} · ${onNote()?'작품 해설':S.chapter+'장'} · ${done}%</div>
         <div class="bar"><i style="width:${done}%"></i></div>
       </div></button>`;
   }
@@ -1491,8 +1497,6 @@ function applyTheme(){
   $$('#optLh button').forEach(b=>b.classList.toggle('on',+b.dataset.lh===+S.lh));
   $$('#optMeasure button').forEach(b=>b.classList.toggle('on',b.dataset.measure===S.measure));
   $$('#optPara button').forEach(b=>b.classList.toggle('on',b.dataset.para===S.para));
-  document.body.classList.toggle('nonote',!!S.hidenote);
-  $$('#optNote button').forEach(b=>b.classList.toggle('on',(b.dataset.note==='hide')===!!S.hidenote));
   const r=$('#fsRange'); if(r){ r.value=S.fs; $('#fsVal').textContent=S.fs+'px'; }
   requestAnimationFrame(()=>pgRelayout());
 }
@@ -1536,8 +1540,6 @@ function bindChrome(){
   $$('#optLh button').forEach(b=>b.addEventListener('click',()=>{ S.lh=+b.dataset.lh; save(); applyTheme(); }));
   $$('#optMeasure button').forEach(b=>b.addEventListener('click',()=>{ S.measure=b.dataset.measure; save(); applyTheme(); }));
   $$('#optPara button').forEach(b=>b.addEventListener('click',()=>{ S.para=b.dataset.para; save(); applyTheme(); }));
-  $$('#optNote button').forEach(b=>b.addEventListener('click',()=>{
-    S.hidenote=b.dataset.note==='hide'; save(); applyTheme(); }));   // 해설은 CSS 로 감춘다 — 다시 그리지 않으니 읽던 쪽 그대로다
   $('#fsRange').addEventListener('input',e=>{ S.fs=+e.target.value; save(); applyTheme(); });
   $('#fsMinus').addEventListener('click',()=>{ S.fs=Math.max(15,S.fs-1); save(); applyTheme(); });
   $('#fsPlus').addEventListener('click',()=>{ S.fs=Math.min(32,S.fs+1); save(); applyTheme(); });
